@@ -141,6 +141,15 @@ export interface CreativeVersion {
   uploaded_at: string
 }
 
+export interface MetaAdAccount {
+  id: string
+  brand_id: string
+  meta_account_id: string
+  meta_account_name: string
+  created_at: string
+  brand?: Brand
+}
+
 export interface CreativeComment {
   id: string
   creative_id: string

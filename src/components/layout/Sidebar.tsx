@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Users,
   Building2,
+  Share2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { UserRole } from "@/types"
@@ -28,6 +29,7 @@ const adminNavFull = [
   { href: "/admin/brands", label: "브랜드 관리", icon: Building2 },
   { href: "/admin/users", label: "계정 관리", icon: Users },
   { href: "/admin/campaigns", label: "브랜드 KPI", icon: BarChart2 },
+  { href: "/admin/meta", label: "Meta 연결", icon: Share2 },
   { href: "/admin/activity", label: "운영 현황 작성", icon: FileText },
   { href: "/admin/calendar", label: "캘린더 관리", icon: Calendar },
   { href: "/admin/creatives", label: "소재 관리", icon: Image },
