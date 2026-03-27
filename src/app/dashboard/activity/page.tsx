@@ -1,18 +1,17 @@
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { formatDate } from "@/lib/utils"
 
 export default async function ActivityPage() {
+  const h = await headers()
+  const userId = h.get("x-user-id")
+  const brandIdsHeader = h.get("x-user-brand-ids")
+  if (!userId) redirect("/login")
+
+  const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
-
-  const { data: brandAccess } = await supabase
-    .from("user_brand_access")
-    .select("brand_id")
-    .eq("user_id", user.id)
-  const brandIds = brandAccess?.map((b) => b.brand_id) ?? []
-
   const { data: activities } = await supabase
     .from("activities")
     .select("id, title, content, channel, activity_date, campaigns(name)")

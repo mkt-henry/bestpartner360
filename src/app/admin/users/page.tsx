@@ -1,9 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
+import { headers } from "next/headers"
 import CreateUserForm from "@/components/admin/CreateUserForm"
+import UserRow from "@/components/admin/UserRow"
 import { Users } from "lucide-react"
 
 export default async function AdminUsersPage() {
   const supabase = await createClient()
+  const h = await headers()
+  const currentUserId = h.get("x-user-id") ?? ""
 
   const { data: users } = await supabase
     .from("user_profiles")
@@ -22,58 +26,53 @@ export default async function AdminUsersPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Users className="w-5 h-5 text-slate-500" />
-        <h1 className="text-xl font-bold text-slate-900">계정 관리</h1>
+        <Users className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">계정 관리</h1>
       </div>
 
       {/* Create User */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-4">새 고객 계정 생성</h2>
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">새 고객 계정 생성</h2>
         <CreateUserForm brands={brands ?? []} />
       </div>
 
       {/* User List */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">계정 목록</h2>
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">계정 목록</h2>
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">이름</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">이메일</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">역할</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">브랜드</th>
+            <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">이름</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">이메일</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">역할</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">브랜드</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">액션</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {users?.map((u) => {
               const userAccess = accesses?.filter((a) => a.user_id === u.id) ?? []
+              const brandIds = userAccess.map((a) => a.brand_id)
+              const brandNames = userAccess
+                .map((a) => (a.brands as unknown as { name: string } | null)?.name ?? "")
+                .filter(Boolean)
               return (
-                <tr key={u.id} className="hover:bg-slate-50 transition">
-                  <td className="px-5 py-3 text-sm text-slate-900 font-medium">
-                    {u.full_name ?? "-"}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-slate-600">{u.email}</td>
-                  <td className="px-5 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        u.role === "admin"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {u.role === "admin" ? "관리자" : "고객"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-slate-500">
-                    {userAccess.map((a) => (a.brands as unknown as { name: string } | null)?.name).join(", ") || "-"}
-                  </td>
-                </tr>
+                <UserRow
+                  key={u.id}
+                  user={u}
+                  brands={brands ?? []}
+                  currentBrandIds={brandIds}
+                  isSelf={u.id === currentUserId}
+                  brandNames={brandNames}
+                />
               )
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

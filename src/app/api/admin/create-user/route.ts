@@ -38,6 +38,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: createError.message }, { status: 400 })
   }
 
+  // user_profiles 직접 upsert (트리거 실패 대비)
+  if (newUser.user) {
+    await adminClient.from("user_profiles").upsert({
+      id: newUser.user.id,
+      email,
+      full_name,
+      role: "viewer",
+    }, { onConflict: "id" })
+  }
+
   // 브랜드 접근 권한 부여
   if (brand_id && newUser.user) {
     await adminClient.from("user_brand_access").insert({

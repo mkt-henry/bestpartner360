@@ -1,3 +1,4 @@
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
@@ -7,24 +8,17 @@ import { STATUS_LABELS, STATUS_COLORS } from "@/types"
 import type { CalendarEventStatus } from "@/types"
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  const h = await headers()
+  const userId = h.get("x-user-id")
+  const userName = decodeURIComponent(h.get("x-user-name") ?? "")
+  const brandIdsHeader = h.get("x-user-brand-ids")
+  const brandName = h.get("x-user-brand-name")
+    ? decodeURIComponent(h.get("x-user-brand-name")!)
+    : null
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .single()
+  if (!userId) redirect("/login")
 
-  // viewer의 접근 가능한 브랜드 가져오기
-  const { data: brandAccess } = await supabase
-    .from("user_brand_access")
-    .select("brand_id, brands(id, name)")
-    .eq("user_id", user.id)
-
-  const brandIds = brandAccess?.map((b) => b.brand_id) ?? []
-  const primaryBrand = (brandAccess?.[0]?.brands as unknown as { id: string; name: string } | null)
+  const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
 
   if (brandIds.length === 0) {
     return (
@@ -35,113 +29,108 @@ export default async function DashboardPage() {
     )
   }
 
-  // 이번달 성과 합산 (모든 캠페인)
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
-  const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-
-  const { data: campaigns } = await supabase
-    .from("campaigns")
-    .select("id")
-    .in("brand_id", brandIds)
-
-  const campaignIds = campaigns?.map((c) => c.id) ?? []
-
-  // 이번달 지출 합계
-  const { data: spendData } = await supabase
-    .from("spend_records")
-    .select("amount")
-    .in("campaign_id", campaignIds)
-    .gte("spend_date", monthStart)
-    .lte("spend_date", monthEnd)
-
-  const totalSpend = spendData?.reduce((sum, r) => sum + Number(r.amount), 0) ?? 0
-
-  // 이번달 예산 합계
-  const { data: budgets } = await supabase
-    .from("budgets")
-    .select("total_budget")
-    .in("campaign_id", campaignIds)
-    .lte("period_start", monthEnd)
-    .gte("period_end", monthStart)
-
-  const totalBudget = budgets?.reduce((sum, b) => sum + Number(b.total_budget), 0) ?? 0
-
-  // 최근 운영 현황
-  const { data: activities } = await supabase
-    .from("activities")
-    .select("id, title, content, channel, activity_date")
-    .in("brand_id", brandIds)
-    .order("activity_date", { ascending: false })
-    .limit(3)
-
-  // 이번주 예정 일정
+  const monthEnd = now.toISOString().slice(0, 10)
   const weekEnd = new Date(now)
   weekEnd.setDate(now.getDate() + 7)
   const weekEndStr = weekEnd.toISOString().slice(0, 10)
 
-  const { data: upcomingEvents } = await supabase
-    .from("calendar_events")
-    .select("id, title, channel, event_date, status")
-    .in("brand_id", brandIds)
-    .gte("event_date", monthStart)
-    .lte("event_date", weekEndStr)
-    .order("event_date", { ascending: true })
-    .limit(5)
+  const supabase = await createClient()
 
-  // 소재 현황
-  const { data: creativeStats } = await supabase
-    .from("creatives")
-    .select("status")
-    .in("brand_id", brandIds)
+  // Round 1: 브랜드ID 기반 쿼리 모두 병렬 실행
+  const [campaignsResult, activitiesResult, eventsResult, creativesResult] = await Promise.all([
+    supabase.from("campaigns").select("id").in("brand_id", brandIds),
+    supabase
+      .from("activities")
+      .select("id, title, content, channel, activity_date")
+      .in("brand_id", brandIds)
+      .order("activity_date", { ascending: false })
+      .limit(3),
+    supabase
+      .from("calendar_events")
+      .select("id, title, channel, event_date, status")
+      .in("brand_id", brandIds)
+      .gte("event_date", monthStart)
+      .lte("event_date", weekEndStr)
+      .order("event_date", { ascending: true })
+      .limit(5),
+    supabase.from("creatives").select("status").in("brand_id", brandIds),
+  ])
 
+  const campaignIds = campaignsResult.data?.map((c) => c.id) ?? []
+
+  // Round 2: 캠페인ID 기반 쿼리 병렬 실행
+  const [spendResult, budgetResult] = campaignIds.length > 0
+    ? await Promise.all([
+        supabase
+          .from("spend_records")
+          .select("amount")
+          .in("campaign_id", campaignIds)
+          .gte("spend_date", monthStart)
+          .lte("spend_date", monthEnd),
+        supabase
+          .from("budgets")
+          .select("total_budget")
+          .in("campaign_id", campaignIds)
+          .lte("period_start", monthEnd)
+          .gte("period_end", monthStart),
+      ])
+    : [{ data: [] }, { data: [] }]
+
+  const totalSpend = spendResult.data?.reduce((sum, r) => sum + Number(r.amount), 0) ?? 0
+  const totalBudget = budgetResult.data?.reduce((sum, b) => sum + Number(b.total_budget), 0) ?? 0
+  const budgetPercent = totalBudget > 0 ? Math.min(100, (totalSpend / totalBudget) * 100) : 0
+
+  const creativeStats = creativesResult.data ?? []
   const creativeCounts = {
-    review_requested: creativeStats?.filter((c) => c.status === "review_requested").length ?? 0,
-    feedback_pending: creativeStats?.filter((c) => c.status === "feedback_pending").length ?? 0,
-    completed: creativeStats?.filter((c) => c.status === "completed").length ?? 0,
+    review_requested: creativeStats.filter((c) => c.status === "review_requested").length,
+    feedback_pending: creativeStats.filter((c) => c.status === "feedback_pending").length,
+    completed: creativeStats.filter((c) => c.status === "completed").length,
   }
 
-  const budgetPercent = totalBudget > 0 ? Math.min(100, (totalSpend / totalBudget) * 100) : 0
-  const greeting = profile?.full_name ? `${profile.full_name}님` : "안녕하세요"
+  const greeting = userName ? `${userName}님` : "안녕하세요"
+  const activities = activitiesResult.data
+  const upcomingEvents = eventsResult.data
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900">안녕하세요, {greeting} 👋</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          {primaryBrand?.name} · {now.getFullYear()}년 {now.getMonth() + 1}월 현황
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">안녕하세요, {greeting} 👋</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          {brandName} · {now.getFullYear()}년 {now.getMonth() + 1}월 현황
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* 성과 요약 */}
-        <Link href="/dashboard/performance" className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-sm transition group">
+        <Link href="/dashboard/performance" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-sm transition group">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
                 <BarChart2 className="w-4 h-4 text-blue-600" />
               </div>
-              <span className="text-sm font-medium text-slate-700">성과 요약</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">성과 요약</span>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition" />
           </div>
           <div className="space-y-2">
             <p className="text-xs text-slate-400">이번 달 캠페인 수</p>
-            <p className="text-2xl font-bold text-slate-900">{campaignIds.length}</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{campaignIds.length}</p>
             <p className="text-xs text-slate-400">성과 상세 보기 →</p>
           </div>
         </Link>
 
         {/* 예산 현황 */}
-        <Link href="/dashboard/performance" className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-sm transition group">
+        <Link href="/dashboard/performance" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-sm transition group">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
                 <DollarSign className="w-4 h-4 text-emerald-600" />
               </div>
-              <span className="text-sm font-medium text-slate-700">예산 현황</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">예산 현황</span>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition" />
           </div>
@@ -152,7 +141,7 @@ export default async function DashboardPage() {
                   <span>지출 {formatCurrency(totalSpend)}</span>
                   <span>{budgetPercent.toFixed(0)}%</span>
                 </div>
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full transition-all"
                     style={{ width: `${budgetPercent}%` }}
@@ -169,27 +158,27 @@ export default async function DashboardPage() {
         </Link>
 
         {/* 소재 현황 */}
-        <Link href="/dashboard/creatives" className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-sm transition group">
+        <Link href="/dashboard/creatives" className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-sm transition group">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
                 <Image className="w-4 h-4 text-purple-600" />
               </div>
-              <span className="text-sm font-medium text-slate-700">소재 현황</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">소재 현황</span>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition" />
           </div>
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-500">검토 요청</span>
+              <span className="text-slate-500 dark:text-slate-400">검토 요청</span>
               <span className="font-semibold text-blue-600">{creativeCounts.review_requested}건</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-slate-500">피드백 대기</span>
+              <span className="text-slate-500 dark:text-slate-400">피드백 대기</span>
               <span className="font-semibold text-yellow-600">{creativeCounts.feedback_pending}건</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-slate-500">완료</span>
+              <span className="text-slate-500 dark:text-slate-400">완료</span>
               <span className="font-semibold text-emerald-600">{creativeCounts.completed}건</span>
             </div>
           </div>
@@ -197,11 +186,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Bottom Section */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 최근 운영 현황 */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-900">📌 최근 운영 현황</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">📌 최근 운영 현황</h3>
             <Link href="/dashboard/activity" className="text-xs text-blue-600 hover:text-blue-700">
               전체보기
             </Link>
@@ -209,12 +198,12 @@ export default async function DashboardPage() {
           {activities && activities.length > 0 ? (
             <div className="space-y-3">
               {activities.map((a) => (
-                <div key={a.id} className="border-l-2 border-blue-200 pl-3">
+                <div key={a.id} className="border-l-2 border-blue-200 dark:border-blue-700 pl-3">
                   <p className="text-xs text-slate-400 mb-0.5">
-                    {a.channel && <span className="font-medium text-slate-600">[{a.channel}]</span>}{" "}
+                    {a.channel && <span className="font-medium text-slate-600 dark:text-slate-400">[{a.channel}]</span>}{" "}
                     {formatDate(a.activity_date)}
                   </p>
-                  <p className="text-sm font-medium text-slate-900 leading-snug">{a.title}</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 leading-snug">{a.title}</p>
                   <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{a.content}</p>
                 </div>
               ))}
@@ -225,9 +214,9 @@ export default async function DashboardPage() {
         </div>
 
         {/* 이번주 예정 일정 */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-900">📅 예정 일정</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">📅 예정 일정</h3>
             <Link href="/dashboard/calendar" className="text-xs text-blue-600 hover:text-blue-700">
               전체보기
             </Link>
@@ -242,7 +231,7 @@ export default async function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {e.channel && (
-                        <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">
                           {e.channel}
                         </span>
                       )}
@@ -252,7 +241,7 @@ export default async function DashboardPage() {
                         {STATUS_LABELS[e.status as CalendarEventStatus]}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-800 mt-0.5 truncate">{e.title}</p>
+                    <p className="text-sm text-slate-800 dark:text-slate-200 mt-0.5 truncate">{e.title}</p>
                   </div>
                 </div>
               ))}

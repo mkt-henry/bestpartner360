@@ -36,7 +36,8 @@ export default async function AdminCreativesPage() {
         <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-900">소재 목록</h2>
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
               <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">브랜드</th>
@@ -84,6 +85,7 @@ export default async function AdminCreativesPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

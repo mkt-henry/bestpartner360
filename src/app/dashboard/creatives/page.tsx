@@ -1,3 +1,4 @@
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
@@ -23,16 +24,14 @@ const ASSET_ICONS: Record<string, React.ReactNode> = {
 }
 
 export default async function CreativesPage() {
+  const h = await headers()
+  const userId = h.get("x-user-id")
+  const brandIdsHeader = h.get("x-user-brand-ids")
+  if (!userId) redirect("/login")
+
+  const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
-
-  const { data: brandAccess } = await supabase
-    .from("user_brand_access")
-    .select("brand_id")
-    .eq("user_id", user.id)
-  const brandIds = brandAccess?.map((b) => b.brand_id) ?? []
-
   const { data: creatives } = await supabase
     .from("creatives")
     .select(`

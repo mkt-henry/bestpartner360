@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface Brand {
   id: string
@@ -8,9 +9,12 @@ interface Brand {
 }
 
 export default function CreateUserForm({ brands }: { brands: Brand[] }) {
+  const router = useRouter()
+  const DEFAULT_PASSWORD = "Bestpartner1!"
+
   const [form, setForm] = useState({
     email: "",
-    password: "",
+    password: DEFAULT_PASSWORD,
     full_name: "",
     brand_id: "",
   })
@@ -32,7 +36,8 @@ export default function CreateUserForm({ brands }: { brands: Brand[] }) {
     if (res.ok) {
       setStatus("success")
       setMessage("계정이 생성되었습니다.")
-      setForm({ email: "", password: "", full_name: "", brand_id: "" })
+      setForm({ email: "", password: DEFAULT_PASSWORD, full_name: "", brand_id: "" })
+      router.refresh()
     } else {
       setStatus("error")
       setMessage(json.error ?? "오류가 발생했습니다.")
@@ -40,7 +45,7 @@ export default function CreateUserForm({ brands }: { brands: Brand[] }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1.5">이름</label>
         <input
@@ -63,15 +68,17 @@ export default function CreateUserForm({ brands }: { brands: Brand[] }) {
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1.5">비밀번호</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1.5">
+          비밀번호
+          <span className="ml-1.5 text-slate-400 font-normal">(디폴트: {DEFAULT_PASSWORD})</span>
+        </label>
         <input
-          type="password"
+          type="text"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           required
           minLength={8}
           className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="8자 이상"
         />
       </div>
       <div>
@@ -87,7 +94,7 @@ export default function CreateUserForm({ brands }: { brands: Brand[] }) {
           ))}
         </select>
       </div>
-      <div className="col-span-2 flex items-center gap-3">
+      <div className="col-span-1 sm:col-span-2 flex items-center gap-3">
         <button
           type="submit"
           disabled={status === "loading"}

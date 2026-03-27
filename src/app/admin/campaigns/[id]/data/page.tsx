@@ -42,7 +42,7 @@ export default async function CampaignDataPage({ params }: { params: Promise<{ i
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition"
       >
         <ChevronLeft className="w-4 h-4" />
-        캠페인 목록
+        브랜드 KPI
       </Link>
 
       <div>
