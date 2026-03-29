@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
-const CHANNELS = ["Meta", "Google", "Kakao", "Naver", "TikTok", "YouTube", "전체", "기타"]
+const CHANNELS = ["Instagram", "Facebook", "Google", "Kakao", "Naver", "TikTok", "YouTube", "전체", "기타"]
 
 interface Brand { id: string; name: string }
 interface Campaign { id: string; name: string; brand_id: string; channel: string }

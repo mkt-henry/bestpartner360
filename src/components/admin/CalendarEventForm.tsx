@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { STATUS_LABELS } from "@/types"
 import type { CalendarEventStatus } from "@/types"
 
-const CHANNELS = ["Meta", "Google", "Kakao", "Naver", "TikTok", "YouTube", "전체", "기타"]
+const CHANNELS = ["Instagram", "Facebook", "Google", "Kakao", "Naver", "TikTok", "YouTube", "전체", "기타"]
 const ASSET_TYPES = ["이미지", "영상", "배너", "텍스트", "기타"]
 const STATUSES: CalendarEventStatus[] = [
   "draft", "review_requested", "feedback_pending", "in_revision", "upload_scheduled", "completed"

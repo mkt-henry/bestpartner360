@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
-const CHANNELS = ["Meta", "Google", "Kakao", "Naver", "TikTok", "YouTube", "기타"]
+const CHANNELS = ["Instagram", "Facebook", "Google", "Kakao", "Naver", "TikTok", "YouTube", "기타"]
 
 interface Props {
   brands: { id: string; name: string }[]
@@ -17,7 +17,6 @@ export default function CampaignForm({ brands, defaultBrandId }: Props) {
     brand_id: defaultBrandId ?? "",
     name: "",
     channel: "",
-    status: "active",
     start_date: "",
     end_date: "",
   })
@@ -34,7 +33,7 @@ export default function CampaignForm({ brands, defaultBrandId }: Props) {
       brand_id: form.brand_id,
       name: form.name,
       channel: form.channel,
-      status: form.status,
+      status: "active",
       start_date: form.start_date,
       end_date: form.end_date || null,
     }).select("id").single()
@@ -64,31 +63,17 @@ export default function CampaignForm({ brands, defaultBrandId }: Props) {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">매체 *</label>
-          <select
-            value={form.channel}
-            onChange={(e) => setForm({ ...form, channel: e.target.value })}
-            required
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-100"
-          >
-            <option value="">매체 선택</option>
-            {CHANNELS.map((ch) => <option key={ch} value={ch}>{ch}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">상태</label>
-          <select
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-100"
-          >
-            <option value="active">진행중</option>
-            <option value="paused">일시중지</option>
-            <option value="ended">종료</option>
-          </select>
-        </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">매체 *</label>
+        <select
+          value={form.channel}
+          onChange={(e) => setForm({ ...form, channel: e.target.value })}
+          required
+          className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-100"
+        >
+          <option value="">매체 선택</option>
+          {CHANNELS.map((ch) => <option key={ch} value={ch}>{ch}</option>)}
+        </select>
       </div>
 
       <div>

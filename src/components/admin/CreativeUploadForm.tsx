@@ -7,7 +7,7 @@ import { STATUS_LABELS } from "@/types"
 import type { CalendarEventStatus } from "@/types"
 import { Upload } from "lucide-react"
 
-const CHANNELS = ["Meta", "Google", "Kakao", "Naver", "TikTok", "YouTube", "기타"]
+const CHANNELS = ["Instagram", "Facebook", "Google", "Kakao", "Naver", "TikTok", "YouTube", "기타"]
 const STATUSES: CalendarEventStatus[] = [
   "draft", "review_requested", "feedback_pending", "in_revision", "upload_scheduled", "completed"
 ]
