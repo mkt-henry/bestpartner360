@@ -4,25 +4,25 @@ import { createAdminClient } from "@/lib/supabase/admin"
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 
-function getRedirectUri(req: NextRequest) {
-  const host = req.headers.get("host") ?? "localhost:3000"
-  const protocol = host.startsWith("localhost") ? "http" : "https"
-  return `${protocol}://${host}/api/admin/ga4/callback`
+function getBaseUrl(req: NextRequest) {
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL
+  const proto = req.headers.get("x-forwarded-proto") ?? "https"
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000"
+  return `${proto}://${host}`
 }
 
 export async function GET(req: NextRequest) {
+  const baseUrl = getBaseUrl(req)
   const code = req.nextUrl.searchParams.get("code")
   const error = req.nextUrl.searchParams.get("error")
 
   if (error || !code) {
-    const host = req.headers.get("host") ?? "localhost:3000"
-    const protocol = host.startsWith("localhost") ? "http" : "https"
     return NextResponse.redirect(
-      `${protocol}://${host}/admin/brands?ga4_error=${encodeURIComponent(error ?? "인증 실패")}`
+      `${baseUrl}/admin/brands?ga4_error=${encodeURIComponent(error ?? "인증 실패")}`
     )
   }
 
-  const redirectUri = getRedirectUri(req)
+  const redirectUri = `${baseUrl}/api/admin/ga4/callback`
 
   // Exchange code for tokens
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -40,16 +40,14 @@ export async function GET(req: NextRequest) {
   const tokenData = await tokenRes.json()
 
   if (!tokenRes.ok || !tokenData.access_token) {
-    const host = req.headers.get("host") ?? "localhost:3000"
-    const protocol = host.startsWith("localhost") ? "http" : "https"
     return NextResponse.redirect(
-      `${protocol}://${host}/admin/brands?ga4_error=${encodeURIComponent(tokenData.error_description ?? "토큰 교환 실패")}`
+      `${baseUrl}/admin/brands?ga4_error=${encodeURIComponent(tokenData.error_description ?? tokenData.error ?? "토큰 교환 실패")}`
     )
   }
 
   // Store tokens in platform_credentials
   const supabase = createAdminClient()
-  await supabase.from("platform_credentials").upsert(
+  const { error: dbError } = await supabase.from("platform_credentials").upsert(
     {
       platform: "ga4",
       credentials: {
@@ -61,9 +59,11 @@ export async function GET(req: NextRequest) {
     { onConflict: "platform" }
   )
 
-  const host = req.headers.get("host") ?? "localhost:3000"
-  const protocol = host.startsWith("localhost") ? "http" : "https"
-  return NextResponse.redirect(
-    `${protocol}://${host}/admin/brands?ga4_connected=true`
-  )
+  if (dbError) {
+    return NextResponse.redirect(
+      `${baseUrl}/admin/brands?ga4_error=${encodeURIComponent("DB 저장 실패: " + dbError.message)}`
+    )
+  }
+
+  return NextResponse.redirect(`${baseUrl}/admin/brands?ga4_connected=true`)
 }
