@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { Loader2, TrendingUp, Users, Eye, Clock, ArrowUpDown, Search, X } from "lucide-react"
 import { KpiLineChart } from "@/components/viewer/SpendChart"
 
@@ -48,14 +49,16 @@ function formatDuration(seconds: number) {
   return m > 0 ? `${m}분 ${s}초` : `${s}초`
 }
 
-export default function Ga4Analytics({ properties }: Props) {
-  const [selectedProperty, setSelectedProperty] = useState(properties[0]?.property_id ?? "")
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 30)
-    return d.toISOString().slice(0, 10)
-  })
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10))
+function Ga4AnalyticsInner({ properties }: Props) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const defaultStart = (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10) })()
+
+  const [selectedProperty, setSelectedProperty] = useState(searchParams.get("property") ?? properties[0]?.property_id ?? "")
+  const [startDate, setStartDate] = useState(searchParams.get("from") ?? defaultStart)
+  const [endDate, setEndDate] = useState(searchParams.get("to") ?? new Date().toISOString().slice(0, 10))
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,17 +67,32 @@ export default function Ga4Analytics({ properties }: Props) {
   const [daily, setDaily] = useState<DailyRow[]>([])
   const [sortKey, setSortKey] = useState<SortKey>("pageviews")
   const [sortDesc, setSortDesc] = useState(true)
-  const [pathFilter, setPathFilter] = useState("")
+  const [pathFilter, setPathFilter] = useState(searchParams.get("filter") ?? "")
 
-  async function fetchReport() {
-    if (!selectedProperty) return
+  // URL 동기화
+  const syncUrl = useCallback((prop: string, from: string, to: string, filter: string) => {
+    const params = new URLSearchParams()
+    if (prop && prop !== properties[0]?.property_id) params.set("property", prop)
+    params.set("from", from)
+    params.set("to", to)
+    if (filter.trim()) params.set("filter", filter.trim())
+    const qs = params.toString()
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false })
+  }, [pathname, router, properties])
+
+  async function fetchReport(prop?: string, from?: string, to?: string) {
+    const p = prop ?? selectedProperty
+    const f = from ?? startDate
+    const t = to ?? endDate
+    if (!p) return
+    syncUrl(p, f, t, pathFilter)
     setLoading(true)
     setError(null)
     try {
       const res = await fetch("/api/admin/ga4/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ propertyId: selectedProperty, startDate, endDate }),
+        body: JSON.stringify({ propertyId: p, startDate: f, endDate: t }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
@@ -90,7 +108,13 @@ export default function Ga4Analytics({ properties }: Props) {
 
   useEffect(() => {
     fetchReport()
-  }, [selectedProperty])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 필터 변경 시 URL 동기화
+  useEffect(() => {
+    const t = setTimeout(() => syncUrl(selectedProperty, startDate, endDate, pathFilter), 300)
+    return () => clearTimeout(t)
+  }, [pathFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -193,7 +217,7 @@ export default function Ga4Analytics({ properties }: Props) {
           {properties.length > 1 && (
             <select
               value={selectedProperty}
-              onChange={(e) => setSelectedProperty(e.target.value)}
+              onChange={(e) => { setSelectedProperty(e.target.value); fetchReport(e.target.value) }}
               className="text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
             >
               {properties.map((p) => (
@@ -238,7 +262,7 @@ export default function Ga4Analytics({ properties }: Props) {
               className="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
             />
             <button
-              onClick={fetchReport}
+              onClick={() => fetchReport()}
               disabled={loading}
               className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg transition"
             >
@@ -370,5 +394,13 @@ export default function Ga4Analytics({ properties }: Props) {
         </>
       )}
     </div>
+  )
+}
+
+export default function Ga4Analytics(props: Props) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-16 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> 로딩 중...</div>}>
+      <Ga4AnalyticsInner {...props} />
+    </Suspense>
   )
 }
