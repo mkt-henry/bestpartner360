@@ -164,6 +164,7 @@ export interface Ga4Property {
   brand_id: string
   property_id: string
   property_name: string
+  website_url: string | null
   created_at: string
   brand?: Brand
 }

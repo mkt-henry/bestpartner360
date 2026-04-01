@@ -68,6 +68,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("pageviews")
   const [sortDesc, setSortDesc] = useState(true)
   const [pathFilter, setPathFilter] = useState(searchParams.get("filter") ?? "")
+  const [activePreset, setActivePreset] = useState<string | null>(null)
 
   // URL 동기화
   const syncUrl = useCallback((prop: string, from: string, to: string, filter: string) => {
@@ -164,6 +165,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
     start.setDate(end.getDate() - days)
     setStartDate(start.toISOString().slice(0, 10))
     setEndDate(end.toISOString().slice(0, 10))
+    setActivePreset(`${days}d`)
   }
 
   function setPreset(key: string) {
@@ -172,6 +174,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
     const m = now.getMonth() // 0-based
     const today = now.toISOString().slice(0, 10)
 
+    setActivePreset(key)
     switch (key) {
       case "this_month":
         setStartDate(`${y}-${String(m + 1).padStart(2, "0")}-01`)
@@ -230,19 +233,23 @@ function Ga4AnalyticsInner({ properties }: Props) {
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-1 flex-wrap">
               {[
-                { label: "7일", action: () => setRange(7) },
-                { label: "14일", action: () => setRange(14) },
-                { label: "30일", action: () => setRange(30) },
-                { label: "이번 달", action: () => setPreset("this_month") },
-                { label: "전월", action: () => setPreset("last_month") },
-                { label: "이번 분기", action: () => setPreset("this_quarter") },
-                { label: "전분기", action: () => setPreset("last_quarter") },
-                { label: "올해", action: () => setPreset("this_year") },
+                { label: "7일", key: "7d", action: () => setRange(7) },
+                { label: "14일", key: "14d", action: () => setRange(14) },
+                { label: "30일", key: "30d", action: () => setRange(30) },
+                { label: "이번 달", key: "this_month", action: () => setPreset("this_month") },
+                { label: "전월", key: "last_month", action: () => setPreset("last_month") },
+                { label: "이번 분기", key: "this_quarter", action: () => setPreset("this_quarter") },
+                { label: "전분기", key: "last_quarter", action: () => setPreset("last_quarter") },
+                { label: "올해", key: "this_year", action: () => setPreset("this_year") },
               ].map((r) => (
                 <button
-                  key={r.label}
+                  key={r.key}
                   onClick={r.action}
-                  className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                  className={`px-2.5 py-1 text-xs rounded-lg border transition ${
+                    activePreset === r.key
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
+                      : "border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
                 >
                   {r.label}
                 </button>
@@ -251,14 +258,14 @@ function Ga4AnalyticsInner({ properties }: Props) {
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => { setStartDate(e.target.value); setActivePreset(null) }}
               className="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
             />
             <span className="text-xs text-slate-400">~</span>
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => { setEndDate(e.target.value); setActivePreset(null) }}
               className="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
             />
             <button

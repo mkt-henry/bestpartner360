@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import { Loader2, Plus, Trash2, ExternalLink } from "lucide-react"
 import type { Brand, Ga4Property } from "@/types"
 
 interface Props {
@@ -20,6 +20,7 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
   const [brandId, setBrandId] = useState("")
   const [propertyId, setPropertyId] = useState("")
   const [propertyName, setPropertyName] = useState("")
+  const [websiteUrl, setWebsiteUrl] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   async function handleAdd() {
@@ -39,6 +40,7 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
           brand_id: brandId,
           property_id: propertyId.trim(),
           property_name: propertyName.trim(),
+          website_url: websiteUrl.trim() || null,
         }),
       })
       const json = await res.json()
@@ -55,6 +57,7 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
             brand_id: brandId,
             property_id: propertyId.trim(),
             property_name: propertyName.trim(),
+            website_url: websiteUrl.trim() || null,
             created_at: new Date().toISOString(),
             brand,
           },
@@ -64,6 +67,7 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
       setBrandId("")
       setPropertyId("")
       setPropertyName("")
+      setWebsiteUrl("")
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "저장 실패")
     } finally {
@@ -110,7 +114,7 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
         </div>
 
         <div className="px-5 py-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
                 브랜드
@@ -149,6 +153,19 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
                 value={propertyName}
                 onChange={(e) => setPropertyName(e.target.value)}
                 placeholder="예: GVB-KOREA 웹사이트"
+                className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                웹사이트 URL
+              </label>
+              <input
+                type="url"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder="https://example.com"
                 className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
               />
             </div>
@@ -192,11 +209,17 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
                     {m.property_name}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="text-xs text-slate-400 font-mono">{m.property_id}</span>
                     <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                       {m.brand?.name ?? "브랜드"}
                     </span>
+                    {m.website_url && (
+                      <a href={m.website_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline">
+                        <ExternalLink className="w-3 h-3" />
+                        {m.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                      </a>
+                    )}
                   </div>
                 </div>
 

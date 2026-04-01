@@ -4,7 +4,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { formatNumber, formatCurrency } from "@/lib/utils"
-import { TrendingUp, AlertCircle } from "lucide-react"
+import { TrendingUp, AlertCircle, ExternalLink } from "lucide-react"
 import Ga4UtmDashboard from "@/components/viewer/Ga4UtmDashboard"
 import Ga4Analytics from "@/components/viewer/Ga4Analytics"
 
@@ -32,7 +32,7 @@ export default async function DashboardGa4Page() {
   const [{ data: ga4Properties }, { data: utmEntries }] = await Promise.all([
     supabase
       .from("ga4_properties")
-      .select("property_id, property_name")
+      .select("property_id, property_name, website_url")
       .in("brand_id", brandIds),
     supabase
       .from("ga4_utm_entries")
@@ -83,7 +83,21 @@ export default async function DashboardGa4Page() {
       {/* ── GA4 속성 실시간 분석 ── */}
       {properties.length > 0 ? (
         <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">사이트 분석</h2>
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">사이트 분석</h2>
+            {properties.filter((p: { website_url?: string | null }) => p.website_url).map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
+              <a
+                key={p.property_id}
+                href={p.website_url!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full"
+              >
+                <ExternalLink className="w-3 h-3" />
+                {p.website_url!.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+              </a>
+            ))}
+          </div>
           <Ga4Analytics properties={properties} />
         </div>
       ) : (

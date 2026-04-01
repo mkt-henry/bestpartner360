@@ -185,7 +185,7 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
         body: JSON.stringify({ brand_id: brand.id, property_id: account.id, property_name: account.name }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      setGa4Linked((prev) => [...prev.filter((m) => m.property_id !== account.id), { id: "", brand_id: brand.id, property_id: account.id, property_name: account.name, created_at: "", brand }])
+      setGa4Linked((prev) => [...prev.filter((m) => m.property_id !== account.id), { id: "", brand_id: brand.id, property_id: account.id, property_name: account.name, website_url: null, created_at: "", brand }])
       setGa4Selected("")
       router.refresh()
     } catch (e: unknown) { alert(e instanceof Error ? e.message : "연결 실패") }
@@ -203,7 +203,7 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
         body: JSON.stringify({ brand_id: brand.id, property_id: ga4PropertyId.trim(), property_name: ga4PropertyName.trim() }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      setGa4Linked((prev) => [...prev.filter((m) => m.property_id !== ga4PropertyId.trim()), { id: "", brand_id: brand.id, property_id: ga4PropertyId.trim(), property_name: ga4PropertyName.trim(), created_at: "", brand }])
+      setGa4Linked((prev) => [...prev.filter((m) => m.property_id !== ga4PropertyId.trim()), { id: "", brand_id: brand.id, property_id: ga4PropertyId.trim(), property_name: ga4PropertyName.trim(), website_url: null, created_at: "", brand }])
       setGa4PropertyId("")
       setGa4PropertyName("")
       router.refresh()
