@@ -142,6 +142,48 @@ export default function Ga4Analytics({ properties }: Props) {
     setEndDate(end.toISOString().slice(0, 10))
   }
 
+  function setPreset(key: string) {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = now.getMonth() // 0-based
+    const today = now.toISOString().slice(0, 10)
+
+    switch (key) {
+      case "this_month":
+        setStartDate(`${y}-${String(m + 1).padStart(2, "0")}-01`)
+        setEndDate(today)
+        break
+      case "last_month": {
+        const pm = m === 0 ? 11 : m - 1
+        const py = m === 0 ? y - 1 : y
+        const lastDay = new Date(py, pm + 1, 0).getDate()
+        setStartDate(`${py}-${String(pm + 1).padStart(2, "0")}-01`)
+        setEndDate(`${py}-${String(pm + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`)
+        break
+      }
+      case "this_quarter": {
+        const qStart = Math.floor(m / 3) * 3
+        setStartDate(`${y}-${String(qStart + 1).padStart(2, "0")}-01`)
+        setEndDate(today)
+        break
+      }
+      case "last_quarter": {
+        const cqStart = Math.floor(m / 3) * 3
+        const lqStart = cqStart - 3
+        const lqy = lqStart < 0 ? y - 1 : y
+        const lqm = lqStart < 0 ? lqStart + 12 : lqStart
+        const lqEnd = new Date(lqy, lqm + 3, 0)
+        setStartDate(`${lqy}-${String(lqm + 1).padStart(2, "0")}-01`)
+        setEndDate(lqEnd.toISOString().slice(0, 10))
+        break
+      }
+      case "this_year":
+        setStartDate(`${y}-01-01`)
+        setEndDate(today)
+        break
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* 컨트롤 바 */}
@@ -162,16 +204,20 @@ export default function Ga4Analytics({ properties }: Props) {
 
           {/* 기간 선택 */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap">
               {[
-                { label: "7일", days: 7 },
-                { label: "14일", days: 14 },
-                { label: "30일", days: 30 },
-                { label: "90일", days: 90 },
+                { label: "7일", action: () => setRange(7) },
+                { label: "14일", action: () => setRange(14) },
+                { label: "30일", action: () => setRange(30) },
+                { label: "이번 달", action: () => setPreset("this_month") },
+                { label: "전월", action: () => setPreset("last_month") },
+                { label: "이번 분기", action: () => setPreset("this_quarter") },
+                { label: "전분기", action: () => setPreset("last_quarter") },
+                { label: "올해", action: () => setPreset("this_year") },
               ].map((r) => (
                 <button
-                  key={r.days}
-                  onClick={() => setRange(r.days)}
+                  key={r.label}
+                  onClick={r.action}
                   className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                 >
                   {r.label}
