@@ -3,7 +3,7 @@
 -- ============================================================
 create table platform_credentials (
   id uuid primary key default uuid_generate_v4(),
-  platform text not null unique check (platform in ('meta', 'naver')),
+  platform text not null unique check (platform in ('meta', 'naver', 'ga4')),
   credentials jsonb not null default '{}',
   updated_at timestamptz default now()
 );
