@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2, TrendingUp, Users, Eye, Clock, ArrowUpDown } from "lucide-react"
+import { Loader2, TrendingUp, Users, Eye, Clock, ArrowUpDown, Search, X } from "lucide-react"
 import { KpiLineChart } from "@/components/viewer/SpendChart"
 
 interface Ga4Property {
@@ -64,6 +64,7 @@ export default function Ga4Analytics({ properties }: Props) {
   const [daily, setDaily] = useState<DailyRow[]>([])
   const [sortKey, setSortKey] = useState<SortKey>("pageviews")
   const [sortDesc, setSortDesc] = useState(true)
+  const [pathFilter, setPathFilter] = useState("")
 
   async function fetchReport() {
     if (!selectedProperty) return
@@ -100,10 +101,25 @@ export default function Ga4Analytics({ properties }: Props) {
     }
   }
 
-  const sortedPages = [...pages].sort((a, b) => {
+  const filteredPages = pathFilter.trim()
+    ? pages.filter((p) => {
+        const q = pathFilter.trim().toLowerCase()
+        return p.path.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)
+      })
+    : pages
+
+  const sortedPages = [...filteredPages].sort((a, b) => {
     const diff = a[sortKey] - b[sortKey]
     return sortDesc ? -diff : diff
   })
+
+  const filteredSummary = pathFilter.trim() && filteredPages.length !== pages.length
+    ? {
+        pageviews: filteredPages.reduce((s, p) => s + p.pageviews, 0),
+        users: filteredPages.reduce((s, p) => s + p.users, 0),
+        sessions: filteredPages.reduce((s, p) => s + p.sessions, 0),
+      }
+    : null
 
   const SortHeader = ({ label, k, className }: { label: string; k: SortKey; className?: string }) => (
     <th
@@ -236,9 +252,39 @@ export default function Ga4Analytics({ properties }: Props) {
           {/* 페이지별 테이블 */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                페이지별 성과 <span className="text-xs text-slate-400 font-normal ml-1">상위 {pages.length}개</span>
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  페이지별 성과
+                  <span className="text-xs text-slate-400 font-normal ml-1">
+                    {pathFilter.trim() ? `${filteredPages.length} / ${pages.length}개` : `상위 ${pages.length}개`}
+                  </span>
+                </h3>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={pathFilter}
+                    onChange={(e) => setPathFilter(e.target.value)}
+                    placeholder="경로 또는 제목 필터 (예: /entry/)"
+                    className="pl-8 pr-8 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 w-full sm:w-64"
+                  />
+                  {pathFilter && (
+                    <button
+                      onClick={() => setPathFilter("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {filteredSummary && (
+                <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                  <span>필터 결과: 페이지뷰 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.pageviews.toLocaleString()}</strong></span>
+                  <span>사용자 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.users.toLocaleString()}</strong></span>
+                  <span>세션 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.sessions.toLocaleString()}</strong></span>
+                </div>
+              )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
