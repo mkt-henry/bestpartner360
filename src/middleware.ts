@@ -24,6 +24,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
+  // OAuth 콜백은 미들웨어 인증 체크 건너뛰기
+  if (pathname.startsWith("/api/admin/ga4/auth") || pathname.startsWith("/api/admin/ga4/callback")) {
+    return NextResponse.next()
+  }
+
   // 미인증 → 로그인 페이지로
   if (!user && !pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/login", request.url))
