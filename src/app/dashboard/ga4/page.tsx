@@ -45,7 +45,7 @@ export default async function DashboardGa4Page() {
 
   let properties = ga4Properties ?? []
 
-  // website_url이 비어있는 속성이 있으면 GA4 데이터 스트림에서 자동 조회 후 DB 업데이트
+  // website_url이 비어있는 속성은 GA4 데이터 스트림에서 URL 자동 조회 후 DB 저장
   const missingUrl = properties.filter((p) => !p.website_url)
   if (missingUrl.length > 0) {
     const creds = await getGa4Credentials()
@@ -72,7 +72,7 @@ export default async function DashboardGa4Page() {
               p.website_url = url
             }
           } catch {
-            // 실패 시 무시
+            // 조회 실패 시 무시 — 다음 로드 시 재시도
           }
         })
       )
@@ -122,25 +122,18 @@ export default async function DashboardGa4Page() {
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">사이트 분석</h2>
             {properties.map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
-              p.website_url ? (
-                <a
-                  key={p.property_id}
-                  href={p.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  {p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                </a>
-              ) : (
-                <span
-                  key={p.property_id}
-                  className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full"
-                >
-                  {p.property_name}
-                </span>
-              )
+              <a
+                key={p.property_id}
+                href={p.website_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full"
+              >
+                <ExternalLink className="w-3 h-3" />
+                {p.website_url
+                  ? p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")
+                  : p.property_name}
+              </a>
             ))}
           </div>
           <Ga4Analytics properties={properties} />
