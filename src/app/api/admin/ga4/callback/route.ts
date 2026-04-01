@@ -11,13 +11,25 @@ function getBaseUrl(req: NextRequest) {
   return `${proto}://${host}`
 }
 
+function htmlResponse(title: string, message: string, redirectUrl?: string) {
+  const meta = redirectUrl
+    ? `<meta http-equiv="refresh" content="3;url=${redirectUrl}" />`
+    : ""
+  return new NextResponse(
+    `<!DOCTYPE html><html><head><meta charset="utf-8">${meta}<style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8fafc}div{text-align:center;max-width:500px;padding:2rem}.ok{color:#16a34a}.err{color:#dc2626}code{background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:13px;word-break:break-all}</style></head><body><div><h2 class="${redirectUrl?.includes("ga4_connected") ? "ok" : "err"}">${title}</h2><p>${message}</p>${redirectUrl ? "<p style='color:#94a3b8;font-size:13px'>3초 후 이동합니다...</p>" : ""}</div></body></html>`,
+    { headers: { "Content-Type": "text/html; charset=utf-8" } }
+  )
+}
+
 export async function GET(req: NextRequest) {
   const baseUrl = getBaseUrl(req)
   const code = req.nextUrl.searchParams.get("code")
   const error = req.nextUrl.searchParams.get("error")
 
   if (error || !code) {
-    return NextResponse.redirect(
+    return htmlResponse(
+      "인증 실패",
+      `Google 인증 오류: <code>${error ?? "코드 없음"}</code>`,
       `${baseUrl}/admin/brands?ga4_error=${encodeURIComponent(error ?? "인증 실패")}`
     )
   }
@@ -40,8 +52,9 @@ export async function GET(req: NextRequest) {
   const tokenData = await tokenRes.json()
 
   if (!tokenRes.ok || !tokenData.access_token) {
-    return NextResponse.redirect(
-      `${baseUrl}/admin/brands?ga4_error=${encodeURIComponent(tokenData.error_description ?? tokenData.error ?? "토큰 교환 실패")}`
+    return htmlResponse(
+      "토큰 교환 실패",
+      `Google 오류: <code>${tokenData.error_description ?? tokenData.error ?? JSON.stringify(tokenData)}</code><br><br>redirect_uri: <code>${redirectUri}</code>`,
     )
   }
 
@@ -60,10 +73,15 @@ export async function GET(req: NextRequest) {
   )
 
   if (dbError) {
-    return NextResponse.redirect(
-      `${baseUrl}/admin/brands?ga4_error=${encodeURIComponent("DB 저장 실패: " + dbError.message)}`
+    return htmlResponse(
+      "DB 저장 실패",
+      `오류: <code>${dbError.message}</code>`,
     )
   }
 
-  return NextResponse.redirect(`${baseUrl}/admin/brands?ga4_connected=true`)
+  return htmlResponse(
+    "GA4 연결 완료!",
+    "Google Analytics 계정이 성공적으로 연결되었습니다.",
+    `${baseUrl}/admin/brands?ga4_connected=true`
+  )
 }
