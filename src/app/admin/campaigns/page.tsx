@@ -84,6 +84,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
           </div>
 
           <BrandKpiManager
+            key={activeBrandId}
             brandId={activeBrandId}
             initialCampaigns={campaignsWithKpi}
             initialBudgets={brandBudgets}

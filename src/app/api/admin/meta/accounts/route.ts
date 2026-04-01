@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server"
+import { getMetaCredentials } from "@/lib/credentials"
 
 export async function GET() {
-  const token = process.env.META_ACCESS_TOKEN
-  if (!token) {
-    return NextResponse.json({ error: "META_ACCESS_TOKEN not configured" }, { status: 500 })
+  const creds = await getMetaCredentials()
+  if (!creds) {
+    return NextResponse.json(
+      { error: "Meta API 키가 설정되지 않았습니다. 설정 페이지에서 입력해주세요." },
+      { status: 500 }
+    )
   }
 
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/me/adaccounts?access_token=${token}&fields=id,name,account_status&limit=100`,
+    `https://graph.facebook.com/v21.0/me/adaccounts?access_token=${creds.access_token}&fields=id,name,account_status&limit=100`,
     { next: { revalidate: 60 } }
   )
 

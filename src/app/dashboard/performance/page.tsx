@@ -1,13 +1,20 @@
+export const dynamic = "force-dynamic"
+
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { formatCurrency, formatNumber } from "@/lib/utils"
 import KpiCard from "@/components/viewer/KpiCard"
 import { SpendBarChart, KpiLineChart } from "@/components/viewer/SpendChart"
+import ChannelTabs from "@/components/viewer/ChannelTabs"
 import type { KpiDefinition } from "@/types"
 import { AlertCircle } from "lucide-react"
 
-export default async function PerformancePage() {
+interface Props {
+  searchParams: Promise<{ channel?: string }>
+}
+
+export default async function PerformancePage({ searchParams }: Props) {
   const h = await headers()
   const userId = h.get("x-user-id")
   const brandIdsHeader = h.get("x-user-brand-ids")
@@ -25,16 +32,26 @@ export default async function PerformancePage() {
     )
   }
 
+  const { channel: selectedChannel } = await searchParams
+
   const supabase = await createClient()
 
   // Round 1: 캠페인 목록
-  const { data: campaigns } = await supabase
+  const { data: allCampaigns } = await supabase
     .from("campaigns")
     .select("id, name, channel, status, start_date, end_date")
     .in("brand_id", brandIds)
     .order("created_at", { ascending: false })
 
-  const campaignIds = campaigns?.map((c) => c.id) ?? []
+  // 채널 목록 추출
+  const channels = Array.from(new Set((allCampaigns ?? []).map((c) => c.channel))).sort()
+
+  // 선택된 채널 필터 적용
+  const campaigns = selectedChannel
+    ? (allCampaigns ?? []).filter((c) => c.channel === selectedChannel)
+    : (allCampaigns ?? [])
+
+  const campaignIds = campaigns.map((c) => c.id)
 
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
@@ -117,12 +134,79 @@ export default async function PerformancePage() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, amount]) => ({ date, amount }))
 
+  // 전체 보기일 때: 채널별 요약 데이터
+  const channelSummaries = !selectedChannel && channels.length > 1
+    ? channels.map((ch) => {
+        const chCampaignIds = (allCampaigns ?? []).filter((c) => c.channel === ch).map((c) => c.id)
+        const chSpend = spendRecords
+          .filter((r) => chCampaignIds.includes(r.campaign_id))
+          .reduce((s, r) => s + Number(r.amount), 0)
+        const chBudget = budgets
+          .filter((b) => chCampaignIds.includes(b.campaign_id))
+          .reduce((s, b) => s + Number(b.total_budget), 0)
+        const chCampaignCount = chCampaignIds.length
+        return { channel: ch, spend: chSpend, budget: chBudget, campaignCount: chCampaignCount }
+      })
+    : null
+
   const CHART_COLORS = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444"]
+
+  const CHANNEL_COLORS: Record<string, string> = {
+    Meta: "bg-blue-500", Instagram: "bg-pink-500", Facebook: "bg-blue-600",
+    Google: "bg-yellow-500", Naver: "bg-green-500", Kakao: "bg-yellow-400",
+    TikTok: "bg-slate-800", YouTube: "bg-red-500", GA4: "bg-orange-500",
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">성과 현황</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          성과 현황
+          {selectedChannel && (
+            <span className="text-base font-medium text-slate-500 ml-2">· {selectedChannel}</span>
+          )}
+        </h1>
+      </div>
 
+      {/* 채널 탭 */}
+      {channels.length > 1 && (
+        <ChannelTabs channels={channels} currentChannel={selectedChannel ?? null} />
+      )}
+
+      {/* 채널별 요약 (전체 보기) */}
+      {channelSummaries && channelSummaries.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {channelSummaries.map((cs) => (
+            <div
+              key={cs.channel}
+              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`w-2.5 h-2.5 rounded-full ${CHANNEL_COLORS[cs.channel] ?? "bg-slate-400"}`} />
+                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{cs.channel}</span>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">캠페인</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{cs.campaignCount}개</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">지출</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{formatCurrency(cs.spend)}</span>
+                </div>
+                {cs.budget > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-400">예산</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{formatCurrency(cs.budget)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* KPI 카드 */}
       {uniqueKpiDefs.length > 0 ? (
         <div>
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">KPI 지표</h2>
@@ -143,6 +227,7 @@ export default async function PerformancePage() {
         </div>
       ) : null}
 
+      {/* KPI 차트 */}
       {uniqueKpiDefs.length > 0 && kpiChartData.length > 1 && (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">KPI 추이</h3>
@@ -157,6 +242,7 @@ export default async function PerformancePage() {
         </div>
       )}
 
+      {/* 예산 현황 */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-5">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">예산 현황</h3>
 
@@ -204,9 +290,10 @@ export default async function PerformancePage() {
         )}
       </div>
 
+      {/* 캠페인 현황 */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">캠페인 현황</h3>
-        {campaigns && campaigns.length > 0 ? (
+        {campaigns.length > 0 ? (
           <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {campaigns.map((c) => {
               const campSpend = spendRecords
@@ -257,7 +344,9 @@ export default async function PerformancePage() {
             })}
           </div>
         ) : (
-          <p className="text-sm text-slate-400">캠페인이 없습니다.</p>
+          <p className="text-sm text-slate-400">
+            {selectedChannel ? `${selectedChannel} 채널에 해당하는 캠페인이 없습니다.` : "캠페인이 없습니다."}
+          </p>
         )}
       </div>
     </div>

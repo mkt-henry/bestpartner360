@@ -150,6 +150,51 @@ export interface MetaAdAccount {
   brand?: Brand
 }
 
+export interface NaverAdAccount {
+  id: string
+  brand_id: string
+  naver_customer_id: string
+  naver_account_name: string
+  created_at: string
+  brand?: Brand
+}
+
+export interface Ga4Property {
+  id: string
+  brand_id: string
+  property_id: string
+  property_name: string
+  created_at: string
+  brand?: Brand
+}
+
+export interface Ga4UtmEntry {
+  id: string
+  brand_id: string
+  label: string
+  landing_url: string | null
+  utm_source: string
+  utm_medium: string
+  utm_campaign: string | null
+  utm_term: string | null
+  utm_content: string | null
+  created_at: string
+  brand?: Brand
+}
+
+export interface Ga4UtmPerformance {
+  id: string
+  utm_entry_id: string
+  record_date: string
+  sessions: number
+  users: number
+  pageviews: number
+  bounce_rate: number | null
+  avg_session_duration: number | null
+  conversions: number
+  revenue: number
+}
+
 export interface CreativeComment {
   id: string
   creative_id: string
