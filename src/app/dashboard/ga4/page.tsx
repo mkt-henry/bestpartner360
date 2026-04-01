@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { getGa4Credentials } from "@/lib/credentials"
 import { formatNumber, formatCurrency } from "@/lib/utils"
 import { TrendingUp, AlertCircle, ExternalLink } from "lucide-react"
 import Ga4UtmDashboard from "@/components/viewer/Ga4UtmDashboard"
@@ -41,7 +43,41 @@ export default async function DashboardGa4Page() {
       .order("created_at", { ascending: false }),
   ])
 
-  const properties = ga4Properties ?? []
+  let properties = ga4Properties ?? []
+
+  // website_url이 비어있는 속성이 있으면 GA4 데이터 스트림에서 자동 조회 후 DB 업데이트
+  const missingUrl = properties.filter((p) => !p.website_url)
+  if (missingUrl.length > 0) {
+    const creds = await getGa4Credentials()
+    if (creds) {
+      const admin = createAdminClient()
+      await Promise.all(
+        missingUrl.map(async (p) => {
+          try {
+            const res = await fetch(
+              `https://analyticsadmin.googleapis.com/v1beta/properties/${p.property_id}/dataStreams`,
+              { headers: { Authorization: `Bearer ${creds.access_token}` } }
+            )
+            if (!res.ok) return
+            const json = await res.json()
+            const webStream = (json.dataStreams ?? []).find(
+              (s: { type: string }) => s.type === "WEB_DATA_STREAM"
+            )
+            const url = webStream?.webStreamData?.defaultUri
+            if (url) {
+              await admin
+                .from("ga4_properties")
+                .update({ website_url: url })
+                .eq("property_id", p.property_id)
+              p.website_url = url
+            }
+          } catch {
+            // 실패 시 무시
+          }
+        })
+      )
+    }
+  }
   const entryIds = utmEntries?.map((e) => e.id) ?? []
 
   const now = new Date()
@@ -85,17 +121,26 @@ export default async function DashboardGa4Page() {
         <div>
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">사이트 분석</h2>
-            {properties.filter((p: { website_url?: string | null }) => p.website_url).map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
-              <a
-                key={p.property_id}
-                href={p.website_url!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full"
-              >
-                <ExternalLink className="w-3 h-3" />
-                {p.website_url!.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-              </a>
+            {properties.map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
+              p.website_url ? (
+                <a
+                  key={p.property_id}
+                  href={p.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  {p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                </a>
+              ) : (
+                <span
+                  key={p.property_id}
+                  className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full"
+                >
+                  {p.property_name}
+                </span>
+              )
             ))}
           </div>
           <Ga4Analytics properties={properties} />
