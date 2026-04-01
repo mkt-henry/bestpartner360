@@ -33,13 +33,6 @@ const platformConfig: Record<string, { label: string; description: string; field
       { key: "customer_id", label: "Customer ID", placeholder: "고객 ID (숫자)" },
     ],
   },
-  ga4: {
-    label: "Google Analytics 4",
-    description: "Google OAuth2 액세스 토큰을 입력하세요. (Google OAuth Playground 등에서 발급)",
-    fields: [
-      { key: "access_token", label: "Access Token", placeholder: "ya29.xxxxxxx..." },
-    ],
-  },
 }
 
 export default function PlatformCredentialsForm() {
@@ -47,7 +40,6 @@ export default function PlatformCredentialsForm() {
   const [formData, setFormData] = useState<Record<string, Record<string, string>>>({
     meta: { access_token: "" },
     naver: { api_key: "", secret_key: "", customer_id: "" },
-    ga4: { access_token: "" },
   })
   const [saving, setSaving] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
