@@ -20,10 +20,12 @@ const CHANNEL_COLORS: Record<string, string> = {
 interface Props {
   channels: string[]
   currentChannel: string | null
+  basePath?: string
 }
 
-function ChannelTabsInner({ channels, currentChannel }: Props) {
+function ChannelTabsInner({ channels, currentChannel, basePath }: Props) {
   const searchParams = useSearchParams()
+  const base = basePath ?? "/dashboard/performance"
 
   function buildHref(channel: string | null) {
     const params = new URLSearchParams(searchParams.toString())
@@ -33,7 +35,7 @@ function ChannelTabsInner({ channels, currentChannel }: Props) {
       params.delete("channel")
     }
     const qs = params.toString()
-    return `/dashboard/performance${qs ? `?${qs}` : ""}`
+    return `${base}${qs ? `?${qs}` : ""}`
   }
 
   return (

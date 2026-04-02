@@ -14,6 +14,8 @@ import {
   Building2,
   KeyRound,
   TrendingUp,
+  Eye,
+  Megaphone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { UserRole } from "@/types"
@@ -31,11 +33,13 @@ const adminNavFull = [
   { href: "/admin/brands", label: "브랜드 관리", icon: Building2 },
   { href: "/admin/users", label: "계정 관리", icon: Users },
   { href: "/admin/campaigns", label: "브랜드 KPI", icon: BarChart2 },
+  { href: "/admin/meta", label: "Meta 인사이트", icon: Megaphone },
   { href: "/admin/ga4-utm", label: "GA4 UTM", icon: TrendingUp },
   { href: "/admin/settings", label: "API 설정", icon: KeyRound },
   { href: "/admin/activity", label: "운영 현황 작성", icon: FileText },
   { href: "/admin/calendar", label: "캘린더 관리", icon: Calendar },
   { href: "/admin/creatives", label: "소재 관리", icon: Image },
+  { href: "/admin/viewer", label: "파트너 뷰어", icon: Eye },
 ]
 
 // 모바일 하단 탭 (짧은 레이블)
@@ -53,22 +57,32 @@ const adminNavMobile = [
   { href: "/admin/campaigns", label: "브랜드KPI", icon: BarChart2 },
   { href: "/admin/activity", label: "운영현황", icon: FileText },
   { href: "/admin/calendar", label: "캘린더", icon: Calendar },
-  { href: "/admin/creatives", label: "소재", icon: Image },
+  { href: "/admin/viewer", label: "뷰어", icon: Eye },
 ]
 
 interface SidebarProps {
   role: UserRole
   brandName?: string
+  viewerBasePath?: string // e.g. "/admin/viewer/abc123" — overrides /dashboard prefix
 }
 
-export default function Sidebar({ role, brandName }: SidebarProps) {
+export default function Sidebar({ role, brandName, viewerBasePath }: SidebarProps) {
   const pathname = usePathname()
-  const isAdmin = role === "admin"
-  const navItems = isAdmin ? adminNavFull : viewerNavFull
-  const mobileNavItems = isAdmin ? adminNavMobile : viewerNavMobile
+  const isAdmin = role === "admin" && !viewerBasePath
+  const baseNav = viewerBasePath ? viewerNavFull : isAdmin ? adminNavFull : viewerNavFull
+  const baseMobileNav = viewerBasePath ? viewerNavMobile : isAdmin ? adminNavMobile : viewerNavMobile
+
+  // Rewrite /dashboard to viewerBasePath when in admin viewer mode
+  const navItems = viewerBasePath
+    ? baseNav.map((item) => ({ ...item, href: item.href.replace("/dashboard", viewerBasePath) }))
+    : baseNav
+  const mobileNavItems = viewerBasePath
+    ? baseMobileNav.map((item) => ({ ...item, href: item.href.replace("/dashboard", viewerBasePath) }))
+    : baseMobileNav
 
   function isActive(href: string) {
-    if (href === "/dashboard" || href === "/admin/brands") return pathname === href
+    const homeHref = viewerBasePath ?? (isAdmin ? "/admin/brands" : "/dashboard")
+    if (href === homeHref) return pathname === href
     return pathname.startsWith(href)
   }
 
