@@ -54,14 +54,14 @@ export default function PlatformCredentialsForm() {
     try {
       const res = await fetch("/api/admin/credentials")
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
       const map: Record<string, CredentialInfo> = {}
       for (const c of json.credentials) {
         map[c.platform] = c
       }
       setExisting(map)
-    } catch {
-      // 테이블이 아직 없을 수 있음
+    } catch (e: unknown) {
+      setError(`자격증명 로드 실패: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
     }
