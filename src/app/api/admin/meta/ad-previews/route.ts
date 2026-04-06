@@ -22,14 +22,13 @@ export async function GET(req: NextRequest) {
       ids.map(async (adId) => {
         try {
           const res = await fetch(
-            `${META_API}/${adId}?fields=id,name,creative{thumbnail_url,image_url,image_asset,object_story_spec}&access_token=${creds.access_token}`
+            `${META_API}/${adId}?fields=id,name,creative{thumbnail_url,image_url,object_story_spec}&access_token=${creds.access_token}`
           )
           if (!res.ok) return { ad_id: adId, thumbnail_url: null, image_url: null }
           const json = await res.json()
           const creative = json.creative ?? {}
           const spec = creative.object_story_spec ?? {}
           const highQualityUrl =
-            creative.image_asset?.url ??
             creative.image_url ??
             spec.link_data?.picture ??
             spec.link_data?.image_url ??
