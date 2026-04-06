@@ -491,7 +491,8 @@ function AdPanelList({
           <p className="text-xs text-slate-400 text-center py-8">데이터 없음</p>
         ) : rows.map((row) => {
           const preview = previews[row.id]
-          const imgUrl = preview?.image_url ?? preview?.thumbnail_url
+          const imgUrl = preview?.thumbnail_url ?? preview?.image_url
+          const fullUrl = preview?.image_url ?? preview?.thumbnail_url
           const pct = totalSpend > 0 ? (row.spend / totalSpend) * 100 : 0
           const action = getTopAction(row.actions)
 
@@ -505,7 +506,7 @@ function AdPanelList({
                     src={imgUrl}
                     alt={row.name}
                     className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-slate-200 dark:border-slate-600 cursor-zoom-in hover:ring-2 hover:ring-blue-400 transition"
-                    onClick={() => onImageClick(imgUrl, row.name)}
+                    onClick={() => onImageClick(fullUrl ?? imgUrl, row.name)}
                   />
                 ) : (
                   <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
