@@ -18,12 +18,12 @@ export async function GET() {
   const masked = (data ?? []).map((row) => ({
     platform: row.platform,
     updated_at: row.updated_at,
-    has_credentials: Object.values(row.credentials as Record<string, string>).some((v) => v.length > 0),
+    has_credentials: Object.values(row.credentials as Record<string, unknown>).some((v) => v !== null && v !== undefined && v !== ""),
     fields: Object.fromEntries(
-      Object.entries(row.credentials as Record<string, string>).map(([k, v]) => [
-        k,
-        v ? `${v.slice(0, 4)}${"*".repeat(Math.min(v.length - 4, 20))}` : "",
-      ])
+      Object.entries(row.credentials as Record<string, unknown>).map(([k, v]) => {
+        const s = typeof v === "string" ? v : String(v ?? "")
+        return [k, s ? `${s.slice(0, 4)}${"*".repeat(Math.min(s.length - 4, 20))}` : ""]
+      })
     ),
   }))
 
