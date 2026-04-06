@@ -46,6 +46,7 @@ export default function PlatformCredentialsForm() {
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showValues, setShowValues] = useState<Record<string, boolean>>({})
+  const [showReplaceForm, setShowReplaceForm] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
 
   async function fetchCredentials() {
@@ -100,11 +101,12 @@ export default function PlatformCredentialsForm() {
       if (!res.ok) throw new Error(json.error)
 
       setSuccess(platform)
-      // 폼 초기화
+      // 폼 초기화 및 교체 폼 닫기
       setFormData((prev) => ({
         ...prev,
         [platform]: Object.fromEntries(fields.map((f) => [f.key, ""])),
       }))
+      setShowReplaceForm((prev) => ({ ...prev, [platform]: false }))
       await fetchCredentials()
       setTimeout(() => setSuccess(null), 3000)
     } catch (e: unknown) {
@@ -160,6 +162,7 @@ export default function PlatformCredentialsForm() {
         const isDeleting = deleting === platform
         const isSuccess = success === platform
         const isVisible = showValues[platform] ?? false
+        const isReplacing = showReplaceForm[platform] ?? false
 
         return (
           <div
@@ -232,40 +235,59 @@ export default function PlatformCredentialsForm() {
               )}
 
               {/* 입력 폼 */}
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {info?.has_credentials ? "새 키로 교체" : "API 키 입력"}
-                </p>
-                {config.fields.map((field) => (
-                  <div key={field.key}>
-                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                      {field.label}
-                    </label>
-                    <input
-                      type="password"
-                      value={formData[platform][field.key] ?? ""}
-                      onChange={(e) => handleChange(platform, field.key, e.target.value)}
-                      placeholder={field.placeholder}
-                      className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
-                    />
-                  </div>
-                ))}
-
+              {info?.has_credentials && !isReplacing ? (
                 <button
-                  onClick={() => handleSave(platform)}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  onClick={() => setShowReplaceForm((prev) => ({ ...prev, [platform]: true }))}
+                  className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  {isSaving ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : isSuccess ? (
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  ) : (
-                    <Save className="w-3.5 h-3.5" />
-                  )}
-                  {isSuccess ? "저장 완료" : "저장"}
+                  새 키로 교체하기
                 </button>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      {info?.has_credentials ? "새 키로 교체" : "API 키 입력"}
+                    </p>
+                    {info?.has_credentials && (
+                      <button
+                        onClick={() => setShowReplaceForm((prev) => ({ ...prev, [platform]: false }))}
+                        className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
+                  {config.fields.map((field) => (
+                    <div key={field.key}>
+                      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        {field.label}
+                      </label>
+                      <input
+                        type="password"
+                        value={formData[platform][field.key] ?? ""}
+                        onChange={(e) => handleChange(platform, field.key, e.target.value)}
+                        placeholder={field.placeholder}
+                        className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                      />
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => handleSave(platform)}
+                    disabled={isSaving}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : isSuccess ? (
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                    {isSuccess ? "저장 완료" : "저장"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )
