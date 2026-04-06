@@ -80,9 +80,12 @@ export default function PlatformCredentialsForm() {
     const fields = platformConfig[platform].fields
     const creds = formData[platform]
 
+    console.log("[handleSave] platform:", platform, "creds:", creds)
+
     // 모든 필드가 입력되었는지 확인
     const hasEmpty = fields.some((f) => !creds[f.key]?.trim())
     if (hasEmpty) {
+      console.log("[handleSave] hasEmpty → 입력 누락")
       setError("모든 필드를 입력해주세요.")
       return
     }
@@ -97,7 +100,9 @@ export default function PlatformCredentialsForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ platform, credentials: creds }),
       })
+      console.log("[handleSave] POST status:", res.status)
       const json = await res.json()
+      console.log("[handleSave] POST json:", json)
       if (!res.ok) throw new Error(json.error)
 
       setSuccess(platform)
@@ -110,6 +115,7 @@ export default function PlatformCredentialsForm() {
       await fetchCredentials()
       setTimeout(() => setSuccess(null), 3000)
     } catch (e: unknown) {
+      console.error("[handleSave] error:", e)
       setError(e instanceof Error ? e.message : "저장 실패")
     } finally {
       setSaving(null)
