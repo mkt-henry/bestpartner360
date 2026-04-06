@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function GET() {
+  try {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("platform_credentials")
@@ -9,6 +10,7 @@ export async function GET() {
     .order("platform")
 
   if (error) {
+    console.error("[GET /api/admin/credentials] supabase error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -26,6 +28,11 @@ export async function GET() {
   }))
 
   return NextResponse.json({ credentials: masked })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error("[GET /api/admin/credentials] unhandled exception:", msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {

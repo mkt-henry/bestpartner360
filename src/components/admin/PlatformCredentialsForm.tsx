@@ -53,7 +53,10 @@ export default function PlatformCredentialsForm() {
     setLoading(true)
     try {
       const res = await fetch("/api/admin/credentials")
-      const json = await res.json()
+      const text = await res.text()
+      console.log("[fetchCredentials] status:", res.status, "body:", text)
+      if (!text) throw new Error(`HTTP ${res.status}: 빈 응답 (서버 예외 발생)`)
+      const json = JSON.parse(text)
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
       const map: Record<string, CredentialInfo> = {}
       for (const c of json.credentials) {
