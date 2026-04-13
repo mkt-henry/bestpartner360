@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BP360 · Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0B0E;
+    --bg-1:#0F1115;
+    --bg-2:#14171D;
+    --bg-3:#1A1E26;
+    --line:#242832;
+    --line-2:#2E3340;
+    --text:#E8E6DF;
+    --text-2:#B4B2AA;
+    --dim:#6E717A;
+    --dimmer:#3F434C;
+    --amber:#E8B04B;
+    --amber-dim:#e8b04b1f;
+    --steel:#7DB8D6;
+    --lime:#B7E24A;
+    --good:#5EC27A;
+    --bad:#E5553B;
+    --grad: linear-gradient(180deg,#E8B04B,#b07a20);
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --serif:'Fraunces',serif;
+    --italic:'Instrument Serif',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+  body{
+    min-height:100vh;
+    background-image:
+      radial-gradient(1000px 700px at 90% -10%, #e8b04b0a, transparent 60%),
+      radial-gradient(700px 500px at -5% 110%, #7db8d608, transparent 60%);
+    background-attachment:fixed;
+  }
+  ::selection{background:var(--amber);color:var(--bg)}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  a{color:inherit;text-decoration:none}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--line-2);border:2px solid var(--bg);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* —————————————————— LAYOUT —————————————————— */
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+
+  /* —————————————————— SIDEBAR —————————————————— */
+  aside{
+    background:var(--bg-1);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+  }
+  .logo{padding:22px 22px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .logo .mark{
+    width:26px;height:26px;border-radius:6px;background:var(--grad);
+    display:grid;place-items:center;color:var(--bg);font-weight:600;font-size:12px;
+    box-shadow:0 0 0 1px #e8b04b40, 0 4px 14px #e8b04b25;
+  }
+  .logo .name{font-family:var(--serif);font-size:18px;letter-spacing:-.01em;font-weight:500}
+  .logo .name em{font-family:var(--italic);font-style:italic;color:var(--amber);font-size:20px}
+  .logo .ver{margin-left:auto;font-size:9px;color:var(--dim);letter-spacing:.1em;padding:2px 6px;border:1px solid var(--line);border-radius:4px}
+
+  .client-switch{
+    margin:14px 14px 20px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+    display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--bg-2);transition:border-color .2s;
+  }
+  .client-switch:hover{border-color:var(--line-2)}
+  .client-switch .av{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#E5553B,#8a2517);display:grid;place-items:center;font-family:var(--serif);font-size:14px;color:#fff;flex-shrink:0}
+  .client-switch .meta{flex:1;min-width:0}
+  .client-switch .meta .n{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .client-switch .meta .s{font-size:10px;color:var(--dim);letter-spacing:.04em}
+  .client-switch .chev{color:var(--dim);font-size:10px}
+
+  .nav-group{padding:4px 14px;margin-bottom:4px}
+  .nav-group .title{font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--dim);padding:12px 10px 8px}
+  .nav a{
+    display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:6px;
+    font-size:12px;color:var(--text-2);position:relative;transition:all .15s;
+  }
+  .nav a:hover{background:var(--bg-2);color:var(--text)}
+  .nav a.active{background:var(--bg-2);color:var(--text)}
+  .nav a.active::before{content:"";position:absolute;left:-14px;top:6px;bottom:6px;width:2px;background:var(--amber);border-radius:0 2px 2px 0}
+  .nav a .ico{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;fill:none;flex-shrink:0}
+  .nav a .badge{margin-left:auto;font-size:9px;padding:1px 6px;border-radius:10px;background:var(--amber-dim);color:var(--amber);letter-spacing:.04em}
+  .nav a .dot{margin-left:auto;width:5px;height:5px;border-radius:50%;background:var(--good)}
+
+  .side-foot{margin-top:auto;padding:14px;border-top:1px solid var(--line)}
+  .user{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;cursor:pointer}
+  .user:hover{background:var(--bg-2)}
+  .user .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#7DB8D6,#2a5e7a);display:grid;place-items:center;font-size:11px;color:var(--bg);font-weight:600}
+  .user .meta{flex:1;min-width:0}
+  .user .meta .n{font-size:11px;color:var(--text)}
+  .user .meta .r{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .user .st{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px #5ec27a20}
+
+  /* —————————————————— MAIN —————————————————— */
+  main{min-width:0;display:flex;flex-direction:column}
+
+  /* top bar */
+  header.topbar{
+    display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:1px solid var(--line);
+    background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(8px);
+    position:sticky;top:0;z-index:20;
+  }
+  .crumbs{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim)}
+  .crumbs b{color:var(--text);font-weight:500}
+  .crumbs .sep{color:var(--dimmer)}
+  .search{
+    flex:1;max-width:420px;margin-left:12px;display:flex;align-items:center;gap:10px;
+    padding:7px 12px;border:1px solid var(--line);background:var(--bg-1);border-radius:7px;
+  }
+  .search svg{width:13px;height:13px;stroke:var(--dim);stroke-width:1.5;fill:none}
+  .search input{flex:1;background:none;border:0;color:var(--text);font:inherit;outline:none}
+  .search input::placeholder{color:var(--dim)}
+  .search kbd{font:inherit;font-size:10px;padding:1px 6px;border:1px solid var(--line-2);border-radius:4px;color:var(--dim)}
+
+  .tbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--line);border-radius:7px;font-size:11px;color:var(--text-2);background:var(--bg-1);transition:all .15s}
+  .pill:hover{border-color:var(--line-2);color:var(--text)}
+  .pill .k{color:var(--dim)}
+  .pill.warn{border-color:#e8b04b40;color:var(--amber)}
+  .icon-btn{width:32px;height:32px;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;background:var(--bg-1);position:relative}
+  .icon-btn:hover{border-color:var(--line-2)}
+  .icon-btn svg{width:14px;height:14px;stroke:var(--text-2);stroke-width:1.5;fill:none}
+  .icon-btn .ping{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px var(--bg-1)}
+
+  /* sub bar: filters */
+  .filters{
+    display:flex;align-items:center;gap:10px;padding:12px 24px;border-bottom:1px solid var(--line);
+    background:var(--bg-1);overflow-x:auto;
+  }
+  .filter-group{display:flex;align-items:center;gap:6px;padding-right:12px;border-right:1px solid var(--line)}
+  .filter-group:last-child{border:0}
+  .fg-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-right:4px}
+  .chip{padding:5px 10px;border:1px solid var(--line);border-radius:5px;font-size:11px;color:var(--text-2);white-space:nowrap;cursor:pointer;background:var(--bg-2);transition:all .15s}
+  .chip:hover{border-color:var(--line-2);color:var(--text)}
+  .chip.on{background:var(--amber);color:var(--bg);border-color:var(--amber);font-weight:500}
+  .chip.dashed{border-style:dashed;color:var(--dim)}
+  .chip.dashed:hover{color:var(--text-2)}
+
+  /* main grid */
+  .canvas{padding:22px 24px;display:flex;flex-direction:column;gap:22px}
+
+  /* page head */
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:-4px}
+  .page-head h1{font-family:var(--serif);font-size:34px;letter-spacing:-.02em;font-weight:400;line-height:1;font-variation-settings:"opsz" 144}
+  .page-head h1 em{font-family:var(--italic);font-style:italic;color:var(--amber)}
+  .page-head .sub{font-size:11px;color:var(--dim);margin-top:8px}
+  .page-head .sub .live{color:var(--good);display:inline-flex;align-items:center;gap:6px;margin-left:12px}
+  .page-head .sub .live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px #5ec27a22;animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .pg-actions{display:flex;gap:8px}
+  .btn{padding:8px 14px;border:1px solid var(--line);border-radius:7px;font-size:11px;background:var(--bg-1);color:var(--text-2);transition:all .15s;display:flex;align-items:center;gap:8px}
+  .btn:hover{border-color:var(--line-2);color:var(--text)}
+  .btn.primary{background:var(--amber);color:var(--bg);border-color:var(--amber);font-weight:500}
+  .btn.primary:hover{background:#f1c16a}
+
+  /* KPI row */
+  .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .kpi{background:var(--bg-1);padding:16px 18px;display:flex;flex-direction:column;gap:6px;position:relative;min-width:0}
+  .kpi:hover{background:var(--bg-2)}
+  .kpi .top{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .kpi .top .i{color:var(--dimmer);cursor:help}
+  .kpi .v{font-family:var(--serif);font-size:28px;letter-spacing:-.02em;line-height:1.1;font-weight:400;color:var(--text);font-variation-settings:"opsz" 144;font-variant-numeric:tabular-nums}
+  .kpi .v .u{font-size:14px;color:var(--dim);margin-left:3px;font-family:var(--mono)}
+  .kpi .d{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--dim)}
+  .kpi .d .chg{padding:1px 5px;border-radius:3px;font-weight:500}
+  .kpi .d .chg.up{background:#5ec27a1a;color:var(--good)}
+  .kpi .d .chg.dn{background:#e5553b1a;color:var(--bad)}
+  .kpi .spark{position:absolute;bottom:0;left:0;right:0;height:28px;opacity:.7;pointer-events:none}
+  .kpi .spark svg{width:100%;height:100%}
+
+  /* main content grid */
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+  .panel{
+    background:var(--bg-1);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .p-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .p-head h3{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--text);font-weight:500}
+  .p-head .sub{font-size:10px;color:var(--dim)}
+  .p-head .tabs{margin-left:auto;display:flex;gap:2px;background:var(--bg-2);padding:2px;border-radius:6px;border:1px solid var(--line)}
+  .p-head .tabs button{padding:4px 10px;font-size:10px;color:var(--dim);border-radius:4px;text-transform:uppercase;letter-spacing:.08em}
+  .p-head .tabs button.on{background:var(--bg-3);color:var(--text)}
+  .p-head .more{color:var(--dim);width:22px;height:22px;display:grid;place-items:center;border-radius:4px}
+  .p-head .more:hover{background:var(--bg-2);color:var(--text)}
+  .p-body{padding:18px;flex:1;min-width:0}
+
+  /* primary chart */
+  .chart-stat{display:flex;gap:32px;margin-bottom:18px}
+  .chart-stat .s{display:flex;flex-direction:column;gap:2px}
+  .chart-stat .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:6px}
+  .chart-stat .l i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .chart-stat .v{font-family:var(--serif);font-size:24px;font-weight:400;font-variation-settings:"opsz" 144;letter-spacing:-.01em}
+  .chart-wrap{position:relative;height:260px;margin:0 -4px}
+  .chart-wrap svg{width:100%;height:100%;overflow:visible}
+  .grid-line{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+  .y-label{fill:var(--dim);font-size:9px;font-family:var(--mono)}
+  .x-label{fill:var(--dim);font-size:9px;font-family:var(--mono)}
+
+  /* alerts */
+  .alerts .p-body{padding:0;overflow-y:auto;max-height:440px}
+  .alert{display:flex;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);transition:background .15s;cursor:pointer}
+  .alert:hover{background:var(--bg-2)}
+  .alert:last-child{border-bottom:0}
+  .alert .bullet{width:4px;border-radius:2px;background:var(--dimmer);flex-shrink:0}
+  .alert.crit .bullet{background:var(--bad)}
+  .alert.warn .bullet{background:var(--amber)}
+  .alert.info .bullet{background:var(--steel)}
+  .alert.ok .bullet{background:var(--good)}
+  .alert .body{flex:1;min-width:0}
+  .alert .top{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+  .alert .tag{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}
+  .alert.crit .tag{color:var(--bad)}
+  .alert.warn .tag{color:var(--amber)}
+  .alert.info .tag{color:var(--steel)}
+  .alert.ok .tag{color:var(--good)}
+  .alert .time{font-size:10px;color:var(--dim)}
+  .alert .msg{font-size:12px;color:var(--text);line-height:1.4}
+  .alert .meta{font-size:10px;color:var(--dim);margin-top:4px}
+  .alert .meta b{color:var(--text-2);font-weight:500}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  thead th{
+    text-align:left;padding:10px 14px;font-size:10px;color:var(--dim);
+    text-transform:uppercase;letter-spacing:.1em;font-weight:500;
+    border-bottom:1px solid var(--line);background:var(--bg-1);white-space:nowrap;
+  }
+  thead th.num{text-align:right}
+  thead th.sortable{cursor:pointer}
+  thead th.sortable:hover{color:var(--text)}
+  thead th .ar{margin-left:4px;color:var(--amber)}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap}
+  tbody td.num{text-align:right;font-family:var(--mono)}
+  tbody tr:hover{background:var(--bg-2)}
+  tbody tr:last-child td{border-bottom:0}
+  .cell-main{color:var(--text);display:flex;align-items:center;gap:10px}
+  .cell-main .ic{width:18px;height:18px;border-radius:4px;display:grid;place-items:center;font-size:10px;font-weight:600;flex-shrink:0}
+  .ic.meta{background:#1877F220;color:#6FA8F5}
+  .ic.goog{background:#4285F420;color:#7AABF5}
+  .ic.tiktok{background:#ff004020;color:#ff4770}
+  .ic.em{background:#E8B04B20;color:var(--amber)}
+  .ic.org{background:#5EC27A20;color:var(--good)}
+  .cell-sub{color:var(--dim);font-size:10px;margin-top:1px}
+  .delta{display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;margin-left:6px}
+  .delta.up{background:#5ec27a1a;color:var(--good)}
+  .delta.dn{background:#e5553b1a;color:var(--bad)}
+  .hbar{display:inline-block;vertical-align:middle;width:60px;height:4px;background:var(--line);border-radius:2px;margin-left:8px;position:relative}
+  .hbar b{position:absolute;inset:0 auto 0 0;background:var(--amber);border-radius:2px;display:block}
+
+  /* trio row */
+  .trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .funnel-row{display:flex;align-items:center;gap:12px;padding:9px 0;font-size:12px}
+  .funnel-row .n{font-family:var(--serif);font-size:20px;color:var(--text);min-width:80px;font-variation-settings:"opsz" 144}
+  .funnel-row .l{flex:1;min-width:0}
+  .funnel-row .l .t{color:var(--text);font-size:12px}
+  .funnel-row .l .s{color:var(--dim);font-size:10px;margin-top:2px}
+  .funnel-row .bar{height:3px;background:var(--line);border-radius:2px;margin-top:6px;position:relative}
+  .funnel-row .bar b{position:absolute;inset:0 auto 0 0;background:var(--amber);border-radius:2px;display:block}
+  .funnel-row .pct{color:var(--good);font-size:10px;min-width:50px;text-align:right}
+  .funnel-row .pct.bad{color:var(--bad)}
+
+  /* geo / device */
+  .geo-row,.dev-row{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:center;padding:8px 0;font-size:12px;border-bottom:1px dashed var(--line)}
+  .geo-row:last-child,.dev-row:last-child{border-bottom:0}
+  .geo-row .flag{width:18px;height:12px;border-radius:2px;background:var(--line);font-size:10px;display:grid;place-items:center}
+  .geo-row .v{font-family:var(--mono);color:var(--text-2)}
+  .geo-row .pct{color:var(--dim);font-size:10px;margin-left:6px}
+
+  .footer-bar{
+    padding:12px 24px;border-top:1px solid var(--line);background:var(--bg-1);
+    display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;
+  }
+  .footer-bar .g{display:flex;gap:20px;align-items:center}
+  .footer-bar .st{display:inline-flex;align-items:center;gap:6px}
+  .footer-bar .st::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--good)}
+
+  @media(max-width:1280px){
+    .kpi-row{grid-template-columns:repeat(3,1fr)}
+    .grid{grid-template-columns:1fr}
+    .trio{grid-template-columns:1fr}
+  }
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr}
+    aside{display:none}
+    .kpi-row{grid-template-columns:repeat(2,1fr)}
+    .canvas{padding:16px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- ─────────────── SIDEBAR ─────────────── -->
+<aside>
+  <div class="logo">
+    <div class="mark">B</div>
+    <div class="name">BP<em>360</em></div>
+    <div class="ver">v3.14</div>
+  </div>
+
+  <div class="client-switch">
+    <div class="av">H</div>
+    <div class="meta">
+      <div class="n">Haeundae Kombucha</div>
+      <div class="s">3 properties · KRW</div>
+    </div>
+    <div class="chev">▾</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="title">Monitor</div>
+    <div class="nav">
+      <a class="active" href="#">
+        <svg class="ico" viewBox="0 0 20 20"><path d="M3 3h6v8H3zM11 3h6v4h-6zM11 9h6v8h-6zM3 13h6v4H3z"/></svg>
+        Overview
+      </a>
+      <a href="#">
+        <svg class="ico" viewBox="0 0 20 20"><path d="M3 10a7 7 0 1 0 14 0 7 7 0 0 0-14 0z"/><path d="M10 3v7l5 3"/></svg>
+        Realtime <span class="dot"></span>
+      </a>
+      <a href="meta-ads.html">
+        <svg class="ico" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M3 8h14M8 3v14"/></svg>
+        Meta Ads
+      </a>
+      <a href="ga4.html">
+        <svg class="ico" viewBox="0 0 20 20"><path d="M3 16l5-8 4 5 5-9"/></svg>
+        GA4 Analytics
+      </a>
+      <a href="#">
+        <svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M15 15l3 3"/></svg>
+        Search Console
+      </a>
+      <a href="#">
+        <svg class="ico" viewBox="0 0 20 20"><path d="M3 5h14v10H3z"/><path d="M3 5l7 6 7-6"/></svg>
+        CRM &amp; Email
+      </a>
+    </div>
+  </div>
+
+  <div class="nav-group">
+    <div class="title">Workspace</div>
+    <div class="nav">
+      <a href="#">
+        <svg class="ico" viewBox="0 0 20 20"><path d="M4 4h12v12H4z"/><path d="M4 8h12M8 4v12"/></svg>
+        Reports <span class="badge">12</span>
+      </a>
+      <a href="#">
+        <svg class="ico" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg>
+        Experiments
+      </a>
+      <a href="#">
+        <svg class="ico" viewBox="0 0 20 20"><path d="M3 4l7 8 7-8M3 10l7 8 7-8"/></svg>
+        Alerts <span class="badge">3</span>
+      </a>
+      <a href="#">
+        <svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3M3.5 3.5l2 2M14.5 14.5l2 2M3.5 16.5l2-2M14.5 5.5l2-2"/></svg>
+        Settings
+      </a>
+    </div>
+  </div>
+
+  <div class="side-foot">
+    <div class="user">
+      <div class="av">HP</div>
+      <div class="meta">
+        <div class="n">Henry Park</div>
+        <div class="r">Admin</div>
+      </div>
+      <div class="st"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ─────────────── MAIN ─────────────── -->
+<main>
+
+<!-- topbar -->
+<header class="topbar">
+  <div class="crumbs">
+    <span>Workspace</span><span class="sep">/</span>
+    <span>Haeundae</span><span class="sep">/</span>
+    <b>Overview</b>
+  </div>
+  <div class="search">
+    <svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg>
+    <input placeholder="Search campaigns, reports, keywords…" />
+    <kbd>⌘K</kbd>
+  </div>
+  <div class="tbar-actions">
+    <button class="pill warn">◉ 3 alerts</button>
+    <button class="pill"><span class="k">Compare:</span> Previous period</button>
+    <button class="icon-btn" title="Notifications">
+      <svg viewBox="0 0 20 20"><path d="M4 8a6 6 0 1 1 12 0v4l2 3H2l2-3z"/><path d="M8 17a2 2 0 0 0 4 0"/></svg>
+      <span class="ping"></span>
+    </button>
+    <button class="icon-btn" title="Export">
+      <svg viewBox="0 0 20 20"><path d="M10 3v11M5 9l5 5 5-5M3 17h14"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- filter bar -->
+<div class="filters">
+  <div class="filter-group">
+    <span class="fg-label">Range</span>
+    <button class="chip">24H</button>
+    <button class="chip">7D</button>
+    <button class="chip on">14D</button>
+    <button class="chip">30D</button>
+    <button class="chip">QTD</button>
+    <button class="chip">Custom ↓</button>
+  </div>
+  <div class="filter-group">
+    <span class="fg-label">Source</span>
+    <button class="chip on">All</button>
+    <button class="chip">Meta</button>
+    <button class="chip">Google</button>
+    <button class="chip">TikTok</button>
+    <button class="chip">Organic</button>
+  </div>
+  <div class="filter-group">
+    <span class="fg-label">Segment</span>
+    <button class="chip dashed">+ Add filter</button>
+  </div>
+  <div style="margin-left:auto;font-size:10px;color:var(--dim);white-space:nowrap">Last sync <b style="color:var(--text-2)">00:42s ago</b></div>
+</div>
+
+<!-- canvas -->
+<div class="canvas">
+
+  <!-- page head -->
+  <div class="page-head">
+    <div>
+      <h1>Performance <em>overview</em></h1>
+      <div class="sub">Apr 1 — Apr 13, 2026 &nbsp; · &nbsp; 12 sources connected &nbsp; <span class="live">streaming</span></div>
+    </div>
+    <div class="pg-actions">
+      <button class="btn">＋ New report</button>
+      <button class="btn">⇅ Sync now</button>
+      <button class="btn primary">Share view ↗</button>
+    </div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="top"><span>Revenue</span><span class="i">ⓘ</span></div>
+      <div class="v">₩184<span class="u">.2M</span></div>
+      <div class="d"><span class="chg up">▲ 24.8%</span><span>vs ₩147.6M</span></div>
+      <div class="spark"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d="M0,22 L10,20 20,18 30,14 40,16 50,10 60,12 70,6 80,8 90,4 100,2" fill="none" stroke="#5EC27A" stroke-width="1.3"/></svg></div>
+    </div>
+    <div class="kpi">
+      <div class="top"><span>Ad Spend</span><span class="i">ⓘ</span></div>
+      <div class="v">₩44<span class="u">.1M</span></div>
+      <div class="d"><span class="chg up">▲ 8.2%</span><span>vs ₩40.8M</span></div>
+      <div class="spark"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d="M0,16 L10,18 20,14 30,16 40,12 50,14 60,10 70,12 80,8 90,10 100,6" fill="none" stroke="#E8B04B" stroke-width="1.3"/></svg></div>
+    </div>
+    <div class="kpi">
+      <div class="top"><span>Blended ROAS</span><span class="i">ⓘ</span></div>
+      <div class="v">4.18<span class="u">×</span></div>
+      <div class="d"><span class="chg up">▲ 0.62</span><span>Target 3.5×</span></div>
+      <div class="spark"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d="M0,18 L10,16 20,20 30,14 40,12 50,16 60,10 70,8 80,10 90,4 100,2" fill="none" stroke="#5EC27A" stroke-width="1.3"/></svg></div>
+    </div>
+    <div class="kpi">
+      <div class="top"><span>CAC</span><span class="i">ⓘ</span></div>
+      <div class="v">₩9<span class="u">,240</span></div>
+      <div class="d"><span class="chg dn">▼ 12.1%</span><span>vs ₩10,512</span></div>
+      <div class="spark"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d="M0,6 L10,10 20,8 30,12 40,10 50,14 60,12 70,16 80,14 90,18 100,22" fill="none" stroke="#5EC27A" stroke-width="1.3"/></svg></div>
+    </div>
+    <div class="kpi">
+      <div class="top"><span>Sessions</span><span class="i">ⓘ</span></div>
+      <div class="v">412<span class="u">k</span></div>
+      <div class="d"><span class="chg up">▲ 38.4%</span><span>vs 298k</span></div>
+      <div class="spark"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d="M0,24 L10,20 20,18 30,22 40,14 50,12 60,14 70,8 80,10 90,6 100,4" fill="none" stroke="#7DB8D6" stroke-width="1.3"/></svg></div>
+    </div>
+    <div class="kpi">
+      <div class="top"><span>Conv. Rate</span><span class="i">ⓘ</span></div>
+      <div class="v">3.84<span class="u">%</span></div>
+      <div class="d"><span class="chg dn">▼ 0.3pp</span><span>vs 4.14%</span></div>
+      <div class="spark"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d="M0,8 L10,10 20,6 30,12 40,14 50,10 60,16 70,14 80,18 90,16 100,20" fill="none" stroke="#E5553B" stroke-width="1.3"/></svg></div>
+    </div>
+  </div>
+
+  <!-- primary chart + alerts -->
+  <div class="grid">
+    <div class="panel">
+      <div class="p-head">
+        <h3>Revenue vs Spend</h3>
+        <div class="sub">Apr 1 — Apr 13</div>
+        <div class="tabs">
+          <button class="on">Daily</button>
+          <button>Hourly</button>
+          <button>Weekly</button>
+        </div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div class="chart-stat">
+          <div class="s">
+            <div class="l"><i style="background:#E8B04B"></i>Revenue</div>
+            <div class="v">₩184.2M</div>
+          </div>
+          <div class="s">
+            <div class="l"><i style="background:#7DB8D6"></i>Spend</div>
+            <div class="v">₩44.1M</div>
+          </div>
+          <div class="s">
+            <div class="l"><i style="background:#5EC27A"></i>Margin</div>
+            <div class="v">₩140.1M</div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 700 260" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="rev" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="#E8B04B" stop-opacity=".4"/>
+                <stop offset="1" stop-color="#E8B04B" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- grid -->
+            <line class="grid-line" x1="40" x2="700" y1="40" y2="40"/>
+            <line class="grid-line" x1="40" x2="700" y1="100" y2="100"/>
+            <line class="grid-line" x1="40" x2="700" y1="160" y2="160"/>
+            <line class="grid-line" x1="40" x2="700" y1="220" y2="220"/>
+            <text class="y-label" x="0" y="44">25M</text>
+            <text class="y-label" x="0" y="104">18M</text>
+            <text class="y-label" x="0" y="164">12M</text>
+            <text class="y-label" x="0" y="224">6M</text>
+
+            <!-- revenue area -->
+            <path d="M40,200 L90,190 140,180 190,150 240,160 290,120 340,130 390,90 440,100 490,70 540,80 590,40 640,60 690,30 L690,240 L40,240 Z" fill="url(#rev)"/>
+            <path d="M40,200 L90,190 140,180 190,150 240,160 290,120 340,130 390,90 440,100 490,70 540,80 590,40 640,60 690,30" fill="none" stroke="#E8B04B" stroke-width="1.8"/>
+            <!-- spend line -->
+            <path d="M40,225 L90,222 140,220 190,218 240,215 290,210 340,212 390,205 440,208 490,200 540,202 590,195 640,198 690,190" fill="none" stroke="#7DB8D6" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+            <!-- dots revenue -->
+            <g fill="#E8B04B">
+              <circle cx="40" cy="200" r="2"/><circle cx="90" cy="190" r="2"/><circle cx="140" cy="180" r="2"/><circle cx="190" cy="150" r="2"/><circle cx="240" cy="160" r="2"/><circle cx="290" cy="120" r="2"/><circle cx="340" cy="130" r="2"/><circle cx="390" cy="90" r="2"/><circle cx="440" cy="100" r="2"/><circle cx="490" cy="70" r="2"/><circle cx="540" cy="80" r="2"/><circle cx="590" cy="40" r="2"/><circle cx="640" cy="60" r="2"/><circle cx="690" cy="30" r="3" stroke="#0A0B0E" stroke-width="1.5"/>
+            </g>
+            <!-- marker -->
+            <line x1="690" y1="30" x2="690" y2="240" stroke="#E8B04B" stroke-width="1" stroke-dasharray="2 3" opacity=".5"/>
+            <rect x="632" y="6" width="68" height="20" rx="3" fill="#E8B04B"/>
+            <text x="666" y="20" fill="#0A0B0E" font-size="10" font-family="JetBrains Mono" text-anchor="middle" font-weight="600">₩22.4M</text>
+
+            <!-- x labels -->
+            <text class="x-label" x="40" y="256">Apr 1</text>
+            <text class="x-label" x="190" y="256">Apr 4</text>
+            <text class="x-label" x="340" y="256">Apr 7</text>
+            <text class="x-label" x="490" y="256">Apr 10</text>
+            <text class="x-label" x="660" y="256" text-anchor="end">Apr 13</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel alerts">
+      <div class="p-head">
+        <h3>Live activity</h3>
+        <div class="sub">Last 24 h</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div class="alert crit">
+          <div class="bullet"></div>
+          <div class="body">
+            <div class="top"><span class="tag">Critical · Budget</span><span class="time">2m ago</span></div>
+            <div class="msg">Campaign <b>Spring·Brand·PROS</b> pacing 148% — will exhaust daily cap in 1h 20m</div>
+            <div class="meta">Meta · Spend <b>₩3.2M / ₩2.2M</b></div>
+          </div>
+        </div>
+        <div class="alert warn">
+          <div class="bullet"></div>
+          <div class="body">
+            <div class="top"><span class="tag">Warn · CAC</span><span class="time">14m</span></div>
+            <div class="msg">Blended CAC on <b>TikTok / Launch·04</b> up 34% hour-over-hour</div>
+            <div class="meta">₩8,120 → <b>₩10,880</b></div>
+          </div>
+        </div>
+        <div class="alert info">
+          <div class="bullet"></div>
+          <div class="body">
+            <div class="top"><span class="tag">Info · Creative</span><span class="time">48m</span></div>
+            <div class="msg">New top creative: <b>"Morning Ritual 06"</b> CTR 3.9% · F.Freq 1.2</div>
+            <div class="meta">Consider scaling +30% budget</div>
+          </div>
+        </div>
+        <div class="alert ok">
+          <div class="bullet"></div>
+          <div class="body">
+            <div class="top"><span class="tag">OK · Goal</span><span class="time">1h</span></div>
+            <div class="msg">Monthly DTC revenue goal <b>hit</b> 18 days ahead of plan</div>
+            <div class="meta">₩180M / ₩180M · 100%</div>
+          </div>
+        </div>
+        <div class="alert info">
+          <div class="bullet"></div>
+          <div class="body">
+            <div class="top"><span class="tag">Info · SEO</span><span class="time">2h</span></div>
+            <div class="msg"><b>+14 keywords</b> entered top 10 on Google Search Console</div>
+            <div class="meta">Impressions <b>+28%</b></div>
+          </div>
+        </div>
+        <div class="alert warn">
+          <div class="bullet"></div>
+          <div class="body">
+            <div class="top"><span class="tag">Warn · Funnel</span><span class="time">3h</span></div>
+            <div class="msg">Checkout → Payment dropoff <b>+6.2pp</b> on mobile Safari</div>
+            <div class="meta">Investigate · 412 affected sessions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- campaigns table -->
+  <div class="panel">
+    <div class="p-head">
+      <h3>Campaign Performance</h3>
+      <div class="sub">24 active · sorted by revenue</div>
+      <div class="tabs">
+        <button class="on">All</button>
+        <button>Meta</button>
+        <button>Google</button>
+        <button>TikTok</button>
+      </div>
+      <button class="more">···</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32%">Campaign</th>
+            <th class="num sortable">Spend</th>
+            <th class="num sortable">Revenue <span class="ar">↓</span></th>
+            <th class="num sortable">ROAS</th>
+            <th class="num sortable">CAC</th>
+            <th class="num sortable">CTR</th>
+            <th class="num sortable">Conv</th>
+            <th class="num">Pacing</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="meta-ads.html" style="color:inherit;text-decoration:none"><div class="cell-main"><div class="ic meta">M</div><div><div>Spring · Brand Prospecting <span style="color:var(--amber);font-size:10px;margin-left:4px">↗</span></div><div class="cell-sub">Meta · 12 ad sets · ACTIVE</div></div></div></a></td>
+            <td class="num">₩12,420,000</td>
+            <td class="num">₩61,840,000 <span class="delta up">+28%</span></td>
+            <td class="num">4.98×</td>
+            <td class="num">₩8,120</td>
+            <td class="num">2.84%</td>
+            <td class="num">1,529</td>
+            <td class="num"><span class="hbar"><b style="width:88%"></b></span></td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="ic goog">G</div><div><div>Brand · Exact Match</div><div class="cell-sub">Google · 4 campaigns · ACTIVE</div></div></div></td>
+            <td class="num">₩6,240,000</td>
+            <td class="num">₩42,180,000 <span class="delta up">+14%</span></td>
+            <td class="num">6.76×</td>
+            <td class="num">₩4,820</td>
+            <td class="num">8.12%</td>
+            <td class="num">1,294</td>
+            <td class="num"><span class="hbar"><b style="width:62%"></b></span></td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="ic org">O</div><div><div>Organic Social</div><div class="cell-sub">Instagram + Naver · 48 posts</div></div></div></td>
+            <td class="num">—</td>
+            <td class="num">₩28,930,000 <span class="delta up">+41%</span></td>
+            <td class="num">∞</td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td class="num">842</td>
+            <td class="num"><span style="color:var(--good);font-size:10px">↗ steady</span></td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="ic em">E</div><div><div>Lifecycle · Returning Buyers</div><div class="cell-sub">CRM · 6 flows · AUTOMATED</div></div></div></td>
+            <td class="num">₩480,000</td>
+            <td class="num">₩22,410,000 <span class="delta up">+9%</span></td>
+            <td class="num">46.7×</td>
+            <td class="num">₩1,240</td>
+            <td class="num">24.1%</td>
+            <td class="num">612</td>
+            <td class="num"><span class="hbar"><b style="width:74%"></b></span></td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="ic tiktok">T</div><div><div>Launch · 04 Morning Ritual</div><div class="cell-sub">TikTok · 8 creatives · ACTIVE</div></div></div></td>
+            <td class="num">₩18,240,000</td>
+            <td class="num">₩18,904,000 <span class="delta dn">−6%</span></td>
+            <td class="num">1.04×</td>
+            <td class="num">₩10,880</td>
+            <td class="num">3.94%</td>
+            <td class="num">488</td>
+            <td class="num"><span class="hbar"><b style="width:98%;background:var(--bad)"></b></span></td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="ic meta">M</div><div><div>Retargeting · Cart Abandon</div><div class="cell-sub">Meta · 3 ad sets · ACTIVE</div></div></div></td>
+            <td class="num">₩2,140,000</td>
+            <td class="num">₩9,816,000 <span class="delta up">+2%</span></td>
+            <td class="num">4.59×</td>
+            <td class="num">₩5,620</td>
+            <td class="num">4.12%</td>
+            <td class="num">224</td>
+            <td class="num"><span class="hbar"><b style="width:44%"></b></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- trio: funnel + geo + devices -->
+  <div class="trio">
+    <div class="panel">
+      <div class="p-head">
+        <h3>Conversion Funnel</h3>
+        <div class="sub">Checkout flow · 14 d</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div class="funnel-row">
+          <div class="n">412<span style="font-size:11px;color:var(--dim)">k</span></div>
+          <div class="l"><div class="t">Sessions</div><div class="s">All sources</div><div class="bar"><b style="width:100%"></b></div></div>
+          <div class="pct">100%</div>
+        </div>
+        <div class="funnel-row">
+          <div class="n">284<span style="font-size:11px;color:var(--dim)">k</span></div>
+          <div class="l"><div class="t">Product View</div><div class="s">−31% dropoff</div><div class="bar"><b style="width:69%"></b></div></div>
+          <div class="pct">68.9%</div>
+        </div>
+        <div class="funnel-row">
+          <div class="n">58<span style="font-size:11px;color:var(--dim)">k</span></div>
+          <div class="l"><div class="t">Add to Cart</div><div class="s">−79%</div><div class="bar"><b style="width:14%"></b></div></div>
+          <div class="pct">14.1%</div>
+        </div>
+        <div class="funnel-row">
+          <div class="n">22<span style="font-size:11px;color:var(--dim)">k</span></div>
+          <div class="l"><div class="t">Checkout</div><div class="s">−62%</div><div class="bar"><b style="width:5.3%"></b></div></div>
+          <div class="pct bad">5.3%</div>
+        </div>
+        <div class="funnel-row">
+          <div class="n">15<span style="font-size:11px;color:var(--dim)">k</span></div>
+          <div class="l"><div class="t">Purchase</div><div class="s">−32%</div><div class="bar"><b style="width:3.84%"></b></div></div>
+          <div class="pct">3.84%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="p-head">
+        <h3>Top Regions</h3>
+        <div class="sub">By revenue</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Seoul</span><span><b class="v">₩68.2M</b><span class="pct">37%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Busan</span><span><b class="v">₩32.4M</b><span class="pct">18%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Incheon</span><span><b class="v">₩21.8M</b><span class="pct">12%</span></span></div>
+        <div class="geo-row"><span class="flag">🇯🇵</span><span>Tokyo</span><span><b class="v">₩18.6M</b><span class="pct">10%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Daegu</span><span><b class="v">₩14.2M</b><span class="pct">8%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Daejeon</span><span><b class="v">₩9.8M</b><span class="pct">5%</span></span></div>
+        <div class="geo-row"><span class="flag">🇯🇵</span><span>Osaka</span><span><b class="v">₩8.2M</b><span class="pct">4%</span></span></div>
+        <div class="geo-row"><span class="flag">🇺🇸</span><span>Los Angeles</span><span><b class="v">₩6.1M</b><span class="pct">3%</span></span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="p-head">
+        <h3>Devices &amp; Channels</h3>
+        <div class="sub">Share of sessions</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">Device</div>
+        <div class="dev-row"><span>📱</span><span>Mobile · iOS</span><span><b>54.2%</b><span class="pct" style="color:var(--dim);margin-left:6px">223k</span></span></div>
+        <div class="dev-row"><span>📱</span><span>Mobile · Android</span><span><b>28.8%</b><span class="pct" style="color:var(--dim);margin-left:6px">119k</span></span></div>
+        <div class="dev-row"><span>💻</span><span>Desktop</span><span><b>15.4%</b><span class="pct" style="color:var(--dim);margin-left:6px">63k</span></span></div>
+        <div class="dev-row"><span>◻️</span><span>Tablet</span><span><b>1.6%</b><span class="pct" style="color:var(--dim);margin-left:6px">7k</span></span></div>
+
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin:18px 0 8px">Channel</div>
+        <div class="dev-row"><span>◉</span><span>Paid Social</span><span><b>42%</b></span></div>
+        <div class="dev-row"><span>◉</span><span>Organic Search</span><span><b>24%</b></span></div>
+        <div class="dev-row"><span>◉</span><span>Email / CRM</span><span><b>18%</b></span></div>
+        <div class="dev-row"><span>◉</span><span>Direct</span><span><b>11%</b></span></div>
+        <div class="dev-row"><span>◉</span><span>Referral</span><span><b>5%</b></span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-bar">
+  <div class="g">
+    <span class="st">All systems operational</span>
+    <span>API p95 · 142ms</span>
+    <span>Queue · 0</span>
+  </div>
+  <div class="g">
+    <span id="clock">—</span>
+    <span>BP360 Console v3.14</span>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+  // live clock
+  const clock=document.getElementById('clock');
+  const tick=()=>{const d=new Date();clock.textContent='KST · '+d.toLocaleTimeString('en-GB')};
+  tick();setInterval(tick,1000);
+
+  // chip toggle within a group
+  document.querySelectorAll('.filter-group').forEach(g=>{
+    g.querySelectorAll('.chip:not(.dashed)').forEach(c=>{
+      c.addEventListener('click',()=>{
+        g.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+        c.classList.add('on');
+      });
+    });
+  });
+
+  // table tab switch (visual only)
+  document.querySelectorAll('.tabs').forEach(t=>{
+    t.querySelectorAll('button').forEach(b=>{
+      b.addEventListener('click',()=>{
+        t.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+        b.classList.add('on');
+      });
+    });
+  });
+
+  // cmd+k stub
+  document.addEventListener('keydown',e=>{
+    if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.querySelector('.search input').focus()}
+  });
+</script>
+</body>
+</html>

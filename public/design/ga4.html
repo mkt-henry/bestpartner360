@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BP360 · GA4 Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0B0E;--bg-1:#0F1115;--bg-2:#14171D;--bg-3:#1A1E26;
+    --line:#242832;--line-2:#2E3340;
+    --text:#E8E6DF;--text-2:#B4B2AA;--dim:#6E717A;--dimmer:#3F434C;
+    --amber:#E8B04B;--amber-dim:#e8b04b1f;
+    --steel:#7DB8D6;--lime:#B7E24A;--good:#5EC27A;--bad:#E5553B;--plum:#C77DD6;
+    --grad:linear-gradient(180deg,#E8B04B,#b07a20);
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --serif:'Fraunces',serif;--italic:'Instrument Serif',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+  body{min-height:100vh;background-image:radial-gradient(1000px 700px at 90% -10%,#7db8d60a,transparent 60%),radial-gradient(700px 500px at -5% 110%,#e8b04b08,transparent 60%);background-attachment:fixed}
+  ::selection{background:var(--steel);color:var(--bg)}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  a{color:inherit;text-decoration:none}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--line-2);border:2px solid var(--bg);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+
+  /* sidebar shell (same) */
+  aside{background:var(--bg-1);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .logo{padding:22px 22px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .logo .mark{width:26px;height:26px;border-radius:6px;background:var(--grad);display:grid;place-items:center;color:var(--bg);font-weight:600;font-size:12px;box-shadow:0 0 0 1px #e8b04b40,0 4px 14px #e8b04b25}
+  .logo .name{font-family:var(--serif);font-size:18px;letter-spacing:-.01em;font-weight:500}
+  .logo .name em{font-family:var(--italic);font-style:italic;color:var(--amber);font-size:20px}
+  .logo .ver{margin-left:auto;font-size:9px;color:var(--dim);letter-spacing:.1em;padding:2px 6px;border:1px solid var(--line);border-radius:4px}
+  .client-switch{margin:14px 14px 20px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--bg-2)}
+  .client-switch .av{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#E5553B,#8a2517);display:grid;place-items:center;font-family:var(--serif);font-size:14px;color:#fff}
+  .client-switch .meta{flex:1;min-width:0}
+  .client-switch .meta .n{font-size:12px;color:var(--text)}
+  .client-switch .meta .s{font-size:10px;color:var(--dim)}
+  .client-switch .chev{color:var(--dim);font-size:10px}
+  .nav-group{padding:4px 14px;margin-bottom:4px}
+  .nav-group .title{font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--dim);padding:12px 10px 8px}
+  .nav a{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:6px;font-size:12px;color:var(--text-2);position:relative;transition:all .15s}
+  .nav a:hover{background:var(--bg-2);color:var(--text)}
+  .nav a.active{background:var(--bg-2);color:var(--text)}
+  .nav a.active::before{content:"";position:absolute;left:-14px;top:6px;bottom:6px;width:2px;background:var(--amber);border-radius:0 2px 2px 0}
+  .nav a .ico{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;fill:none;flex-shrink:0}
+  .nav a .badge{margin-left:auto;font-size:9px;padding:1px 6px;border-radius:10px;background:var(--amber-dim);color:var(--amber)}
+  .nav a .dot{margin-left:auto;width:5px;height:5px;border-radius:50%;background:var(--good)}
+  .side-foot{margin-top:auto;padding:14px;border-top:1px solid var(--line)}
+  .user{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;cursor:pointer}
+  .user .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#7DB8D6,#2a5e7a);display:grid;place-items:center;font-size:11px;color:var(--bg);font-weight:600}
+  .user .meta .n{font-size:11px;color:var(--text)}
+  .user .meta .r{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .user .st{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px #5ec27a20;margin-left:auto}
+
+  main{min-width:0;display:flex;flex-direction:column}
+
+  /* topbar */
+  header.topbar{display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
+  .crumbs{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim)}
+  .crumbs a{color:var(--text-2)}
+  .crumbs a:hover{color:var(--amber)}
+  .crumbs b{color:var(--text);font-weight:500}
+  .crumbs .sep{color:var(--dimmer)}
+  .search{flex:1;max-width:380px;margin-left:12px;display:flex;align-items:center;gap:10px;padding:7px 12px;border:1px solid var(--line);background:var(--bg-1);border-radius:7px}
+  .search svg{width:13px;height:13px;stroke:var(--dim);stroke-width:1.5;fill:none}
+  .search input{flex:1;background:none;border:0;color:var(--text);font:inherit;outline:none}
+  .search input::placeholder{color:var(--dim)}
+  .search kbd{font:inherit;font-size:10px;padding:1px 6px;border:1px solid var(--line-2);border-radius:4px;color:var(--dim)}
+  .tbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid var(--line);border-radius:7px;font-size:11px;color:var(--text-2);background:var(--bg-1)}
+  .icon-btn{width:32px;height:32px;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;background:var(--bg-1)}
+  .icon-btn svg{width:14px;height:14px;stroke:var(--text-2);stroke-width:1.5;fill:none}
+
+  /* detail head */
+  .detail-head{padding:24px 24px 20px;background:var(--bg-1);border-bottom:1px solid var(--line);position:relative}
+  .detail-head::after{content:"";position:absolute;inset:auto 0 0 0;height:80px;background:radial-gradient(600px 80px at 20% 100%,#7db8d60f,transparent 70%);pointer-events:none}
+  .dh-row{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:flex-end}
+  .dh-main .src{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}
+  .dh-main .src .ic{width:22px;height:22px;border-radius:5px;background:#E8B04B20;color:var(--amber);display:grid;place-items:center;font-weight:600;font-size:10px}
+  .dh-main h1{font-family:var(--serif);font-size:38px;letter-spacing:-.025em;font-weight:400;line-height:1;font-variation-settings:"opsz" 144;margin-bottom:12px}
+  .dh-main h1 em{font-family:var(--italic);font-style:italic;color:var(--steel)}
+  .dh-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--dim)}
+  .dh-meta b{color:var(--text-2);font-weight:500}
+  .live-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#5ec27a14;color:var(--good);font-size:10px;text-transform:uppercase;letter-spacing:.12em;border:1px solid #5ec27a33}
+  .live-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--good);animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .dh-actions{display:flex;gap:8px}
+  .btn{padding:9px 14px;border:1px solid var(--line);border-radius:7px;font-size:11px;background:var(--bg-2);color:var(--text-2);display:flex;align-items:center;gap:8px}
+  .btn:hover{border-color:var(--line-2);color:var(--text)}
+  .btn.primary{background:var(--amber);color:var(--bg);border-color:var(--amber);font-weight:500}
+
+  /* tabs */
+  .drill-tabs{display:flex;gap:2px;padding:0 24px;background:var(--bg-1);border-bottom:1px solid var(--line);position:sticky;top:61px;z-index:15}
+  .drill-tabs a{padding:14px 18px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim);position:relative}
+  .drill-tabs a:hover{color:var(--text-2)}
+  .drill-tabs a.on{color:var(--text)}
+  .drill-tabs a.on::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:2px;background:var(--amber)}
+  .drill-tabs a .c{margin-left:6px;color:var(--dim);font-size:10px}
+  .drill-tabs a.on .c{color:var(--amber)}
+
+  .canvas{padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+
+  /* KPI */
+  .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .kpi{background:var(--bg-1);padding:14px 16px;display:flex;flex-direction:column;gap:4px;position:relative;min-width:0}
+  .kpi:hover{background:var(--bg-2)}
+  .kpi .top{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .kpi .v{font-family:var(--serif);font-size:24px;letter-spacing:-.02em;line-height:1.1;font-weight:400;font-variation-settings:"opsz" 144}
+  .kpi .v .u{font-size:12px;color:var(--dim);margin-left:2px;font-family:var(--mono)}
+  .kpi .d{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim)}
+  .kpi .d .chg{padding:1px 5px;border-radius:3px}
+  .kpi .d .chg.up{background:#5ec27a1a;color:var(--good)}
+  .kpi .d .chg.dn{background:#e5553b1a;color:var(--bad)}
+  .kpi .spark{position:absolute;bottom:0;left:0;right:0;height:22px;opacity:.7;pointer-events:none}
+
+  .panel{background:var(--bg-1);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .p-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .p-head h3{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--text);font-weight:500}
+  .p-head .sub{font-size:10px;color:var(--dim)}
+  .p-head .tabs{margin-left:auto;display:flex;gap:2px;background:var(--bg-2);padding:2px;border-radius:6px;border:1px solid var(--line)}
+  .p-head .tabs button{padding:4px 10px;font-size:10px;color:var(--dim);border-radius:4px;text-transform:uppercase;letter-spacing:.08em}
+  .p-head .tabs button.on{background:var(--bg-3);color:var(--text)}
+  .p-head .more{color:var(--dim);width:22px;height:22px;display:grid;place-items:center;border-radius:4px}
+  .p-body{padding:18px}
+
+  .two-70{display:grid;grid-template-columns:1.9fr 1fr;gap:16px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+  /* ── REALTIME ── */
+  .rt-wrap{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:center}
+  .rt-big{font-family:var(--serif);font-size:86px;line-height:.95;font-variation-settings:"opsz" 144;font-weight:350;letter-spacing:-.03em}
+  .rt-big em{font-family:var(--italic);font-style:italic;color:var(--good);font-size:22px;vertical-align:super;margin-left:4px}
+  .rt-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.14em;margin-top:4px;display:flex;align-items:center;gap:8px}
+  .rt-label::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--good);animation:pulse 1.6s infinite}
+  .rt-map{position:relative;height:180px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg-2);background-image:
+    radial-gradient(circle at 18% 38%,#7db8d610,transparent 12%),
+    radial-gradient(circle at 28% 48%,#7db8d610,transparent 14%),
+    radial-gradient(circle at 42% 32%,#7db8d610,transparent 10%),
+    radial-gradient(circle at 52% 40%,#7db8d612,transparent 16%),
+    radial-gradient(circle at 68% 46%,#7db8d610,transparent 12%),
+    radial-gradient(circle at 80% 52%,#7db8d610,transparent 14%),
+    radial-gradient(circle at 62% 70%,#7db8d610,transparent 14%),
+    radial-gradient(circle at 78% 78%,#7db8d610,transparent 12%),
+    radial-gradient(circle at 34% 72%,#7db8d610,transparent 10%),
+    radial-gradient(circle at 14% 62%,#7db8d610,transparent 14%);
+  }
+  .rt-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px #e8b04b20;animation:ping 2s infinite}
+  .rt-dot.hot{background:var(--bad);box-shadow:0 0 0 3px #e5553b20}
+  .rt-dot::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:1px solid currentColor;opacity:.4;animation:expand 2s infinite}
+  @keyframes ping{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+  @keyframes expand{0%{transform:scale(.5);opacity:.6}100%{transform:scale(1.8);opacity:0}}
+  .rt-bars{margin-top:10px;display:grid;grid-template-columns:repeat(30,1fr);gap:2px;align-items:end;height:48px}
+  .rt-bars .b{background:var(--steel);opacity:.4;border-radius:1px;min-height:2px;transition:height .8s}
+  .rt-bars .b.on{opacity:1;background:var(--amber)}
+
+  /* ── ACQUISITION ── */
+  .acq-grid{display:grid;grid-template-columns:1fr auto auto auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line);font-size:12px}
+  .acq-grid:last-child{border:0}
+  .acq-grid .src{display:flex;align-items:center;gap:10px}
+  .acq-grid .src .ic{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:11px;font-weight:600}
+  .ic.ggl{background:#4285F420;color:#7AABF5}
+  .ic.fb{background:#1877F220;color:#6FA8F5}
+  .ic.ig{background:linear-gradient(135deg,#833AB420,#FD1D1D20);color:#E77FB3}
+  .ic.nv{background:#03c75a20;color:#5ec27a}
+  .ic.dir{background:#6E717A20;color:var(--text-2)}
+  .ic.em{background:#E8B04B20;color:var(--amber)}
+  .ic.ref{background:#C77DD620;color:var(--plum)}
+  .acq-grid .barmini{width:100px;height:4px;background:var(--line);border-radius:2px;position:relative}
+  .acq-grid .barmini b{position:absolute;inset:0 auto 0 0;background:var(--steel);border-radius:2px;display:block}
+  .acq-grid .v{font-family:var(--mono);min-width:70px;text-align:right;color:var(--text-2)}
+  .acq-grid .pct{color:var(--dim);font-size:10px;min-width:40px;text-align:right}
+  .acq-grid .roas{min-width:60px;text-align:right;font-family:var(--mono);font-size:11px}
+
+  /* ── TABLE ── */
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  thead th{text-align:left;padding:10px 14px;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:500;border-bottom:1px solid var(--line);white-space:nowrap}
+  thead th.num{text-align:right}
+  thead th .ar{margin-left:4px;color:var(--amber)}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap}
+  tbody td.num{text-align:right;font-family:var(--mono)}
+  tbody tr:hover{background:var(--bg-2);cursor:pointer}
+  tbody tr:last-child td{border-bottom:0}
+  .cell-main{color:var(--text);display:flex;align-items:center;gap:10px}
+  .cell-main .url{font-family:var(--mono);font-size:12px}
+  .cell-main .url code{color:var(--amber);background:var(--bg-2);padding:1px 5px;border-radius:3px;font-size:10px;margin-right:6px}
+  .cell-sub{color:var(--dim);font-size:10px;margin-top:1px}
+  .delta{display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;margin-left:6px}
+  .delta.up{background:#5ec27a1a;color:var(--good)}
+  .delta.dn{background:#e5553b1a;color:var(--bad)}
+  .hbar{display:inline-block;vertical-align:middle;width:50px;height:4px;background:var(--line);border-radius:2px;margin-left:8px;position:relative}
+  .hbar b{position:absolute;inset:0 auto 0 0;background:var(--steel);border-radius:2px;display:block}
+  .hbar b.hot{background:var(--amber)}
+
+  /* ── FUNNEL ── */
+  .funnel-viz{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .fn-step{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+  .fn-step .step-bar{height:38px;background:var(--bg-2);border:1px solid var(--line);border-radius:6px;position:relative;overflow:hidden}
+  .fn-step .step-bar::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--w,100%);background:linear-gradient(90deg,#7db8d630,#7db8d610);border-right:2px solid var(--steel)}
+  .fn-step .step-bar .lbl{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:10px;z-index:2;font-size:12px}
+  .fn-step .step-bar .lbl .n{font-family:var(--serif);font-size:20px;font-variation-settings:"opsz" 144;color:var(--text)}
+  .fn-step .step-bar .lbl .t{color:var(--text-2)}
+  .fn-step .pct{font-family:var(--mono);font-size:11px;color:var(--dim);min-width:100px;text-align:right}
+  .fn-step .pct b{color:var(--text-2)}
+  .fn-step .pct.bad b{color:var(--bad)}
+  .fn-step .pct.good b{color:var(--good)}
+  .fn-drop{font-size:10px;color:var(--bad);text-align:right;padding-right:110px}
+
+  /* ── USER EXPLORER ── */
+  .users-list{border-right:1px solid var(--line);max-height:540px;overflow-y:auto}
+  .ul-row{padding:14px 18px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s;position:relative}
+  .ul-row:hover{background:var(--bg-2)}
+  .ul-row.on{background:var(--bg-2)}
+  .ul-row.on::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:2px;background:var(--amber)}
+  .ul-row .top{display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);margin-bottom:4px}
+  .ul-row .top b{font-family:var(--mono);color:var(--text)}
+  .ul-row .top .t{color:var(--dim);font-size:10px}
+  .ul-row .mid{font-size:10px;color:var(--dim);display:flex;gap:8px;flex-wrap:wrap}
+  .ul-row .mid span{display:inline-flex;align-items:center;gap:4px}
+  .ul-row .mid .k{color:var(--text-2)}
+  .ul-row .conv{margin-top:6px;font-size:10px}
+  .ul-row .conv.yes{color:var(--good)}
+  .ul-row .conv.no{color:var(--dim)}
+
+  .user-detail{padding:0}
+  .ud-head{padding:18px 20px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+  .ud-head .av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7DB8D6,#2a5e7a);display:grid;place-items:center;color:var(--bg);font-family:var(--serif);font-size:18px;font-weight:500}
+  .ud-head .n{font-family:var(--mono);font-size:13px;color:var(--text)}
+  .ud-head .s{font-size:10px;color:var(--dim);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap}
+  .ud-head .s b{color:var(--text-2)}
+  .ud-head .rev{font-family:var(--serif);font-size:22px;font-variation-settings:"opsz" 144;color:var(--good)}
+  .ud-head .rev small{font-size:10px;color:var(--dim);display:block;text-transform:uppercase;letter-spacing:.12em;font-family:var(--mono);margin-top:2px}
+
+  .timeline{padding:18px 20px;position:relative;max-height:440px;overflow-y:auto}
+  .timeline::before{content:"";position:absolute;left:32px;top:20px;bottom:20px;width:1px;background:var(--line)}
+  .tl-event{display:grid;grid-template-columns:28px 1fr auto;gap:14px;padding:10px 0;position:relative;align-items:flex-start}
+  .tl-event .dot{width:12px;height:12px;border-radius:50%;margin:2px 0 0 8px;background:var(--bg-1);border:2px solid var(--steel);position:relative;z-index:2}
+  .tl-event.conv .dot{border-color:var(--good);background:var(--good);box-shadow:0 0 0 3px #5ec27a22}
+  .tl-event.start .dot{border-color:var(--amber);background:var(--amber);box-shadow:0 0 0 3px #e8b04b22}
+  .tl-event.end .dot{border-color:var(--bad);background:var(--bad)}
+  .tl-event .body .t{font-size:12px;color:var(--text)}
+  .tl-event .body .t code{background:var(--bg-2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:10px;color:var(--amber);border:1px solid var(--line)}
+  .tl-event .body .m{font-size:10px;color:var(--dim);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+  .tl-event .body .m b{color:var(--text-2)}
+  .tl-event .time{font-family:var(--mono);font-size:10px;color:var(--dim);text-align:right;min-width:60px;padding-top:2px}
+
+  .session-band{padding:8px 20px;background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;display:flex;justify-content:space-between}
+  .session-band b{color:var(--text-2)}
+
+  /* device/geo */
+  .geo-row{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:center;padding:8px 0;font-size:12px;border-bottom:1px dashed var(--line)}
+  .geo-row:last-child{border:0}
+  .geo-row .flag{width:18px;height:12px;border-radius:2px;background:var(--line);font-size:10px;display:grid;place-items:center}
+  .geo-row .v{font-family:var(--mono);color:var(--text-2)}
+  .geo-row .pct{color:var(--dim);font-size:10px;margin-left:6px}
+
+  /* events stream */
+  .events-list{max-height:400px;overflow-y:auto}
+  .ev{display:grid;grid-template-columns:10px 1fr auto;gap:12px;align-items:center;padding:8px 16px;border-bottom:1px dashed var(--line);font-size:11px}
+  .ev:last-child{border:0}
+  .ev .pd{width:6px;height:6px;border-radius:50%;background:var(--steel)}
+  .ev.conv .pd{background:var(--good)}
+  .ev.eng .pd{background:var(--amber)}
+  .ev .name{font-family:var(--mono);color:var(--text)}
+  .ev .name b{color:var(--text-2);font-weight:400;margin-left:8px;font-size:10px}
+  .ev .count{font-family:var(--mono);color:var(--text-2)}
+  .ev .t{color:var(--dim);font-size:10px;font-family:var(--mono);margin-left:8px}
+
+  .footer-bar{padding:12px 24px;border-top:1px solid var(--line);background:var(--bg-1);display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-top:22px}
+  .footer-bar .g{display:flex;gap:20px;align-items:center}
+  .footer-bar .st{display:inline-flex;align-items:center;gap:6px}
+  .footer-bar .st::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--good)}
+
+  @media(max-width:1280px){
+    .kpi-row{grid-template-columns:repeat(3,1fr)}
+    .two-70,.two,.three{grid-template-columns:1fr}
+    .rt-wrap{grid-template-columns:1fr}
+  }
+  @media(max-width:900px){.app{grid-template-columns:1fr}aside{display:none}}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<aside>
+  <div class="logo"><div class="mark">B</div><div class="name">BP<em>360</em></div><div class="ver">v3.14</div></div>
+  <div class="client-switch">
+    <div class="av">H</div>
+    <div class="meta"><div class="n">Haeundae Kombucha</div><div class="s">3 properties · KRW</div></div>
+    <div class="chev">▾</div>
+  </div>
+  <div class="nav-group">
+    <div class="title">Monitor</div>
+    <div class="nav">
+      <a href="agency.html"><svg class="ico" viewBox="0 0 20 20"><path d="M3 3h6v8H3zM11 3h6v4h-6zM11 9h6v8h-6zM3 13h6v4H3z"/></svg>Overview</a>
+      <a href="#"><svg class="ico" viewBox="0 0 20 20"><path d="M3 10a7 7 0 1 0 14 0 7 7 0 0 0-14 0z"/><path d="M10 3v7l5 3"/></svg>Realtime <span class="dot"></span></a>
+      <a href="meta-ads.html"><svg class="ico" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M3 8h14M8 3v14"/></svg>Meta Ads</a>
+      <a class="active" href="#"><svg class="ico" viewBox="0 0 20 20"><path d="M3 16l5-8 4 5 5-9"/></svg>GA4 Analytics</a>
+      <a href="#"><svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M15 15l3 3"/></svg>Search Console</a>
+      <a href="#"><svg class="ico" viewBox="0 0 20 20"><path d="M3 5h14v10H3z"/><path d="M3 5l7 6 7-6"/></svg>CRM &amp; Email</a>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="title">Workspace</div>
+    <div class="nav">
+      <a href="#"><svg class="ico" viewBox="0 0 20 20"><path d="M4 4h12v12H4z"/><path d="M4 8h12M8 4v12"/></svg>Reports <span class="badge">12</span></a>
+      <a href="#"><svg class="ico" viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg>Experiments</a>
+      <a href="#"><svg class="ico" viewBox="0 0 20 20"><path d="M3 4l7 8 7-8M3 10l7 8 7-8"/></svg>Alerts <span class="badge">3</span></a>
+      <a href="#"><svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3"/></svg>Settings</a>
+    </div>
+  </div>
+  <div class="side-foot">
+    <div class="user">
+      <div class="av">HP</div>
+      <div class="meta"><div class="n">Henry Park</div><div class="r">Admin</div></div>
+      <div class="st"></div>
+    </div>
+  </div>
+</aside>
+
+<main>
+
+<header class="topbar">
+  <div class="crumbs">
+    <a href="agency.html">Workspace</a><span class="sep">/</span>
+    <a href="agency.html">Haeundae</a><span class="sep">/</span>
+    <b>GA4 Analytics</b>
+  </div>
+  <div class="search">
+    <svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg>
+    <input placeholder="Explore users, pages, events, cohorts…" />
+    <kbd>⌘K</kbd>
+  </div>
+  <div class="tbar-actions">
+    <button class="pill">Property · <b style="color:var(--text)">GA4-387193</b></button>
+    <button class="icon-btn"><svg viewBox="0 0 20 20"><path d="M10 3v11M5 9l5 5 5-5M3 17h14"/></svg></button>
+  </div>
+</header>
+
+<!-- detail head -->
+<div class="detail-head">
+  <div class="dh-row">
+    <div class="dh-main">
+      <div class="src"><span class="ic">Ω</span><span>Google Analytics 4 · haeundae.kr · Property G-XK2N8P</span></div>
+      <h1>Audience &amp; <em>journeys</em></h1>
+      <div class="dh-meta">
+        <span class="live-pill">Live · streaming</span>
+        <span>Apr 1 — Apr 13, 2026</span>
+        <span>·</span>
+        <span>Compared vs <b>previous period</b></span>
+        <span>·</span>
+        <span>Attribution · <b>Data-driven</b> / 7d-click + 1d-view</span>
+      </div>
+    </div>
+    <div class="dh-actions">
+      <button class="btn">＋ Segment</button>
+      <button class="btn">⇄ Compare</button>
+      <button class="btn primary">Open in GA4 ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- tabs -->
+<div class="drill-tabs">
+  <a class="on" href="#">Overview</a>
+  <a href="#">Acquisition</a>
+  <a href="#">Engagement <span class="c">12</span></a>
+  <a href="#">Conversions <span class="c">6</span></a>
+  <a href="#">Retention</a>
+  <a href="#">User Explorer</a>
+  <a href="#">Reports</a>
+</div>
+
+<div class="canvas">
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="top">Active Users</div><div class="v">284<span class="u">k</span></div><div class="d"><span class="chg up">▲ 22%</span> vs 232k</div><div class="spark"><svg viewBox="0 0 100 22" preserveAspectRatio="none"><path d="M0,16 L14,14 28,12 42,14 56,10 70,8 84,6 100,4" fill="none" stroke="#7DB8D6" stroke-width="1.2"/></svg></div></div>
+    <div class="kpi"><div class="top">Sessions</div><div class="v">412<span class="u">k</span></div><div class="d"><span class="chg up">▲ 38%</span> 1.45/user</div><div class="spark"><svg viewBox="0 0 100 22" preserveAspectRatio="none"><path d="M0,20 L14,18 28,14 42,12 56,10 70,6 84,4 100,2" fill="none" stroke="#7DB8D6" stroke-width="1.2"/></svg></div></div>
+    <div class="kpi"><div class="top">Engagement rate</div><div class="v">64.8<span class="u">%</span></div><div class="d"><span class="chg up">▲ 2.1pp</span> benchmark 58%</div><div class="spark"><svg viewBox="0 0 100 22" preserveAspectRatio="none"><path d="M0,10 L14,12 28,8 42,10 56,6 70,8 84,4 100,6" fill="none" stroke="#5EC27A" stroke-width="1.2"/></svg></div></div>
+    <div class="kpi"><div class="top">Avg session</div><div class="v">2<span class="u">:42</span></div><div class="d"><span class="chg up">▲ 14s</span> 3.2 events/sess</div><div class="spark"><svg viewBox="0 0 100 22" preserveAspectRatio="none"><path d="M0,14 L14,12 28,14 42,10 56,8 70,10 84,6 100,8" fill="none" stroke="#7DB8D6" stroke-width="1.2"/></svg></div></div>
+    <div class="kpi"><div class="top">Conversions</div><div class="v">15<span class="u">,829</span></div><div class="d"><span class="chg up">▲ 29%</span> CVR 3.84%</div><div class="spark"><svg viewBox="0 0 100 22" preserveAspectRatio="none"><path d="M0,18 L14,14 28,16 42,10 56,12 70,6 84,8 100,4" fill="none" stroke="#5EC27A" stroke-width="1.2"/></svg></div></div>
+    <div class="kpi"><div class="top">Revenue</div><div class="v">₩184<span class="u">.2M</span></div><div class="d"><span class="chg up">▲ 24.8%</span> AOV ₩11,634</div><div class="spark"><svg viewBox="0 0 100 22" preserveAspectRatio="none"><path d="M0,18 L14,14 28,10 42,12 56,6 70,8 84,4 100,2" fill="none" stroke="#E8B04B" stroke-width="1.2"/></svg></div></div>
+  </div>
+
+  <!-- realtime + acquisition -->
+  <div class="two-70">
+    <div class="panel">
+      <div class="p-head">
+        <h3>Realtime</h3>
+        <div class="sub">Last 30 minutes · auto-refreshing</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div class="rt-wrap">
+          <div>
+            <div class="rt-big" id="rtNum">1,284<em>now</em></div>
+            <div class="rt-label">Users on site · live</div>
+            <div style="margin-top:16px;font-size:11px;color:var(--dim)">Page views <b style="color:var(--text-2);font-family:var(--mono)">4,812</b> / 30 min</div>
+            <div style="margin-top:4px;font-size:11px;color:var(--dim)">Events <b style="color:var(--text-2);font-family:var(--mono)">18,290</b> / 30 min</div>
+            <div style="margin-top:4px;font-size:11px;color:var(--dim)">Conversions <b style="color:var(--good);font-family:var(--mono)">142</b> / 30 min</div>
+          </div>
+          <div>
+            <div class="rt-map" id="rtMap">
+              <div class="rt-dot hot" style="top:38%;left:18%" title="Seoul · 412"></div>
+              <div class="rt-dot" style="top:48%;left:28%" title="Busan · 214"></div>
+              <div class="rt-dot" style="top:32%;left:42%" title="Tokyo · 188"></div>
+              <div class="rt-dot" style="top:40%;left:52%" title="Osaka · 94"></div>
+              <div class="rt-dot" style="top:46%;left:68%" title="Taipei · 52"></div>
+              <div class="rt-dot" style="top:52%;left:80%" title="Singapore · 42"></div>
+              <div class="rt-dot" style="top:70%;left:62%" title="Sydney · 28"></div>
+              <div class="rt-dot" style="top:78%;left:78%" title="Auckland · 12"></div>
+              <div class="rt-dot" style="top:72%;left:34%" title="Jakarta · 18"></div>
+              <div class="rt-dot" style="top:62%;left:14%" title="LA · 36"></div>
+            </div>
+            <div class="rt-bars" id="rtBars"></div>
+            <div style="font-size:9px;color:var(--dim);display:flex;justify-content:space-between;margin-top:4px"><span>-30 min</span><span>-15 min</span><span>Now</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="p-head">
+        <h3>Acquisition</h3>
+        <div class="sub">By source</div>
+        <div class="tabs">
+          <button class="on">Users</button>
+          <button>Revenue</button>
+        </div>
+      </div>
+      <div class="p-body">
+        <div class="acq-grid">
+          <div class="src"><div class="ic ggl">G</div>Google / organic</div>
+          <div class="barmini"><b style="width:84%"></b></div>
+          <span class="v">98,420</span><span class="pct">34%</span><span class="roas" style="color:var(--good)">∞</span>
+        </div>
+        <div class="acq-grid">
+          <div class="src"><div class="ic fb">M</div>Meta / paid</div>
+          <div class="barmini"><b style="width:62%"></b></div>
+          <span class="v">72,140</span><span class="pct">25%</span><span class="roas" style="color:var(--good)">4.98×</span>
+        </div>
+        <div class="acq-grid">
+          <div class="src"><div class="ic nv">N</div>Naver / organic</div>
+          <div class="barmini"><b style="width:38%"></b></div>
+          <span class="v">44,210</span><span class="pct">15%</span><span class="roas" style="color:var(--good)">∞</span>
+        </div>
+        <div class="acq-grid">
+          <div class="src"><div class="ic em">E</div>Email / CRM</div>
+          <div class="barmini"><b style="width:28%"></b></div>
+          <span class="v">32,080</span><span class="pct">11%</span><span class="roas" style="color:var(--good)">46.7×</span>
+        </div>
+        <div class="acq-grid">
+          <div class="src"><div class="ic ig">I</div>Instagram / social</div>
+          <div class="barmini"><b style="width:20%"></b></div>
+          <span class="v">22,940</span><span class="pct">8%</span><span class="roas">—</span>
+        </div>
+        <div class="acq-grid">
+          <div class="src"><div class="ic dir">D</div>Direct</div>
+          <div class="barmini"><b style="width:16%"></b></div>
+          <span class="v">18,610</span><span class="pct">6%</span><span class="roas">—</span>
+        </div>
+        <div class="acq-grid">
+          <div class="src"><div class="ic ref">R</div>Referral</div>
+          <div class="barmini"><b style="width:6%"></b></div>
+          <span class="v">3,100</span><span class="pct">1%</span><span class="roas">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Landing pages table -->
+  <div class="panel">
+    <div class="p-head">
+      <h3>Landing Pages</h3>
+      <div class="sub">Top 8 by sessions · CVR benchmarked</div>
+      <div class="tabs">
+        <button class="on">All</button>
+        <button>Paid</button>
+        <button>Organic</button>
+        <button>Email</button>
+      </div>
+      <button class="more">···</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:38%">Landing Page</th>
+            <th class="num">Sessions <span class="ar">↓</span></th>
+            <th class="num">Users</th>
+            <th class="num">Engage rate</th>
+            <th class="num">Avg time</th>
+            <th class="num">CVR</th>
+            <th class="num">Revenue</th>
+            <th class="num">Rev / session</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/</code>Home · Morning Ritual hero</div></div><div class="cell-sub" style="margin-left:34px">Primary landing · all paid traffic</div></td>
+            <td class="num">142,840</td>
+            <td class="num">98,220</td>
+            <td class="num">72.4% <span class="hbar"><b class="hot" style="width:88%"></b></span></td>
+            <td class="num">2:58</td>
+            <td class="num" style="color:var(--good)">4.84%</td>
+            <td class="num">₩62.4M</td>
+            <td class="num">₩437</td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/shop/starter-kit</code></div></div><div class="cell-sub" style="margin-left:34px">6-bottle starter kit PDP</div></td>
+            <td class="num">64,220</td>
+            <td class="num">48,180</td>
+            <td class="num">68.2% <span class="hbar"><b class="hot" style="width:82%"></b></span></td>
+            <td class="num">3:22</td>
+            <td class="num" style="color:var(--good)">8.12%</td>
+            <td class="num">₩42.1M</td>
+            <td class="num">₩656</td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/journal/how-it-made</code></div></div><div class="cell-sub" style="margin-left:34px">Editorial · 21-day fermentation</div></td>
+            <td class="num">48,180</td>
+            <td class="num">38,490</td>
+            <td class="num">82.1% <span class="hbar"><b class="hot" style="width:96%"></b></span></td>
+            <td class="num">4:18</td>
+            <td class="num">1.84%</td>
+            <td class="num">₩9.2M</td>
+            <td class="num">₩191</td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/shop/craft-edition</code></div></div><div class="cell-sub" style="margin-left:34px">New release PDP</div></td>
+            <td class="num">32,840</td>
+            <td class="num">24,112</td>
+            <td class="num">58.4% <span class="hbar"><b style="width:70%"></b></span></td>
+            <td class="num">2:14</td>
+            <td class="num" style="color:var(--good)">6.24%</td>
+            <td class="num">₩18.4M</td>
+            <td class="num">₩560</td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/shop/waves</code></div></div><div class="cell-sub" style="margin-left:34px">Waves collection · 4 flavors</div></td>
+            <td class="num">28,420</td>
+            <td class="num">22,108</td>
+            <td class="num">54.8% <span class="hbar"><b style="width:66%"></b></span></td>
+            <td class="num">1:58</td>
+            <td class="num">3.42%</td>
+            <td class="num">₩11.2M</td>
+            <td class="num">₩394</td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/cart</code></div></div><div class="cell-sub" style="margin-left:34px">Cart recovery entry · email</div></td>
+            <td class="num">24,180</td>
+            <td class="num">18,420</td>
+            <td class="num">48.2% <span class="hbar"><b style="width:58%"></b></span></td>
+            <td class="num">1:22</td>
+            <td class="num" style="color:var(--good)">18.42%</td>
+            <td class="num">₩22.8M</td>
+            <td class="num">₩943</td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/journal</code></div></div><div class="cell-sub" style="margin-left:34px">Editorial index</div></td>
+            <td class="num">18,420</td>
+            <td class="num">14,210</td>
+            <td class="num">38.4% <span class="hbar"><b style="width:46%"></b></span></td>
+            <td class="num">0:54</td>
+            <td class="num" style="color:var(--bad)">0.42%</td>
+            <td class="num">₩0.8M</td>
+            <td class="num">₩43</td>
+          </tr>
+          <tr>
+            <td><div class="cell-main"><div class="url"><code>/about</code></div></div><div class="cell-sub" style="margin-left:34px">Brand story</div></td>
+            <td class="num">12,840</td>
+            <td class="num">10,180</td>
+            <td class="num">42.1% <span class="hbar"><b style="width:50%"></b></span></td>
+            <td class="num">1:12</td>
+            <td class="num">1.24%</td>
+            <td class="num">₩1.8M</td>
+            <td class="num">₩140</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Funnel -->
+  <div class="panel">
+    <div class="p-head">
+      <h3>Purchase Funnel</h3>
+      <div class="sub">Home → Product → Cart → Checkout → Purchase</div>
+      <div class="tabs">
+        <button class="on">All users</button>
+        <button>First-time</button>
+        <button>Returning</button>
+      </div>
+    </div>
+    <div class="p-body">
+      <div class="funnel-viz">
+        <div class="fn-step">
+          <div class="step-bar" style="--w:100%"><span class="lbl"><span class="n">412k</span><span class="t">Landing · session_start</span></span></div>
+          <span class="pct">100%</span>
+        </div>
+        <div class="fn-step">
+          <div class="step-bar" style="--w:68.9%"><span class="lbl"><span class="n">284k</span><span class="t">Product view · view_item</span></span></div>
+          <span class="pct">68.9% <b>−31.1%</b></span>
+        </div>
+        <div class="fn-step">
+          <div class="step-bar" style="--w:14.1%"><span class="lbl"><span class="n">58k</span><span class="t">Add to cart · add_to_cart</span></span></div>
+          <span class="pct bad">14.1% <b>−79.6%</b></span>
+        </div>
+        <div class="fn-step">
+          <div class="step-bar" style="--w:5.3%"><span class="lbl"><span class="n">22k</span><span class="t">Checkout · begin_checkout</span></span></div>
+          <span class="pct bad">5.3% <b>−62.1%</b></span>
+        </div>
+        <div class="fn-step">
+          <div class="step-bar" style="--w:3.84%"><span class="lbl"><span class="n">15k</span><span class="t">Purchase · purchase</span></span></div>
+          <span class="pct good">3.84% <b>−31.8%</b></span>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--amber);margin-top:14px;padding:10px 12px;background:#e8b04b0a;border:1px solid #e8b04b30;border-radius:6px">
+        ◉ Biggest drop · <b>Product view → Add to cart (79.6%)</b> — possible PDP optimization opportunity
+      </div>
+    </div>
+  </div>
+
+  <!-- USER EXPLORER -->
+  <div class="panel">
+    <div class="p-head">
+      <h3>User Explorer</h3>
+      <div class="sub">Individual journeys · last 24 h · 18,240 users</div>
+      <div class="tabs">
+        <button class="on">Converters</button>
+        <button>High-value</button>
+        <button>At-risk</button>
+        <button>New</button>
+      </div>
+      <button class="more">···</button>
+    </div>
+    <div style="display:grid;grid-template-columns:320px 1fr">
+      <div class="users-list" id="usersList">
+        <div class="ul-row on" data-u="0">
+          <div class="top"><b>user_7c4a·k2</b><span class="t">· 3 min ago</span></div>
+          <div class="mid"><span>📱 iPhone 15</span><span class="k">Seoul</span><span>12 events</span></div>
+          <div class="conv yes">◉ Purchase · ₩68,400</div>
+        </div>
+        <div class="ul-row" data-u="1">
+          <div class="top"><b>user_19fe·a8</b><span class="t">· 12 min ago</span></div>
+          <div class="mid"><span>💻 Mac Safari</span><span class="k">Busan</span><span>18 events</span></div>
+          <div class="conv yes">◉ Purchase · ₩142,800</div>
+        </div>
+        <div class="ul-row" data-u="2">
+          <div class="top"><b>user_3b21·df</b><span class="t">· 32 min ago</span></div>
+          <div class="mid"><span>📱 Galaxy S24</span><span class="k">Incheon</span><span>24 events</span></div>
+          <div class="conv yes">◉ Purchase · ₩94,200 · 2nd order</div>
+        </div>
+        <div class="ul-row" data-u="3">
+          <div class="top"><b>user_842b·19</b><span class="t">· 48 min ago</span></div>
+          <div class="mid"><span>📱 iPhone 14</span><span class="k">Tokyo</span><span>9 events</span></div>
+          <div class="conv no">— Abandoned cart · ₩32,400</div>
+        </div>
+        <div class="ul-row" data-u="4">
+          <div class="top"><b>user_ee31·c2</b><span class="t">· 1 h ago</span></div>
+          <div class="mid"><span>📱 iPhone 15 Pro</span><span class="k">Seoul</span><span>38 events</span></div>
+          <div class="conv yes">◉ Purchase · ₩248,000 · VIP</div>
+        </div>
+        <div class="ul-row" data-u="5">
+          <div class="top"><b>user_901f·4e</b><span class="t">· 1 h ago</span></div>
+          <div class="mid"><span>💻 Windows Chrome</span><span class="k">Daegu</span><span>14 events</span></div>
+          <div class="conv yes">◉ Purchase · ₩58,200</div>
+        </div>
+        <div class="ul-row" data-u="6">
+          <div class="top"><b>user_4aa2·71</b><span class="t">· 2 h ago</span></div>
+          <div class="mid"><span>📱 iPhone 13</span><span class="k">Daejeon</span><span>6 events</span></div>
+          <div class="conv no">— Exit at checkout</div>
+        </div>
+        <div class="ul-row" data-u="7">
+          <div class="top"><b>user_2f9d·38</b><span class="t">· 3 h ago</span></div>
+          <div class="mid"><span>📱 Pixel 8</span><span class="k">Osaka</span><span>22 events</span></div>
+          <div class="conv yes">◉ Purchase · ₩78,400</div>
+        </div>
+      </div>
+
+      <div class="user-detail" id="userDetail">
+        <div class="ud-head">
+          <div class="av" id="udAv">K</div>
+          <div>
+            <div class="n" id="udName">user_7c4a·k2</div>
+            <div class="s" id="udMeta">
+              <span>📱 <b>iPhone 15 · iOS 17.3</b></span>
+              <span>📍 <b>Seoul</b> · KR</span>
+              <span>Source · <b>Meta Ads</b> / BRD_Prospecting</span>
+              <span>Device ID · <b>d29f·1834·bc71</b></span>
+              <span>First seen · <b>Mar 18, 2026</b></span>
+            </div>
+          </div>
+          <div class="rev" id="udRev">
+            ₩68,400
+            <small>Lifetime</small>
+          </div>
+        </div>
+
+        <div class="session-band">
+          <span>Session · <b>sess_b832·a7</b> · 8m 42s</span>
+          <span><b>12</b> events · <b>1</b> conversion</span>
+        </div>
+
+        <div class="timeline" id="udTimeline">
+          <div class="tl-event start"><div class="dot"></div><div class="body"><div class="t">Session start · landed on <code>/</code></div><div class="m"><span>Referrer · <b>Meta Ads</b></span><span>Campaign · <b>Spring·Brand·Prospecting</b></span><span>Creative · <b>CR-01-v3</b></span></div></div><div class="time">14:02:18</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>scroll</code> — 75% of home page</div><div class="m"><span>Dwell · <b>18s</b></span></div></div><div class="time">14:02:36</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>click</code> — "Shop the starter kit"</div><div class="m"><span>Element · <b>hero_cta_primary</b></span></div></div><div class="time">14:02:54</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>page_view</code> · <code>/shop/starter-kit</code></div><div class="m"><span>Product · <b>Morning Ritual · 6-bottle</b></span><span>Price · <b>₩68,400</b></span></div></div><div class="time">14:02:56</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>view_item</code> — Morning Ritual 6-bottle</div><div class="m"><span>SKU · <b>MR-6-KR</b></span><span>Category · <b>Starter</b></span></div></div><div class="time">14:03:01</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>scroll</code> · reached review section</div><div class="m"><span>Reviews viewed · <b>6</b></span><span>Dwell · <b>2m 14s</b></span></div></div><div class="time">14:05:15</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>add_to_cart</code></div><div class="m"><span>Qty · <b>1</b></span><span>Value · <b>₩68,400</b></span></div></div><div class="time">14:05:42</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>page_view</code> · <code>/cart</code></div><div class="m"><span>Cart total · <b>₩68,400</b></span></div></div><div class="time">14:05:44</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>begin_checkout</code></div><div class="m"><span>Step · <b>1 of 3</b></span></div></div><div class="time">14:06:12</div></div>
+          <div class="tl-event"><div class="dot"></div><div class="body"><div class="t"><code>add_payment_info</code></div><div class="m"><span>Method · <b>Naver Pay</b></span></div></div><div class="time">14:09:48</div></div>
+          <div class="tl-event conv"><div class="dot"></div><div class="body"><div class="t"><code>purchase</code> · <b style="color:var(--good)">Order MK-24817</b></div><div class="m"><span>Value · <b>₩68,400</b></span><span>Tax · <b>₩6,218</b></span><span>Shipping · <b>free</b></span><span>Items · <b>1</b></span></div></div><div class="time">14:11:00</div></div>
+          <div class="tl-event end"><div class="dot"></div><div class="body"><div class="t">Session end · exit from <code>/thank-you</code></div><div class="m"><span>Duration · <b>8m 42s</b></span><span>Engagement · <b>high</b></span></div></div><div class="time">14:11:00</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- bottom trio: events + geo + devices -->
+  <div class="three">
+    <div class="panel">
+      <div class="p-head">
+        <h3>Events Stream</h3>
+        <div class="sub">Live · last 5 min</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body" style="padding:0">
+        <div class="events-list" id="eventsList">
+          <div class="ev conv"><span class="pd"></span><span class="name">purchase <b>order_24817</b></span><span class="count">₩68,400</span><span class="t">12s</span></div>
+          <div class="ev eng"><span class="pd"></span><span class="name">add_to_cart <b>MR-6-KR</b></span><span class="count">₩68,400</span><span class="t">38s</span></div>
+          <div class="ev"><span class="pd"></span><span class="name">page_view <b>/shop/starter-kit</b></span><span class="count">—</span><span class="t">41s</span></div>
+          <div class="ev eng"><span class="pd"></span><span class="name">view_item <b>MR-6-KR</b></span><span class="count">₩68,400</span><span class="t">52s</span></div>
+          <div class="ev"><span class="pd"></span><span class="name">session_start</span><span class="count">—</span><span class="t">54s</span></div>
+          <div class="ev"><span class="pd"></span><span class="name">scroll <b>75%</b></span><span class="count">—</span><span class="t">1m 04s</span></div>
+          <div class="ev conv"><span class="pd"></span><span class="name">purchase <b>order_24816</b></span><span class="count">₩142,800</span><span class="t">1m 18s</span></div>
+          <div class="ev eng"><span class="pd"></span><span class="name">begin_checkout</span><span class="count">₩142,800</span><span class="t">1m 32s</span></div>
+          <div class="ev"><span class="pd"></span><span class="name">page_view <b>/cart</b></span><span class="count">—</span><span class="t">1m 48s</span></div>
+          <div class="ev eng"><span class="pd"></span><span class="name">add_to_cart <b>CR-4-KR</b></span><span class="count">₩92,000</span><span class="t">2m 04s</span></div>
+          <div class="ev"><span class="pd"></span><span class="name">page_view <b>/</b></span><span class="count">—</span><span class="t">2m 12s</span></div>
+          <div class="ev conv"><span class="pd"></span><span class="name">purchase <b>order_24815</b></span><span class="count">₩94,200</span><span class="t">2m 28s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="p-head">
+        <h3>Top Regions</h3>
+        <div class="sub">By users</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Seoul</span><span><b class="v">112,840</b><span class="pct">40%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Busan</span><span><b class="v">58,420</b><span class="pct">21%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Incheon</span><span><b class="v">34,180</b><span class="pct">12%</span></span></div>
+        <div class="geo-row"><span class="flag">🇯🇵</span><span>Tokyo</span><span><b class="v">28,420</b><span class="pct">10%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Daegu</span><span><b class="v">18,140</b><span class="pct">6%</span></span></div>
+        <div class="geo-row"><span class="flag">🇰🇷</span><span>Daejeon</span><span><b class="v">12,220</b><span class="pct">4%</span></span></div>
+        <div class="geo-row"><span class="flag">🇯🇵</span><span>Osaka</span><span><b class="v">10,810</b><span class="pct">4%</span></span></div>
+        <div class="geo-row"><span class="flag">🇺🇸</span><span>Los Angeles</span><span><b class="v">6,240</b><span class="pct">2%</span></span></div>
+        <div class="geo-row"><span class="flag">🇸🇬</span><span>Singapore</span><span><b class="v">2,840</b><span class="pct">1%</span></span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="p-head">
+        <h3>Tech &amp; Device</h3>
+        <div class="sub">Session share</div>
+        <button class="more">···</button>
+      </div>
+      <div class="p-body">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">Device</div>
+        <div class="geo-row"><span>📱</span><span>Mobile</span><span><b class="v">83.0%</b><span class="pct" style="margin-left:6px">342k</span></span></div>
+        <div class="geo-row"><span>💻</span><span>Desktop</span><span><b class="v">15.4%</b><span class="pct" style="margin-left:6px">63k</span></span></div>
+        <div class="geo-row"><span>◻️</span><span>Tablet</span><span><b class="v">1.6%</b><span class="pct" style="margin-left:6px">7k</span></span></div>
+
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin:18px 0 8px">Browser</div>
+        <div class="geo-row"><span>◉</span><span>Safari iOS</span><span><b class="v">48.2%</b></span></div>
+        <div class="geo-row"><span>◉</span><span>Chrome Android</span><span><b class="v">24.8%</b></span></div>
+        <div class="geo-row"><span>◉</span><span>Chrome Desktop</span><span><b class="v">12.1%</b></span></div>
+        <div class="geo-row"><span>◉</span><span>Samsung Internet</span><span><b class="v">8.4%</b></span></div>
+        <div class="geo-row"><span>◉</span><span>Naver Whale</span><span><b class="v">6.5%</b></span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-bar">
+  <div class="g">
+    <span class="st">GA4 API · connected</span>
+    <span>Data freshness · realtime</span>
+    <span>Sampling · <b style="color:var(--good)">100%</b></span>
+  </div>
+  <div class="g">
+    <span id="clock">—</span>
+    <span>BP360 Console v3.14</span>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+  // clock
+  const clock=document.getElementById('clock');
+  const tick=()=>{const d=new Date();clock.textContent='KST · '+d.toLocaleTimeString('en-GB')};
+  tick();setInterval(tick,1000);
+
+  // realtime bars
+  const bars=document.getElementById('rtBars');
+  for(let i=0;i<30;i++){
+    const b=document.createElement('div');b.className='b';
+    b.style.height=(15+Math.random()*30)+'px';
+    bars.appendChild(b);
+  }
+  setInterval(()=>{
+    bars.querySelectorAll('.b').forEach((b,i)=>{
+      b.classList.toggle('on',i===29);
+      b.style.height=(15+Math.random()*30)+'px';
+    });
+    // shift: remove first, append new
+    const first=bars.firstElementChild;bars.removeChild(first);
+    const nb=document.createElement('div');nb.className='b on';nb.style.height=(20+Math.random()*28)+'px';
+    bars.appendChild(nb);
+  },2000);
+
+  // live number flicker
+  const rtNum=document.getElementById('rtNum');
+  setInterval(()=>{
+    const n=1200+Math.floor(Math.random()*180);
+    rtNum.innerHTML=n.toLocaleString()+'<em>now</em>';
+  },3000);
+
+  // tabs
+  document.querySelectorAll('.tabs').forEach(t=>{
+    t.querySelectorAll('button').forEach(b=>{
+      b.addEventListener('click',()=>{
+        t.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+      });
+    });
+  });
+  document.querySelectorAll('.drill-tabs a').forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      document.querySelectorAll('.drill-tabs a').forEach(x=>x.classList.remove('on'));
+      a.classList.add('on');
+    });
+  });
+
+  // user explorer
+  const USERS=[
+    {name:'user_7c4a·k2',av:'K',dev:'📱 iPhone 15 · iOS 17.3',loc:'Seoul · KR',src:'Meta Ads / BRD_Prospecting',id:'d29f·1834·bc71',first:'Mar 18, 2026',rev:'₩68,400'},
+    {name:'user_19fe·a8',av:'L',dev:'💻 MacBook · Safari 17',loc:'Busan · KR',src:'Google / organic',id:'a41e·5523·dd12',first:'Jan 04, 2026',rev:'₩486,200'},
+    {name:'user_3b21·df',av:'M',dev:'📱 Galaxy S24 · Android 14',loc:'Incheon · KR',src:'Email / CRM · welcome_flow',id:'b91c·0098·7721',first:'Feb 12, 2026',rev:'₩182,400'},
+    {name:'user_842b·19',av:'Y',dev:'📱 iPhone 14 · iOS 17.2',loc:'Tokyo · JP',src:'Naver / organic',id:'c722·8844·19ab',first:'Apr 2, 2026',rev:'₩0 · abandoned'},
+    {name:'user_ee31·c2',av:'S',dev:'📱 iPhone 15 Pro · iOS 17.3',loc:'Seoul · KR',src:'Direct',id:'e831·2244·bc22',first:'Nov 22, 2025',rev:'₩1,248,000 · VIP'},
+    {name:'user_901f·4e',av:'J',dev:'💻 Windows · Chrome 122',loc:'Daegu · KR',src:'Meta Ads / Retargeting',id:'f91d·3321·aa81',first:'Mar 28, 2026',rev:'₩58,200'},
+    {name:'user_4aa2·71',av:'R',dev:'📱 iPhone 13 · iOS 16.7',loc:'Daejeon · KR',src:'Google / paid',id:'1124·9918·dd38',first:'Apr 10, 2026',rev:'₩0 · exit'},
+    {name:'user_2f9d·38',av:'T',dev:'📱 Pixel 8 · Android 14',loc:'Osaka · JP',src:'Instagram / social',id:'2e81·7722·af19',first:'Feb 28, 2026',rev:'₩78,400'},
+  ];
+  document.querySelectorAll('#usersList .ul-row').forEach(r=>{
+    r.addEventListener('click',()=>{
+      document.querySelectorAll('#usersList .ul-row').forEach(x=>x.classList.remove('on'));
+      r.classList.add('on');
+      const u=USERS[parseInt(r.dataset.u)];
+      document.getElementById('udAv').textContent=u.av;
+      document.getElementById('udName').textContent=u.name;
+      document.getElementById('udMeta').innerHTML=`<span>${u.dev}</span><span>📍 <b>${u.loc}</b></span><span>Source · <b>${u.src}</b></span><span>Device ID · <b>${u.id}</b></span><span>First seen · <b>${u.first}</b></span>`;
+      document.getElementById('udRev').innerHTML=`${u.rev}<small>Lifetime</small>`;
+    });
+  });
+
+  // ⌘K
+  document.addEventListener('keydown',e=>{
+    if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.querySelector('.search input').focus()}
+  });
+</script>
+</body>
+</html>
