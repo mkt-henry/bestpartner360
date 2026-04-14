@@ -58,9 +58,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 로그인 페이지 또는 루트 → 콘솔로 진입
+  // 로그인 페이지 또는 루트 → role에 따라 분기
   if (user && (pathname === "/login" || pathname === "/")) {
-    return NextResponse.redirect(new URL("/console", request.url))
+    const dest = profile?.role === "admin" ? "/admin" : "/dashboard"
+    return NextResponse.redirect(new URL(dest, request.url))
   }
 
   // /admin/* 접근 시 role 확인

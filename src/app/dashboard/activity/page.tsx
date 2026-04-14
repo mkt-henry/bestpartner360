@@ -2,6 +2,16 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { formatDate } from "@/lib/utils"
+import { Topbar, FooterBar } from "@/components/console/Topbar"
+
+type Activity = {
+  id: string
+  title: string
+  content: string
+  channel: string | null
+  activity_date: string
+  campaigns: { name: string } | null
+}
 
 export default async function ActivityPage() {
   const h = await headers()
@@ -18,65 +28,69 @@ export default async function ActivityPage() {
     .in("brand_id", brandIds)
     .order("activity_date", { ascending: false })
 
-  // 날짜별 그룹핑
-  const grouped: Record<string, typeof activities> = {}
-  for (const act of activities ?? []) {
+  const list = (activities ?? []) as unknown as Activity[]
+  const grouped: Record<string, Activity[]> = {}
+  for (const act of list) {
     const key = act.activity_date
     if (!grouped[key]) grouped[key] = []
     grouped[key]!.push(act)
   }
-
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-slate-900">운영 현황</h1>
+    <>
+      <Topbar crumbs={[{ label: "Workspace" }, { label: "Activity", strong: true }]} />
 
-      {sortedDates.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
-          <p>등록된 운영 현황이 없습니다.</p>
+      <div className="canvas">
+        <div className="page-head">
+          <div>
+            <h1>
+              Activity <em>feed</em>
+            </h1>
+            <div className="sub">
+              {list.length} updates &nbsp; · &nbsp; {sortedDates.length} days
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="relative">
-          {sortedDates.map((date) => (
-            <div key={date} className="mb-8">
-              {/* Date Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0" />
-                <h2 className="text-sm font-semibold text-slate-700">{formatDate(date)}</h2>
-                <div className="flex-1 h-px bg-slate-200" />
-              </div>
 
-              {/* Activities for this date */}
-              <div className="ml-6 space-y-3">
-                {grouped[date]?.map((act) => (
-                  <div
-                    key={act.id}
-                    className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-sm transition"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      {act.channel && (
-                        <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">
-                          {act.channel}
-                        </span>
-                      )}
-                      {(act.campaigns as unknown as { name: string } | null) && (
-                        <span className="text-xs text-slate-400">
-                          {(act.campaigns as unknown as { name: string }).name}
-                        </span>
+        {sortedDates.length === 0 ? (
+          <div className="panel">
+            <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
+              등록된 운영 현황이 없습니다.
+            </div>
+          </div>
+        ) : (
+          sortedDates.map((date) => (
+            <div key={date} className="panel alerts">
+              <div className="p-head">
+                <h3>{formatDate(date)}</h3>
+                <div className="sub">{grouped[date]!.length} items</div>
+              </div>
+              <div className="p-body">
+                {grouped[date]!.map((act) => (
+                  <div key={act.id} className="alert info">
+                    <div className="bullet" />
+                    <div className="body">
+                      <div className="top">
+                        <span className="tag">{act.channel ?? "General"}</span>
+                        {act.campaigns?.name && (
+                          <span className="time">{act.campaigns.name}</span>
+                        )}
+                      </div>
+                      <div className="msg">{act.title}</div>
+                      {act.content && (
+                        <div className="meta" style={{ whiteSpace: "pre-line" }}>{act.content}</div>
                       )}
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-900 mb-1.5">{act.title}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                      {act.content}
-                    </p>
                   </div>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+          ))
+        )}
+      </div>
+
+      <FooterBar />
+    </>
   )
 }

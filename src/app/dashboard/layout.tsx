@@ -1,8 +1,29 @@
+import "@/styles/console.css"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import Sidebar from "@/components/layout/Sidebar"
-import TopBar from "@/components/layout/TopBar"
+import { Fraunces, Instrument_Serif, JetBrains_Mono } from "next/font/google"
+import { Sidebar } from "@/components/console/Sidebar"
 import type { UserRole } from "@/types"
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-fraunces",
+  display: "swap",
+})
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+})
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+})
 
 export default async function DashboardLayout({
   children,
@@ -16,15 +37,23 @@ export default async function DashboardLayout({
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
     : undefined
+  const brandIdsHeader = h.get("x-user-brand-ids")
+  const propertyCount = brandIdsHeader ? brandIdsHeader.split(",").length : 0
 
   if (!userId || !role) redirect("/login")
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors">
-      <Sidebar role={role ?? "viewer"} brandName={brandName} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopBar userName={userName} title="대시보드" />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">{children}</main>
+    <div
+      className={`console-scope ${fraunces.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+    >
+      <div className="app">
+        <Sidebar
+          role={role}
+          userName={userName}
+          brandName={brandName}
+          propertyCount={propertyCount}
+        />
+        <main>{children}</main>
       </div>
     </div>
   )

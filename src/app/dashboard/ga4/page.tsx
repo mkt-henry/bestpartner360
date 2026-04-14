@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getGa4Credentials } from "@/lib/credentials"
 import { formatNumber, formatCurrency } from "@/lib/utils"
-import { TrendingUp, AlertCircle, ExternalLink } from "lucide-react"
 import Ga4UtmDashboard from "@/components/viewer/Ga4UtmDashboard"
 import Ga4Analytics from "@/components/viewer/Ga4Analytics"
+import { Topbar, FooterBar } from "@/components/console/Topbar"
+import { Filters } from "@/components/console/Filters"
 
 export default async function DashboardGa4Page() {
   const h = await headers()
@@ -21,16 +22,21 @@ export default async function DashboardGa4Page() {
 
   if (brandIds.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-        <AlertCircle className="w-10 h-10 mb-3" />
-        <p>연결된 브랜드가 없습니다.</p>
-      </div>
+      <>
+        <Topbar crumbs={[{ label: "Workspace" }, { label: "GA4", strong: true }]} />
+        <div className="canvas">
+          <div className="panel">
+            <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
+              연결된 브랜드가 없습니다.
+            </div>
+          </div>
+        </div>
+      </>
     )
   }
 
   const supabase = await createClient()
 
-  // GA4 속성 + UTM 데이터 병렬 조회
   const [{ data: ga4Properties }, { data: utmEntries }] = await Promise.all([
     supabase
       .from("ga4_properties")
@@ -43,9 +49,8 @@ export default async function DashboardGa4Page() {
       .order("created_at", { ascending: false }),
   ])
 
-  let properties = ga4Properties ?? []
+  const properties = ga4Properties ?? []
 
-  // website_url이 비어있는 속성은 GA4 데이터 스트림에서 URL 자동 조회 후 DB 저장
   const missingUrl = properties.filter((p) => !p.website_url)
   if (missingUrl.length > 0) {
     const creds = await getGa4Credentials()
@@ -72,14 +77,14 @@ export default async function DashboardGa4Page() {
               p.website_url = url
             }
           } catch {
-            // 조회 실패 시 무시 — 다음 로드 시 재시도
+            // ignore
           }
         })
       )
     }
   }
-  const entryIds = utmEntries?.map((e) => e.id) ?? []
 
+  const entryIds = utmEntries?.map((e) => e.id) ?? []
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
   const today = now.toISOString().slice(0, 10)
@@ -99,7 +104,6 @@ export default async function DashboardGa4Page() {
     performance: (perfData ?? []).filter((p) => p.utm_entry_id === e.id),
   }))
 
-  // UTM 전체 집계
   const allPerf = perfData ?? []
   const totals = {
     sessions: allPerf.reduce((s, p) => s + p.sessions, 0),
@@ -110,64 +114,88 @@ export default async function DashboardGa4Page() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex items-center gap-3">
-        <TrendingUp className="w-5 h-5 text-slate-500" />
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">GA4 분석</h1>
-      </div>
+    <>
+      <Topbar crumbs={[{ label: "Workspace" }, { label: "GA4", strong: true }]} />
+      <Filters />
 
-      {/* ── GA4 속성 실시간 분석 ── */}
-      {properties.length > 0 ? (
-        <div>
-          <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">사이트 분석</h2>
-            {properties.map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
-              <a
-                key={p.property_id}
-                href={p.website_url ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full"
-              >
-                <ExternalLink className="w-3 h-3" />
-                {p.website_url
-                  ? p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")
-                  : p.property_name}
-              </a>
-            ))}
+      <div className="canvas">
+        <div className="page-head">
+          <div>
+            <h1>
+              GA4 <em>analytics</em>
+            </h1>
+            <div className="sub">
+              {properties.length} properties &nbsp; · &nbsp; {entryIds.length} UTM &nbsp; · &nbsp; {monthStart} — {today}
+            </div>
           </div>
-          <Ga4Analytics properties={properties} />
         </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-12 text-center">
-          <p className="text-sm text-slate-400">연결된 GA4 속성이 없습니다. 관리자에게 문의하세요.</p>
-        </div>
-      )}
 
-      {/* ── UTM 성과 ── */}
-      {entryIds.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">UTM 성과</h2>
-
-          {/* UTM 요약 카드 */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+        {/* UTM totals KPI row */}
+        {entryIds.length > 0 && (
+          <div className="kpi-row">
             {[
-              { label: "세션", value: formatNumber(totals.sessions) },
-              { label: "사용자", value: formatNumber(totals.users) },
-              { label: "페이지뷰", value: formatNumber(totals.pageviews) },
-              { label: "전환수", value: formatNumber(totals.conversions) },
-              { label: "수익", value: formatCurrency(totals.revenue) },
+              { label: "Sessions", value: formatNumber(totals.sessions) },
+              { label: "Users", value: formatNumber(totals.users) },
+              { label: "Pageviews", value: formatNumber(totals.pageviews) },
+              { label: "Conversions", value: formatNumber(totals.conversions) },
+              { label: "Revenue", value: formatCurrency(totals.revenue) },
             ].map((card) => (
-              <div key={card.label} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                <p className="text-xs text-slate-400 mb-1">{card.label}</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{card.value}</p>
+              <div key={card.label} className="kpi">
+                <div className="top"><span>{card.label}</span></div>
+                <div className="v">{card.value}</div>
               </div>
             ))}
           </div>
+        )}
 
-          <Ga4UtmDashboard entries={entriesWithPerf} />
+        {/* GA4 properties */}
+        <div className="panel">
+          <div className="p-head">
+            <h3>Site analytics</h3>
+            <div className="sub">{properties.length} properties</div>
+          </div>
+          <div className="p-body">
+            {properties.length > 0 ? (
+              <>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                  {properties.map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
+                    <a
+                      key={p.property_id}
+                      href={p.website_url ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="chip"
+                      style={{ color: "var(--amber)" }}
+                    >
+                      ↗ {p.website_url ? p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "") : p.property_name}
+                    </a>
+                  ))}
+                </div>
+                <Ga4Analytics properties={properties} />
+              </>
+            ) : (
+              <div style={{ color: "var(--dim)", padding: 12 }}>
+                연결된 GA4 속성이 없습니다. 관리자에게 문의하세요.
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* UTM performance */}
+        {entryIds.length > 0 && (
+          <div className="panel">
+            <div className="p-head">
+              <h3>UTM performance</h3>
+              <div className="sub">{entryIds.length} entries</div>
+            </div>
+            <div className="p-body">
+              <Ga4UtmDashboard entries={entriesWithPerf} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <FooterBar />
+    </>
   )
 }

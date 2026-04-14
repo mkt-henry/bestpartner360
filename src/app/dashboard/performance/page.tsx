@@ -2,13 +2,13 @@ export const dynamic = "force-dynamic"
 
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { formatCurrency, formatNumber } from "@/lib/utils"
-import KpiCard from "@/components/viewer/KpiCard"
 import { SpendBarChart, KpiLineChart } from "@/components/viewer/SpendChart"
-import ChannelTabs from "@/components/viewer/ChannelTabs"
+import { Topbar, FooterBar } from "@/components/console/Topbar"
+import { Filters } from "@/components/console/Filters"
 import type { KpiDefinition } from "@/types"
-import { AlertCircle } from "lucide-react"
 
 interface Props {
   searchParams: Promise<{ channel?: string }>
@@ -25,39 +25,38 @@ export default async function PerformancePage({ searchParams }: Props) {
 
   if (brandIds.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-        <AlertCircle className="w-10 h-10 mb-3" />
-        <p>연결된 브랜드가 없습니다.</p>
-      </div>
+      <>
+        <Topbar crumbs={[{ label: "Workspace" }, { label: "Performance", strong: true }]} />
+        <div className="canvas">
+          <div className="panel">
+            <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
+              연결된 브랜드가 없습니다.
+            </div>
+          </div>
+        </div>
+      </>
     )
   }
 
   const { channel: selectedChannel } = await searchParams
-
   const supabase = await createClient()
 
-  // Round 1: 캠페인 목록
   const { data: allCampaigns } = await supabase
     .from("campaigns")
     .select("id, name, channel, status, start_date, end_date")
     .in("brand_id", brandIds)
     .order("created_at", { ascending: false })
 
-  // 채널 목록 추출
   const channels = Array.from(new Set((allCampaigns ?? []).map((c) => c.channel))).sort()
-
-  // 선택된 채널 필터 적용
   const campaigns = selectedChannel
     ? (allCampaigns ?? []).filter((c) => c.channel === selectedChannel)
     : (allCampaigns ?? [])
-
   const campaignIds = campaigns.map((c) => c.id)
 
   const now = new Date()
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
   const today = now.toISOString().slice(0, 10)
 
-  // Round 2: 캠페인 기반 쿼리 모두 병렬 실행
   const [kpiDefsResult, perfResult, spendResult, budgetResult] = campaignIds.length > 0
     ? await Promise.all([
         supabase
@@ -89,266 +88,231 @@ export default async function PerformancePage({ searchParams }: Props) {
       ])
     : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }]
 
-  const kpiDefs = kpiDefsResult.data ?? []
-  const perfRecords = perfResult.data ?? []
-  const spendRecords = spendResult.data ?? []
-  const budgets = budgetResult.data ?? []
+  const kpiDefs = (kpiDefsResult.data ?? []) as KpiDefinition[]
+  const perfRecords = (perfResult.data ?? []) as { campaign_id: string; record_date: string; values: Record<string, number> }[]
+  const spendRecords = (spendResult.data ?? []) as { campaign_id: string; spend_date: string; amount: number }[]
+  const budgets = (budgetResult.data ?? []) as { campaign_id: string; total_budget: number }[]
 
   const totalBudget = budgets.reduce((s, b) => s + Number(b.total_budget), 0)
   const totalSpend = spendRecords.reduce((s, r) => s + Number(r.amount), 0)
   const budgetPercent = totalBudget > 0 ? Math.min(100, (totalSpend / totalBudget) * 100) : 0
 
-  // KPI 집계
   const kpiTotals: Record<string, number> = {}
   for (const rec of perfRecords) {
     for (const def of kpiDefs) {
-      const val = (rec.values as Record<string, number>)[def.metric_key]
+      const val = rec.values[def.metric_key]
       if (val !== undefined) {
         kpiTotals[def.metric_key] = (kpiTotals[def.metric_key] ?? 0) + val
       }
     }
   }
+  const uniqueKpiDefs = Array.from(new Map(kpiDefs.map((d) => [d.metric_key, d])).values())
 
-  const uniqueKpiDefs = Array.from(
-    new Map((kpiDefs as KpiDefinition[]).map((d) => [d.metric_key, d])).values()
-  )
-
-  // 일별 KPI 차트
   const dateMap: Record<string, Record<string, number>> = {}
   for (const rec of perfRecords) {
     if (!dateMap[rec.record_date]) dateMap[rec.record_date] = {}
-    for (const [k, v] of Object.entries(rec.values as Record<string, number>)) {
-      dateMap[rec.record_date][k] = (dateMap[rec.record_date][k] ?? 0) + v
+    for (const [k, v] of Object.entries(rec.values)) {
+      dateMap[rec.record_date]![k] = (dateMap[rec.record_date]![k] ?? 0) + v
     }
   }
-  const kpiChartData = Object.entries(dateMap)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, vals]) => ({ date, ...vals }))
+  const kpiChartData = Object.entries(dateMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, vals]) => ({ date, ...vals }))
 
-  // 일별 지출 차트
   const spendChartData: Record<string, number> = {}
   for (const r of spendRecords) {
     spendChartData[r.spend_date] = (spendChartData[r.spend_date] ?? 0) + Number(r.amount)
   }
-  const spendChartArr = Object.entries(spendChartData)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, amount]) => ({ date, amount }))
+  const spendChartArr = Object.entries(spendChartData).sort(([a], [b]) => a.localeCompare(b)).map(([date, amount]) => ({ date, amount }))
 
-  // 전체 보기일 때: 채널별 요약 데이터
-  const channelSummaries = !selectedChannel && channels.length > 1
-    ? channels.map((ch) => {
-        const chCampaignIds = (allCampaigns ?? []).filter((c) => c.channel === ch).map((c) => c.id)
-        const chSpend = spendRecords
-          .filter((r) => chCampaignIds.includes(r.campaign_id))
-          .reduce((s, r) => s + Number(r.amount), 0)
-        const chBudget = budgets
-          .filter((b) => chCampaignIds.includes(b.campaign_id))
-          .reduce((s, b) => s + Number(b.total_budget), 0)
-        const chCampaignCount = chCampaignIds.length
-        return { channel: ch, spend: chSpend, budget: chBudget, campaignCount: chCampaignCount }
-      })
-    : null
-
-  const CHART_COLORS = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444"]
-
-  const CHANNEL_COLORS: Record<string, string> = {
-    Meta: "bg-blue-500", Instagram: "bg-pink-500", Facebook: "bg-blue-600",
-    Google: "bg-yellow-500", Naver: "bg-green-500", Kakao: "bg-yellow-400",
-    TikTok: "bg-slate-800", YouTube: "bg-red-500", GA4: "bg-orange-500",
-  }
+  const CHART_COLORS = ["#E8B04B", "#7DB8D6", "#5EC27A", "#C77DD6", "#E5553B"]
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-          성과 현황
-          {selectedChannel && (
-            <span className="text-base font-medium text-slate-500 ml-2">· {selectedChannel}</span>
-          )}
-        </h1>
-      </div>
+    <>
+      <Topbar
+        crumbs={[
+          { label: "Workspace" },
+          { label: "Performance", strong: !selectedChannel },
+          ...(selectedChannel ? [{ label: selectedChannel, strong: true }] : []),
+        ]}
+      />
 
-      {/* 채널 탭 */}
-      {channels.length > 1 && (
-        <ChannelTabs channels={channels} currentChannel={selectedChannel ?? null} />
-      )}
+      <Filters />
 
-      {/* 채널별 요약 (전체 보기) */}
-      {channelSummaries && channelSummaries.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {channelSummaries.map((cs) => (
-            <div
-              key={cs.channel}
-              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`w-2.5 h-2.5 rounded-full ${CHANNEL_COLORS[cs.channel] ?? "bg-slate-400"}`} />
-                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{cs.channel}</span>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">캠페인</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{cs.campaignCount}개</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">지출</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{formatCurrency(cs.spend)}</span>
-                </div>
-                {cs.budget > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">예산</span>
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{formatCurrency(cs.budget)}</span>
-                  </div>
-                )}
-              </div>
+      <div className="canvas">
+        <div className="page-head">
+          <div>
+            <h1>
+              Performance <em>detail</em>
+            </h1>
+            <div className="sub">
+              {monthStart} — {today} &nbsp; · &nbsp; {campaigns.length} campaigns
+              {selectedChannel && <> &nbsp; · &nbsp; {selectedChannel}</>}
             </div>
-          ))}
+          </div>
+          <div className="pg-actions">
+            {channels.length > 1 && (
+              <>
+                <Link href="/dashboard/performance" className={`btn ${!selectedChannel ? "primary" : ""}`}>
+                  All
+                </Link>
+                {channels.map((ch) => (
+                  <Link
+                    key={ch}
+                    href={`/dashboard/performance?channel=${ch}`}
+                    className={`btn ${selectedChannel === ch ? "primary" : ""}`}
+                  >
+                    {ch}
+                  </Link>
+                ))}
+              </>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* KPI 카드 */}
-      {uniqueKpiDefs.length > 0 ? (
-        <div>
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">KPI 지표</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {/* KPI row */}
+        {uniqueKpiDefs.length > 0 && (
+          <div className="kpi-row">
             {uniqueKpiDefs.map((def) => {
               const total = kpiTotals[def.metric_key] ?? 0
               const formatted = def.unit === "원" ? formatCurrency(total) : formatNumber(total)
               return (
-                <KpiCard
-                  key={def.metric_key}
-                  label={def.label}
-                  value={formatted}
-                  unit={def.unit !== "원" ? def.unit : undefined}
-                />
-              )
-            })}
-          </div>
-        </div>
-      ) : null}
-
-      {/* KPI 차트 */}
-      {uniqueKpiDefs.length > 0 && kpiChartData.length > 1 && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">KPI 추이</h3>
-          <KpiLineChart
-            data={kpiChartData}
-            metrics={uniqueKpiDefs.map((d, i) => ({
-              key: d.metric_key,
-              label: d.label,
-              color: CHART_COLORS[i % CHART_COLORS.length],
-            }))}
-          />
-        </div>
-      )}
-
-      {/* 예산 현황 */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-5">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">예산 현황</h3>
-
-        {totalBudget > 0 ? (
-          <>
-            <div className="grid grid-cols-3 gap-2 md:gap-4">
-              <div>
-                <p className="text-xs text-slate-400 mb-1">총 예산</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalBudget)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 mb-1">누적 지출</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalSpend)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 mb-1">잔여 예산</p>
-                <p className="text-xl font-bold text-emerald-600">{formatCurrency(totalBudget - totalSpend)}</p>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                <span>지출률</span>
-                <span className="font-semibold">{budgetPercent.toFixed(1)}%</span>
-              </div>
-              <div className="w-full h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${budgetPercent}%`,
-                    backgroundColor: budgetPercent > 90 ? "#ef4444" : budgetPercent > 70 ? "#f59e0b" : "#10b981",
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-slate-400">등록된 예산 정보가 없습니다.</p>
-        )}
-
-        {spendChartArr.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-3">일별 지출</p>
-            <SpendBarChart data={spendChartArr} />
-          </div>
-        )}
-      </div>
-
-      {/* 캠페인 현황 */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">캠페인 현황</h3>
-        {campaigns.length > 0 ? (
-          <div className="divide-y divide-slate-100 dark:divide-slate-700">
-            {campaigns.map((c) => {
-              const campSpend = spendRecords
-                .filter((r) => r.campaign_id === c.id)
-                .reduce((s, r) => s + Number(r.amount), 0)
-              const campBudget = budgets
-                .filter((b) => b.campaign_id === c.id)
-                .reduce((s, b) => s + Number(b.total_budget), 0)
-              const pct = campBudget > 0 ? (campSpend / campBudget) * 100 : 0
-
-              return (
-                <div key={c.id} className="py-3 flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded font-medium">
-                        {c.channel}
-                      </span>
-                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{c.name}</span>
-                      <span
-                        className={`text-xs px-1.5 py-0.5 rounded ml-auto flex-shrink-0 ${
-                          c.status === "active"
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                            : c.status === "paused"
-                            ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
-                            : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
-                        }`}
-                      >
-                        {c.status === "active" ? "진행중" : c.status === "paused" ? "일시중지" : "종료"}
-                      </span>
-                    </div>
-                    {campBudget > 0 && (
-                      <div className="mt-2">
-                        <div className="flex justify-between text-xs text-slate-400 mb-1">
-                          <span>{formatCurrency(campSpend)} 지출</span>
-                          <span>{pct.toFixed(0)}%</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full">
-                          <div
-                            className="h-full bg-blue-500 rounded-full"
-                            style={{ width: `${Math.min(100, pct)}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
+                <div key={def.metric_key} className="kpi">
+                  <div className="top">
+                    <span>{def.label}</span>
+                  </div>
+                  <div className="v">
+                    {formatted}
+                    {def.unit && def.unit !== "원" && <span className="u">{def.unit}</span>}
                   </div>
                 </div>
               )
             })}
           </div>
-        ) : (
-          <p className="text-sm text-slate-400">
-            {selectedChannel ? `${selectedChannel} 채널에 해당하는 캠페인이 없습니다.` : "캠페인이 없습니다."}
-          </p>
         )}
+
+        {/* Budget panel */}
+        <div className="panel">
+          <div className="p-head">
+            <h3>Budget status</h3>
+            <div className="sub">MTD · {budgetPercent.toFixed(1)}% used</div>
+          </div>
+          <div className="p-body">
+            {totalBudget > 0 ? (
+              <>
+                <div className="chart-stat">
+                  <div className="s">
+                    <div className="l"><i style={{ background: "#7DB8D6" }} />Total</div>
+                    <div className="v">{formatCurrency(totalBudget)}</div>
+                  </div>
+                  <div className="s">
+                    <div className="l"><i style={{ background: "#E8B04B" }} />Spent</div>
+                    <div className="v">{formatCurrency(totalSpend)}</div>
+                  </div>
+                  <div className="s">
+                    <div className="l"><i style={{ background: "#5EC27A" }} />Remaining</div>
+                    <div className="v">{formatCurrency(totalBudget - totalSpend)}</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 16 }}>
+                  <span className="hbar" style={{ width: "100%", height: 6 }}>
+                    <b
+                      style={{
+                        width: `${budgetPercent}%`,
+                        background: budgetPercent > 90 ? "var(--bad)" : budgetPercent > 70 ? "var(--amber)" : "var(--good)",
+                      }}
+                    />
+                  </span>
+                </div>
+                {spendChartArr.length > 0 && (
+                  <div className="chart-wrap" style={{ marginTop: 16, background: "var(--bg-2)", padding: 16, borderRadius: 6 }}>
+                    <SpendBarChart data={spendChartArr} />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ color: "var(--dim)", padding: 12 }}>등록된 예산 정보가 없습니다.</div>
+            )}
+          </div>
+        </div>
+
+        {/* KPI trend chart */}
+        {uniqueKpiDefs.length > 0 && kpiChartData.length > 1 && (
+          <div className="panel">
+            <div className="p-head">
+              <h3>KPI trend</h3>
+              <div className="sub">Daily</div>
+            </div>
+            <div className="p-body">
+              <div className="chart-wrap" style={{ background: "var(--bg-2)", padding: 16, borderRadius: 6 }}>
+                <KpiLineChart
+                  data={kpiChartData}
+                  metrics={uniqueKpiDefs.map((d, i) => ({
+                    key: d.metric_key,
+                    label: d.label,
+                    color: CHART_COLORS[i % CHART_COLORS.length]!,
+                  }))}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Campaign table */}
+        <div className="panel">
+          <div className="p-head">
+            <h3>Campaigns</h3>
+            <div className="sub">{campaigns.length} items</div>
+          </div>
+          <div className="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "42%" }}>Campaign</th>
+                  <th>Channel</th>
+                  <th>Status</th>
+                  <th className="num">Spend</th>
+                  <th className="num">Budget</th>
+                  <th className="num">Usage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {campaigns.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
+                      {selectedChannel ? `${selectedChannel} 채널 캠페인이 없습니다.` : "캠페인이 없습니다."}
+                    </td>
+                  </tr>
+                )}
+                {campaigns.map((c) => {
+                  const campSpend = spendRecords.filter((r) => r.campaign_id === c.id).reduce((s, r) => s + Number(r.amount), 0)
+                  const campBudget = budgets.filter((b) => b.campaign_id === c.id).reduce((s, b) => s + Number(b.total_budget), 0)
+                  const pct = campBudget > 0 ? (campSpend / campBudget) * 100 : 0
+                  const statusLabel = c.status === "active" ? "진행중" : c.status === "paused" ? "일시중지" : "종료"
+                  return (
+                    <tr key={c.id}>
+                      <td>{c.name}</td>
+                      <td>{c.channel}</td>
+                      <td>{statusLabel}</td>
+                      <td className="num">{formatCurrency(campSpend)}</td>
+                      <td className="num">{campBudget > 0 ? formatCurrency(campBudget) : "—"}</td>
+                      <td className="num">
+                        {campBudget > 0 ? (
+                          <span className="hbar">
+                            <b style={{ width: `${Math.min(100, pct)}%`, background: pct > 90 ? "var(--bad)" : undefined }} />
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <FooterBar />
+    </>
   )
 }
