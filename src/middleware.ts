@@ -24,8 +24,8 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // OAuth 콜백 및 콘솔 디자인 페이지는 미들웨어 인증 체크 건너뛰기
-  if (pathname.startsWith("/api/admin/ga4/auth") || pathname.startsWith("/api/admin/ga4/callback") || pathname.startsWith("/console")) {
+  // OAuth 콜백은 미들웨어 인증 체크 건너뛰기
+  if (pathname.startsWith("/api/admin/ga4/auth") || pathname.startsWith("/api/admin/ga4/callback")) {
     return NextResponse.next()
   }
 
@@ -58,10 +58,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 로그인 페이지 또는 루트 → role에 따라 분기
+  // 로그인 페이지 또는 루트 → 콘솔로 진입
   if (user && (pathname === "/login" || pathname === "/")) {
-    const dest = profile?.role === "admin" ? "/admin" : "/dashboard"
-    return NextResponse.redirect(new URL(dest, request.url))
+    return NextResponse.redirect(new URL("/console", request.url))
   }
 
   // /admin/* 접근 시 role 확인
