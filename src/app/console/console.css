@@ -473,6 +473,22 @@
 .console-scope .ev .count{font-family:var(--c-mono);color:var(--text-2)}
 .console-scope .ev .t{color:var(--dim);font-size:10px;font-family:var(--c-mono);margin-left:8px}
 
+/* Detail expand row */
+.console-scope .detail-row td{padding:0;border-bottom:1px solid var(--line)}
+.console-scope .detail-expand{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);margin:0;border-top:1px solid var(--line)}
+.console-scope .detail-cell{background:var(--bg-2);padding:12px 14px}
+.console-scope .detail-cell .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.console-scope .detail-cell .v{font-family:var(--c-mono);font-size:13px;color:var(--text-2)}
+
+/* Caret rotation */
+.console-scope .caret{display:inline-block;transition:transform .15s;color:var(--dim);font-size:10px;margin-right:4px}
+.console-scope tr.expanded .caret{transform:rotate(90deg)}
+.console-scope tr:hover{background:var(--bg-2)}
+
+/* Sortable column header */
+.console-scope th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+.console-scope th.sortable:hover{color:var(--amber)}
+
 /* Footer */
 .console-scope .footer-bar{padding:12px 24px;border-top:1px solid var(--line);background:var(--bg-1);display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-top:22px}
 .console-scope .footer-bar .g{display:flex;gap:20px;align-items:center}

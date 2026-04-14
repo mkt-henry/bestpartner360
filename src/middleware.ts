@@ -24,8 +24,8 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // OAuth 콜백은 미들웨어 인증 체크 건너뛰기
-  if (pathname.startsWith("/api/admin/ga4/auth") || pathname.startsWith("/api/admin/ga4/callback")) {
+  // OAuth 콜백 및 콘솔 디자인 페이지는 미들웨어 인증 체크 건너뛰기
+  if (pathname.startsWith("/api/admin/ga4/auth") || pathname.startsWith("/api/admin/ga4/callback") || pathname.startsWith("/console")) {
     return NextResponse.next()
   }
 
