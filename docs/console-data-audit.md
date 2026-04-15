@@ -12,8 +12,8 @@
 | Phase 1 | A (DB/기존 API 연결) | ✅ 완료 | 미들웨어 `x-user-brand-ids` 확장, Overview/Meta Ads/GA4 UTM/Settings 실데이터 |
 | Phase 2 | B (파라미터 확장) | ✅ 완료 | Meta breakdowns, GA4 속성 리포트(acquisition/top pages/devices/channels/regions), Realtime + 10s 폴링 UI, Overview trio |
 | Phase 3a | C (GA4 Funnel) | ✅ 완료 | Overview Funnel = session_start → view_item → add_to_cart → begin_checkout → purchase |
-| Phase 3b | C (GSC) | 🟡 코드 완료 / 사용자 조치 대기 | `/api/admin/gsc/*` + `/console/search` 구현. **OAuth 재동의(webmasters.readonly)** + GCP에서 Search Console API 활성화 필요 |
-| Phase 4 | D (CRM) | 🟡 코드 완료 / 사용자 조치 대기 | Klaviyo 어댑터(`crm-insights.ts`) + `/console/crm` 구현. **`platform_credentials`에 Klaviyo API 키** 또는 `KLAVIYO_API_KEY` 환경변수 필요 |
+| Phase 3b | C (GSC) | ✅ 인프라 완료 / 브랜드 도메인 매칭 대기 | `/api/admin/gsc/*` + `/console/search` 구현, OAuth `webmasters.readonly` 토큰 발급 확인. 현재 GA4 등록 도메인(turu.co.kr)이 GSC 소유권과 불일치 → 페이지는 정상 동작하지만 빈 결과. GSC에 도메인 추가 또는 다른 브랜드 등록 시 즉시 데이터 표시됨 |
+| Phase 4 | D (CRM) | ❌ 제거 | 운영 도구 미확정으로 `/console/crm` 페이지·Klaviyo 어댑터·사이드바 링크 삭제. 추후 도구 확정 시 재도입 |
 | Phase 5 | E (Alerts/Experiments/Reports) | ✅ 완료 | 마이그레이션 008/009/010 적용 완료. 페이지 + 평가기 + CSV 생성기 구현. Vercel Cron(`*/15 * * * *`) + `CRON_SECRET` 등록 |
 
 ### Phase 5 상세 — 자율 구현 완료 항목
@@ -26,9 +26,8 @@
 
 ### 남은 사용자 조치 (autonomy 한계)
 
-1. **GSC**: GCP Search Console API 활성화 + OAuth 재동의 + `brands`/`ga4_properties`의 website_url 확인
-2. **Klaviyo**: Admin → API 설정에서 `platform='klaviyo'` + `credentials.api_key` 등록 (또는 `KLAVIYO_API_KEY` env)
-3. **Alert 규칙 시드**: 운영 중인 브랜드별 `alert_rules` 샘플 입력 (pacing>120, roas<1 등)
+1. **Alert 규칙 시드**: 운영 중인 브랜드별 `alert_rules` 샘플 입력 (pacing>120, roas<1 등)
+2. **(선택) GSC 데이터 연결**: 현재 구글 계정에 등록된 GSC 소유 도메인이 GA4 등록 브랜드 도메인과 불일치. turu 도메인을 GSC에 추가(DNS/HTML 소유권 인증) 하거나 bp-studio 계열 브랜드를 `brands`에 등록하면 `/console/search`가 즉시 가동 — 코드/OAuth는 이미 완료
 
 ---
 

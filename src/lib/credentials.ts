@@ -99,29 +99,6 @@ async function refreshGa4Token(refreshToken: string): Promise<Ga4Credentials | n
   }
 }
 
-export interface KlaviyoCredentials {
-  api_key: string
-}
-
-export async function getKlaviyoCredentials(): Promise<KlaviyoCredentials | null> {
-  const supabase = createAdminClient()
-  const { data } = await supabase
-    .from("platform_credentials")
-    .select("credentials")
-    .eq("platform", "klaviyo")
-    .single()
-
-  if (data?.credentials?.api_key) {
-    return data.credentials as KlaviyoCredentials
-  }
-
-  if (process.env.KLAVIYO_API_KEY) {
-    return { api_key: process.env.KLAVIYO_API_KEY }
-  }
-
-  return null
-}
-
 export async function getNaverCredentials(): Promise<NaverCredentials | null> {
   const supabase = createAdminClient()
   const { data } = await supabase

@@ -54,16 +54,6 @@ const monitor = [
       </svg>
     ),
   },
-  {
-    href: "/console/crm",
-    label: "CRM & Email",
-    icon: (
-      <svg className="ico" viewBox="0 0 20 20">
-        <path d="M3 5h14v10H3z" />
-        <path d="M3 5l7 6 7-6" />
-      </svg>
-    ),
-  },
 ]
 
 const workspace = [
