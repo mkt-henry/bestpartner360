@@ -40,11 +40,14 @@ export async function middleware(request: NextRequest) {
   let brandName: string | null = null
 
   if (user) {
-    const isDashboard = pathname.startsWith("/dashboard")
+    const needsBrandAccess =
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/console") ||
+      pathname.startsWith("/api/console")
 
     const [profileResult, brandResult] = await Promise.all([
       supabase.from("user_profiles").select("role, full_name").eq("id", user.id).single(),
-      isDashboard
+      needsBrandAccess
         ? supabase.from("user_brand_access").select("brand_id, brands(name)").eq("user_id", user.id)
         : Promise.resolve({ data: null }),
     ])

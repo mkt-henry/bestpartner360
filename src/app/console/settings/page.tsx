@@ -1,23 +1,137 @@
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 import { Topbar, FooterBar } from "../_components/Topbar"
+import { createClient } from "@/lib/supabase/server"
 
-export default function SettingsPage() {
+export const dynamic = "force-dynamic"
+
+export default async function ConsoleSettingsPage() {
+  const h = await headers()
+  const userId = h.get("x-user-id")
+  const brandIdsHeader = h.get("x-user-brand-ids")
+  const brandName = h.get("x-user-brand-name")
+    ? decodeURIComponent(h.get("x-user-brand-name")!)
+    : "Brand"
+
+  if (!userId) redirect("/login")
+  const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+
+  const supabase = await createClient()
+
+  const [brandsRes, metaRes, ga4Res, accessRes] = await Promise.all([
+    brandIds.length > 0
+      ? supabase.from("brands").select("id, name, logo_url").in("id", brandIds)
+      : Promise.resolve({ data: [] }),
+    brandIds.length > 0
+      ? supabase
+          .from("meta_ad_accounts")
+          .select("id, meta_account_id, meta_account_name, created_at")
+          .in("brand_id", brandIds)
+      : Promise.resolve({ data: [] }),
+    brandIds.length > 0
+      ? supabase
+          .from("ga4_properties")
+          .select("id, property_id, property_name, website_url, created_at")
+          .in("brand_id", brandIds)
+      : Promise.resolve({ data: [] }),
+    brandIds.length > 0
+      ? supabase
+          .from("user_brand_access")
+          .select("user_id, brand_id, user:user_profiles(id, email, full_name, role)")
+          .in("brand_id", brandIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const brands = (brandsRes.data ?? []) as { id: string; name: string; logo_url: string | null }[]
+  const metaAccounts = (metaRes.data ?? []) as {
+    id: string
+    meta_account_id: string
+    meta_account_name: string
+    created_at: string
+  }[]
+  const ga4Properties = (ga4Res.data ?? []) as {
+    id: string
+    property_id: string
+    property_name: string
+    website_url: string | null
+    created_at: string
+  }[]
+  const access = (accessRes.data ?? []) as unknown as {
+    user_id: string
+    brand_id: string
+    user: { id: string; email: string; full_name: string | null; role: string }[] | { id: string; email: string; full_name: string | null; role: string } | null
+  }[]
+
+  // Deduplicate team by user id
+  const teamMap = new Map<string, { email: string; name: string; role: string }>()
+  for (const a of access) {
+    const u = Array.isArray(a.user) ? a.user[0] : a.user
+    if (u && !teamMap.has(u.id)) {
+      teamMap.set(u.id, {
+        email: u.email,
+        name: u.full_name ?? u.email,
+        role: u.role,
+      })
+    }
+  }
+  const team = Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+
+  const sources = [
+    ...metaAccounts.map((a) => ({
+      key: `meta-${a.id}`,
+      icon: "M",
+      bg: "#1877F220",
+      color: "#6FA8F5",
+      name: "Meta Ads",
+      id: `${a.meta_account_name} · ${a.meta_account_id}`,
+      connectedAt: a.created_at,
+    })),
+    ...ga4Properties.map((p) => ({
+      key: `ga4-${p.id}`,
+      icon: "Ω",
+      bg: "#E8B04B20",
+      color: "#E8B04B",
+      name: "Google Analytics 4",
+      id: `${p.property_name} · Property ${p.property_id}${p.website_url ? ` · ${p.website_url}` : ""}`,
+      connectedAt: p.created_at,
+    })),
+  ]
+
+  const primaryBrand = brands[0] ?? null
+  const config = [
+    { label: "Workspace name", value: primaryBrand?.name ?? brandName },
+    { label: "Brands", value: brands.length > 0 ? brands.map((b) => b.name).join(", ") : "—" },
+    { label: "Currency", value: "KRW (₩) · (기본값, 브랜드 설정 확장 예정)" },
+    { label: "Timezone", value: "Asia/Seoul · (기본값)" },
+    { label: "Attribution model", value: "Data-driven / 7d-click + 1d-view (기본값)" },
+    { label: "Plan", value: "— (workspace_settings 확장 예정)" },
+  ]
+
   return (
     <>
-      <Topbar crumbs={[{ label: "Workspace" }, { label: "Haeundae" }, { label: "Settings", strong: true }]} />
+      <Topbar
+        crumbs={[
+          { label: "Workspace" },
+          { label: brandName },
+          { label: "Settings", strong: true },
+        ]}
+      />
       <div className="detail-head">
         <div className="dh-row">
           <div className="dh-main">
             <div className="src">
               <span className="ic">⚙</span>
-              <span>Workspace settings · Haeundae Kombucha</span>
+              <span>Workspace settings · {primaryBrand?.name ?? brandName}</span>
             </div>
-            <h1>Workspace <em>settings</em></h1>
+            <h1>
+              Workspace <em>settings</em>
+            </h1>
             <div className="dh-meta">
-              <span>3 connected sources</span>
+              <span>{sources.length} connected sources</span>
               <span>·</span>
-              <span>2 team members</span>
+              <span>{team.length} team members</span>
               <span>·</span>
-              <span>Plan · <b>Pro</b></span>
+              <span>{brands.length} brands</span>
             </div>
           </div>
         </div>
@@ -28,18 +142,44 @@ export default function SettingsPage() {
           <div className="panel">
             <div className="p-head">
               <h3>Connected Sources</h3>
-              <div className="sub">3 active</div>
+              <div className="sub">{sources.length} active</div>
             </div>
             <div className="p-body">
-              {SOURCES.map((s) => (
-                <div key={s.name} className="geo-row" style={{ gridTemplateColumns: "auto 1fr auto auto" }}>
-                  <span className="ic" style={{ width: 22, height: 22, borderRadius: 5, background: s.bg, color: s.color, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 600 }}>{s.icon}</span>
+              {sources.length === 0 && (
+                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                  연결된 소스가 없습니다.
+                </div>
+              )}
+              {sources.map((s) => (
+                <div
+                  key={s.key}
+                  className="geo-row"
+                  style={{ gridTemplateColumns: "auto 1fr auto auto" }}
+                >
+                  <span
+                    className="ic"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 5,
+                      background: s.bg,
+                      color: s.color,
+                      display: "grid",
+                      placeItems: "center",
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {s.icon}
+                  </span>
                   <span>
                     <div>{s.name}</div>
                     <div style={{ fontSize: 10, color: "var(--dim)" }}>{s.id}</div>
                   </span>
                   <span style={{ color: "var(--good)", fontSize: 10 }}>◉ Connected</span>
-                  <span style={{ fontSize: 10, color: "var(--dim)" }}>{s.lastSync}</span>
+                  <span style={{ fontSize: 10, color: "var(--dim)" }}>
+                    {s.connectedAt.slice(0, 10)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -48,19 +188,61 @@ export default function SettingsPage() {
           <div className="panel">
             <div className="p-head">
               <h3>Team</h3>
-              <div className="sub">2 members</div>
+              <div className="sub">{team.length} members</div>
             </div>
             <div className="p-body">
-              {TEAM.map((t) => (
-                <div key={t.name} className="geo-row" style={{ gridTemplateColumns: "auto 1fr auto" }}>
-                  <span style={{ width: 26, height: 26, borderRadius: "50%", background: t.bg, display: "grid", placeItems: "center", fontSize: 10, color: "#0A0B0E", fontWeight: 600 }}>{t.initials}</span>
-                  <span>
-                    <div>{t.name}</div>
-                    <div style={{ fontSize: 10, color: "var(--dim)" }}>{t.email}</div>
-                  </span>
-                  <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 3, background: "var(--bg-2)", border: "1px solid var(--line)", color: "var(--text-2)" }}>{t.role}</span>
+              {team.length === 0 && (
+                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                  팀 멤버가 없습니다.
                 </div>
-              ))}
+              )}
+              {team.map((t) => {
+                const initials = t.name
+                  .split(/\s+/)
+                  .map((p) => p[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()
+                return (
+                  <div
+                    key={t.email}
+                    className="geo-row"
+                    style={{ gridTemplateColumns: "auto 1fr auto" }}
+                  >
+                    <span
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg,#7DB8D6,#2a5e7a)",
+                        display: "grid",
+                        placeItems: "center",
+                        fontSize: 10,
+                        color: "#0A0B0E",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {initials}
+                    </span>
+                    <span>
+                      <div>{t.name}</div>
+                      <div style={{ fontSize: 10, color: "var(--dim)" }}>{t.email}</div>
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 3,
+                        background: "var(--bg-2)",
+                        border: "1px solid var(--line)",
+                        color: "var(--text-2)",
+                      }}
+                    >
+                      {t.role}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -71,8 +253,8 @@ export default function SettingsPage() {
             <div className="sub">Workspace configuration</div>
           </div>
           <div className="p-body" style={{ fontSize: 12 }}>
-            {CONFIG.map((c, i) => (
-              <div key={i} className="log-row" style={{ gridTemplateColumns: "160px 1fr" }}>
+            {config.map((c) => (
+              <div key={c.label} className="log-row" style={{ gridTemplateColumns: "160px 1fr" }}>
                 <div className="who">{c.label}</div>
                 <div className="what">{c.value}</div>
               </div>
@@ -84,25 +266,3 @@ export default function SettingsPage() {
     </>
   )
 }
-
-const SOURCES = [
-  { name: "Meta Ads", id: "Account 120219847412", icon: "M", bg: "#1877F220", color: "#6FA8F5", lastSync: "2m ago" },
-  { name: "Google Analytics 4", id: "Property G-XK2N8P", icon: "Ω", bg: "#E8B04B20", color: "#E8B04B", lastSync: "Realtime" },
-  { name: "Google Search Console", id: "haeundae.kr", icon: "G", bg: "#5EC27A20", color: "#5EC27A", lastSync: "6h ago" },
-]
-
-const TEAM = [
-  { name: "Henry Park", email: "henry@bp360.io", initials: "HP", bg: "linear-gradient(135deg,#7DB8D6,#2a5e7a)", role: "Admin" },
-  { name: "Jiwoo Lee", email: "jiwoo@bp360.io", initials: "JL", bg: "linear-gradient(135deg,#C77DD6,#6a2578)", role: "Editor" },
-]
-
-const CONFIG = [
-  { label: "Workspace name", value: "Haeundae Kombucha" },
-  { label: "Currency", value: "KRW (₩)" },
-  { label: "Timezone", value: "Asia/Seoul (KST · UTC+9)" },
-  { label: "Attribution model", value: "Data-driven / 7d-click + 1d-view" },
-  { label: "Fiscal year start", value: "January" },
-  { label: "Plan", value: "Pro · ₩290,000/month" },
-  { label: "API key", value: "bp360_live_•••••••4a8f" },
-  { label: "Webhook URL", value: "https://hooks.bp360.io/ws/haeundae" },
-]

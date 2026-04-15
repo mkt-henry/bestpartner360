@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 
-const SCOPES = "https://www.googleapis.com/auth/analytics.readonly"
+const SCOPES = [
+  "https://www.googleapis.com/auth/analytics.readonly",
+  "https://www.googleapis.com/auth/webmasters.readonly",
+].join(" ")
 
 function getBaseUrl(req: NextRequest) {
   // 환경변수 우선, 없으면 요청에서 추론

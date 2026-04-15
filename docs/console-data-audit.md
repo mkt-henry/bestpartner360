@@ -5,6 +5,33 @@
 
 ---
 
+## 진행 현황 (2026-04-15 업데이트)
+
+| Phase | 카테고리 | 상태 | 비고 |
+|---|---|---|---|
+| Phase 1 | A (DB/기존 API 연결) | ✅ 완료 | 미들웨어 `x-user-brand-ids` 확장, Overview/Meta Ads/GA4 UTM/Settings 실데이터 |
+| Phase 2 | B (파라미터 확장) | ✅ 완료 | Meta breakdowns, GA4 속성 리포트(acquisition/top pages/devices/channels/regions), Realtime + 10s 폴링 UI, Overview trio |
+| Phase 3a | C (GA4 Funnel) | ✅ 완료 | Overview Funnel = session_start → view_item → add_to_cart → begin_checkout → purchase |
+| Phase 3b | C (GSC) | 🟡 코드 완료 / 사용자 조치 대기 | `/api/admin/gsc/*` + `/console/search` 구현. **OAuth 재동의(webmasters.readonly)** + GCP에서 Search Console API 활성화 필요 |
+| Phase 4 | D (CRM) | 🟡 코드 완료 / 사용자 조치 대기 | Klaviyo 어댑터(`crm-insights.ts`) + `/console/crm` 구현. **`platform_credentials`에 Klaviyo API 키** 또는 `KLAVIYO_API_KEY` 환경변수 필요 |
+| Phase 5 | E (Alerts/Experiments/Reports) | ✅ 완료 | 마이그레이션 008/009/010 적용 완료. 페이지 + 평가기 + CSV 생성기 구현. Vercel Cron(`*/15 * * * *`) + `CRON_SECRET` 등록 |
+
+### Phase 5 상세 — 자율 구현 완료 항목
+
+- `src/lib/alert-evaluator.ts` — spend_pacing / roas / cac / ctr 규칙 평가. 60분 중복 억제
+- `src/app/api/admin/alerts/evaluate/route.ts` — Vercel Cron에서 호출 (`CRON_SECRET` 또는 `?key=`)
+- `src/lib/report-generator.ts` — `campaign_summary` / `spend_by_day` / `performance_by_day` CSV 생성
+- `src/app/api/admin/reports/[id]/run/route.ts` — 리포트 수동 실행 → `report_runs` 기록 → CSV 다운로드
+- `src/app/console/reports/RunButton.tsx` — 리포트 행별 "Run CSV" 버튼
+
+### 남은 사용자 조치 (autonomy 한계)
+
+1. **GSC**: GCP Search Console API 활성화 + OAuth 재동의 + `brands`/`ga4_properties`의 website_url 확인
+2. **Klaviyo**: Admin → API 설정에서 `platform='klaviyo'` + `credentials.api_key` 등록 (또는 `KLAVIYO_API_KEY` env)
+3. **Alert 규칙 시드**: 운영 중인 브랜드별 `alert_rules` 샘플 입력 (pacing>120, roas<1 등)
+
+---
+
 ## 배경
 
 - 최근 커밋 흐름:

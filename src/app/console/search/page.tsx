@@ -1,46 +1,261 @@
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
+import Link from "next/link"
 import { Topbar, FooterBar } from "../_components/Topbar"
+import { createClient } from "@/lib/supabase/server"
+import { formatNumber } from "@/lib/utils"
+import { fetchGscSites, fetchGscPerformance } from "@/lib/gsc-insights"
 
-export default function SearchConsolePage() {
+export const dynamic = "force-dynamic"
+
+function daysAgoISO(n: number) {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return d.toISOString().slice(0, 10)
+}
+
+function hostFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return null
+  }
+}
+
+function hostFromSite(siteUrl: string): string | null {
+  if (siteUrl.startsWith("sc-domain:")) return siteUrl.replace("sc-domain:", "").replace(/^www\./, "")
+  return hostFromUrl(siteUrl)
+}
+
+function Empty({ brandName, message }: { brandName: string; message: string }) {
   return (
     <>
-      <Topbar crumbs={[{ label: "Workspace" }, { label: "Haeundae" }, { label: "Search Console", strong: true }]} />
+      <Topbar
+        crumbs={[
+          { label: "Workspace" },
+          { label: brandName },
+          { label: "Search Console", strong: true },
+        ]}
+      />
+      <div className="canvas">
+        <div className="panel">
+          <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
+            {message}
+          </div>
+        </div>
+      </div>
+      <FooterBar />
+    </>
+  )
+}
+
+export default async function ConsoleSearchPage() {
+  const h = await headers()
+  const userId = h.get("x-user-id")
+  const brandIdsHeader = h.get("x-user-brand-ids")
+  const brandName = h.get("x-user-brand-name")
+    ? decodeURIComponent(h.get("x-user-brand-name")!)
+    : "Brand"
+
+  if (!userId) redirect("/login")
+  const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+
+  if (brandIds.length === 0) {
+    return <Empty brandName={brandName} message="연결된 브랜드가 없습니다." />
+  }
+
+  const supabase = await createClient()
+  const { data: props } = await supabase
+    .from("ga4_properties")
+    .select("website_url")
+    .in("brand_id", brandIds)
+    .limit(1)
+
+  const brandUrl = props?.[0]?.website_url ?? null
+  const brandHost = hostFromUrl(brandUrl)
+
+  const sitesRes = await fetchGscSites()
+  if ("error" in sitesRes) {
+    return (
+      <Empty
+        brandName={brandName}
+        message={`GSC API 오류: ${sitesRes.error}. Google OAuth에 webmasters.readonly 스코프 재동의가 필요할 수 있습니다.`}
+      />
+    )
+  }
+
+  if (sitesRes.sites.length === 0) {
+    return (
+      <Empty
+        brandName={brandName}
+        message="GSC에 인증된 사이트가 없습니다. Search Console에서 먼저 도메인 소유권을 인증하세요."
+      />
+    )
+  }
+
+  const matchedSite =
+    (brandHost && sitesRes.sites.find((s) => hostFromSite(s.siteUrl) === brandHost)) ||
+    sitesRes.sites[0]
+  const siteUrl = matchedSite.siteUrl
+
+  const since = daysAgoISO(28)
+  const until = daysAgoISO(2)
+  const prevSince = daysAgoISO(56)
+  const prevUntil = daysAgoISO(29)
+
+  const [totalsCur, totalsPrev, queryRes, pageRes] = await Promise.all([
+    fetchGscPerformance({ siteUrl, startDate: since, endDate: until, dimensions: [] }),
+    fetchGscPerformance({ siteUrl, startDate: prevSince, endDate: prevUntil, dimensions: [] }),
+    fetchGscPerformance({
+      siteUrl,
+      startDate: since,
+      endDate: until,
+      dimensions: ["query"],
+      rowLimit: 20,
+    }),
+    fetchGscPerformance({
+      siteUrl,
+      startDate: since,
+      endDate: until,
+      dimensions: ["page"],
+      rowLimit: 15,
+    }),
+  ])
+
+  const totalsRow = "error" in totalsCur ? null : totalsCur.rows[0] ?? null
+  const prevRow = "error" in totalsPrev ? null : totalsPrev.rows[0] ?? null
+  const queries = "error" in queryRes ? [] : queryRes.rows
+  const pages = "error" in pageRes ? [] : pageRes.rows
+
+  const clicks = totalsRow?.clicks ?? 0
+  const impressions = totalsRow?.impressions ?? 0
+  const ctr = totalsRow ? totalsRow.ctr * 100 : 0
+  const position = totalsRow?.position ?? 0
+  const prevClicks = prevRow?.clicks ?? 0
+  const prevImpressions = prevRow?.impressions ?? 0
+  const prevCtr = prevRow ? prevRow.ctr * 100 : 0
+  const prevPosition = prevRow?.position ?? 0
+
+  const pct = (c: number, p: number) => {
+    if (p === 0) return c === 0 ? 0 : 100
+    return ((c - p) / p) * 100
+  }
+  const fmtDelta = (d: number, suffix = "%") =>
+    `${d >= 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(1)}${suffix}`
+
+  const top3 = queries.filter((q) => q.position <= 3).length
+  const rangeLabel = `${since} — ${until}`
+
+  return (
+    <>
+      <Topbar
+        crumbs={[
+          { label: "Workspace" },
+          { label: brandName },
+          { label: "Search Console", strong: true },
+        ]}
+      />
       <div className="detail-head">
+        <Link className="back-link" href="/console">
+          ← Back to Overview
+        </Link>
         <div className="dh-row">
           <div className="dh-main">
             <div className="src">
-              <span className="ic" style={{ background: "#5ec27a20", color: "#5EC27A" }}>G</span>
-              <span>Google Search Console · haeundae.kr</span>
+              <span className="ic" style={{ background: "#5ec27a20", color: "#5EC27A" }}>
+                G
+              </span>
+              <span>Google Search Console · {siteUrl}</span>
             </div>
-            <h1>Search <em>performance</em></h1>
+            <h1>
+              Search <em>performance</em>
+            </h1>
             <div className="dh-meta">
-              <span>Last 28 days</span>
+              <span className="live-pill">Last 28 days</span>
+              <span>{rangeLabel}</span>
               <span>·</span>
-              <span>2,840 keywords tracked</span>
+              <span>
+                Compared vs <b>previous 28 days</b>
+              </span>
               <span>·</span>
-              <span>+14 new in top 10 this week</span>
+              <span>{sitesRes.sites.length} verified sites</span>
             </div>
           </div>
           <div className="dh-actions">
-            <button className="btn primary">Open in GSC ↗</button>
+            <a
+              className="btn primary"
+              href={`https://search.google.com/search-console?resource_id=${encodeURIComponent(siteUrl)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open in GSC ↗
+            </a>
           </div>
         </div>
       </div>
 
       <div className="canvas">
         <div className="kpi-row">
-          <div className="kpi"><div className="top">Clicks</div><div className="v">48<span className="u">.2k</span></div><div className="d"><span className="chg up">▲ 22%</span> vs prev period</div></div>
-          <div className="kpi"><div className="top">Impressions</div><div className="v">1.84<span className="u">M</span></div><div className="d"><span className="chg up">▲ 18%</span> vs prev period</div></div>
-          <div className="kpi"><div className="top">Avg CTR</div><div className="v">2.62<span className="u">%</span></div><div className="d"><span className="chg up">▲ 0.3pp</span></div></div>
-          <div className="kpi"><div className="top">Avg Position</div><div className="v">14<span className="u">.2</span></div><div className="d"><span className="chg up">▲ 2.8</span> improved</div></div>
-          <div className="kpi"><div className="top">Top 3 keywords</div><div className="v">42</div><div className="d"><span className="chg up">▲ 8</span> new this month</div></div>
-          <div className="kpi"><div className="top">Indexed pages</div><div className="v">284</div><div className="d">98% coverage</div></div>
+          <div className="kpi">
+            <div className="top">Clicks</div>
+            <div className="v">{formatNumber(clicks)}</div>
+            <div className="d">
+              <span className={`chg ${clicks >= prevClicks ? "up" : "dn"}`}>
+                {fmtDelta(pct(clicks, prevClicks))}
+              </span>
+              <span>vs {formatNumber(prevClicks)}</span>
+            </div>
+          </div>
+          <div className="kpi">
+            <div className="top">Impressions</div>
+            <div className="v">{formatNumber(impressions)}</div>
+            <div className="d">
+              <span className={`chg ${impressions >= prevImpressions ? "up" : "dn"}`}>
+                {fmtDelta(pct(impressions, prevImpressions))}
+              </span>
+              <span>vs {formatNumber(prevImpressions)}</span>
+            </div>
+          </div>
+          <div className="kpi">
+            <div className="top">Avg CTR</div>
+            <div className="v">
+              {ctr.toFixed(2)}
+              <span className="u">%</span>
+            </div>
+            <div className="d">
+              <span className={`chg ${ctr >= prevCtr ? "up" : "dn"}`}>
+                {fmtDelta(ctr - prevCtr, "pp")}
+              </span>
+              <span>vs {prevCtr.toFixed(2)}%</span>
+            </div>
+          </div>
+          <div className="kpi">
+            <div className="top">Avg Position</div>
+            <div className="v">{position > 0 ? position.toFixed(1) : "—"}</div>
+            <div className="d">
+              <span className={`chg ${position <= prevPosition && position > 0 ? "up" : "dn"}`}>
+                {fmtDelta(position - prevPosition, "")}
+              </span>
+              <span>vs {prevPosition > 0 ? prevPosition.toFixed(1) : "—"}</span>
+            </div>
+          </div>
+          <div className="kpi">
+            <div className="top">Top 3 queries</div>
+            <div className="v">{top3}</div>
+            <div className="d">of {queries.length} top queries</div>
+          </div>
+          <div className="kpi">
+            <div className="top">Pages ranked</div>
+            <div className="v">{pages.length}</div>
+            <div className="d">top {pages.length} pages</div>
+          </div>
         </div>
 
         <div className="panel">
           <div className="p-head">
             <h3>Top Queries</h3>
-            <div className="sub">By clicks · last 28 days</div>
-            <button className="more">···</button>
+            <div className="sub">{queries.length} queries · by clicks · last 28 days</div>
           </div>
           <div className="tbl-wrap">
             <table>
@@ -54,13 +269,38 @@ export default function SearchConsolePage() {
                 </tr>
               </thead>
               <tbody>
-                {QUERIES.map((q) => (
-                  <tr key={q.query}>
-                    <td><code style={{ background: "var(--bg-2)", padding: "1px 6px", borderRadius: 3, fontSize: 11, border: "1px solid var(--line)", color: "var(--amber)" }}>{q.query}</code></td>
-                    <td className="num">{q.clicks}</td>
-                    <td className="num">{q.impr}</td>
-                    <td className="num" style={q.ctrGood ? { color: "var(--good)" } : undefined}>{q.ctr}</td>
-                    <td className="num">{q.pos}</td>
+                {queries.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
+                      데이터 없음
+                    </td>
+                  </tr>
+                )}
+                {queries.map((q) => (
+                  <tr key={q.keys[0]}>
+                    <td>
+                      <code
+                        style={{
+                          background: "var(--bg-2)",
+                          padding: "1px 6px",
+                          borderRadius: 3,
+                          fontSize: 11,
+                          border: "1px solid var(--line)",
+                          color: "var(--amber)",
+                        }}
+                      >
+                        {q.keys[0]}
+                      </code>
+                    </td>
+                    <td className="num">{formatNumber(q.clicks)}</td>
+                    <td className="num">{formatNumber(q.impressions)}</td>
+                    <td
+                      className="num"
+                      style={q.ctr >= 0.05 ? { color: "var(--good)" } : undefined}
+                    >
+                      {(q.ctr * 100).toFixed(1)}%
+                    </td>
+                    <td className="num">{q.position.toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -71,8 +311,7 @@ export default function SearchConsolePage() {
         <div className="panel">
           <div className="p-head">
             <h3>Top Pages</h3>
-            <div className="sub">By clicks</div>
-            <button className="more">···</button>
+            <div className="sub">{pages.length} pages · by clicks</div>
           </div>
           <div className="tbl-wrap">
             <table>
@@ -86,13 +325,33 @@ export default function SearchConsolePage() {
                 </tr>
               </thead>
               <tbody>
-                {SEO_PAGES.map((p) => (
-                  <tr key={p.page}>
-                    <td><code style={{ background: "var(--bg-2)", padding: "1px 6px", borderRadius: 3, fontSize: 11, border: "1px solid var(--line)", color: "var(--text-2)" }}>{p.page}</code></td>
-                    <td className="num">{p.clicks}</td>
-                    <td className="num">{p.impr}</td>
-                    <td className="num">{p.ctr}</td>
-                    <td className="num">{p.pos}</td>
+                {pages.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
+                      데이터 없음
+                    </td>
+                  </tr>
+                )}
+                {pages.map((p) => (
+                  <tr key={p.keys[0]}>
+                    <td>
+                      <code
+                        style={{
+                          background: "var(--bg-2)",
+                          padding: "1px 6px",
+                          borderRadius: 3,
+                          fontSize: 11,
+                          border: "1px solid var(--line)",
+                          color: "var(--text-2)",
+                        }}
+                      >
+                        {p.keys[0]}
+                      </code>
+                    </td>
+                    <td className="num">{formatNumber(p.clicks)}</td>
+                    <td className="num">{formatNumber(p.impressions)}</td>
+                    <td className="num">{(p.ctr * 100).toFixed(1)}%</td>
+                    <td className="num">{p.position.toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -104,23 +363,3 @@ export default function SearchConsolePage() {
     </>
   )
 }
-
-const QUERIES = [
-  { query: "해운대 콤부차", clicks: "8,420", impr: "142,800", ctr: "5.9%", ctrGood: true, pos: "2.1" },
-  { query: "kombucha korea", clicks: "4,210", impr: "98,420", ctr: "4.3%", ctrGood: true, pos: "4.8" },
-  { query: "콤부차 추천", clicks: "3,840", impr: "184,200", ctr: "2.1%", pos: "8.4" },
-  { query: "haeundae kombucha", clicks: "2,840", impr: "32,180", ctr: "8.8%", ctrGood: true, pos: "1.4" },
-  { query: "발효 음료", clicks: "2,120", impr: "248,400", ctr: "0.9%", pos: "14.2" },
-  { query: "콤부차 효능", clicks: "1,840", impr: "312,000", ctr: "0.6%", pos: "18.4" },
-  { query: "해운대 선물세트", clicks: "1,420", impr: "28,400", ctr: "5.0%", ctrGood: true, pos: "3.2" },
-  { query: "kombucha starter kit", clicks: "984", impr: "42,180", ctr: "2.3%", pos: "6.8" },
-]
-
-const SEO_PAGES = [
-  { page: "/", clicks: "14,820", impr: "482,000", ctr: "3.1%", pos: "8.4" },
-  { page: "/shop/starter-kit", clicks: "8,420", impr: "184,200", ctr: "4.6%", pos: "4.2" },
-  { page: "/journal/how-it-made", clicks: "6,840", impr: "248,400", ctr: "2.8%", pos: "6.1" },
-  { page: "/shop/craft-edition", clicks: "4,210", impr: "98,400", ctr: "4.3%", pos: "5.8" },
-  { page: "/shop/waves", clicks: "3,180", impr: "82,100", ctr: "3.9%", pos: "7.2" },
-  { page: "/about", clicks: "2,420", impr: "64,200", ctr: "3.8%", pos: "9.4" },
-]

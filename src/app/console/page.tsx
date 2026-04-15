@@ -1,14 +1,438 @@
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Topbar, FooterBar } from "./_components/Topbar"
 import { Filters } from "./_components/Filters"
+import { TabGroup } from "./_components/TabGroup"
+import { createClient } from "@/lib/supabase/server"
+import { formatNumber } from "@/lib/utils"
+import { runGa4Report } from "@/lib/ga4-insights"
 
-export default function ConsoleOverviewPage() {
+export const dynamic = "force-dynamic"
+
+type PerfValues = Record<string, number>
+
+function daysAgoISO(days: number) {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+function normalizeKey(s: string | null | undefined) {
+  return (s ?? "").toLowerCase().replace(/[\s_\-·]+/g, "")
+}
+
+function channelIcon(channel: string): { ic: string; icLabel: string } {
+  const c = channel.toLowerCase()
+  if (c.includes("meta") || c.includes("facebook") || c.includes("instagram")) return { ic: "meta", icLabel: "M" }
+  if (c.includes("google") || c.includes("ga")) return { ic: "goog", icLabel: "G" }
+  if (c.includes("tiktok")) return { ic: "tiktok", icLabel: "T" }
+  if (c.includes("naver")) return { ic: "goog", icLabel: "N" }
+  if (c.includes("email") || c.includes("crm") || c.includes("lifecycle")) return { ic: "em", icLabel: "E" }
+  return { ic: "org", icLabel: channel.slice(0, 1).toUpperCase() || "—" }
+}
+
+function formatWon(n: number): string {
+  if (n >= 100000000) return `₩${(n / 100000000).toFixed(1)}억`
+  if (n >= 10000000) return `₩${(n / 10000000).toFixed(1)}천만`
+  if (n >= 10000) return `₩${Math.round(n / 10000).toLocaleString("ko-KR")}만`
+  return `₩${Math.round(n).toLocaleString("ko-KR")}`
+}
+
+export default async function ConsoleOverviewPage() {
+  const h = await headers()
+  const userId = h.get("x-user-id")
+  const brandIdsHeader = h.get("x-user-brand-ids")
+  const brandName = h.get("x-user-brand-name")
+    ? decodeURIComponent(h.get("x-user-brand-name")!)
+    : null
+
+  if (!userId) redirect("/login")
+
+  const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+
+  if (brandIds.length === 0) {
+    return (
+      <>
+        <Topbar crumbs={[{ label: "Workspace" }, { label: "Overview", strong: true }]} />
+        <div className="canvas">
+          <div className="panel">
+            <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
+              연결된 브랜드가 없습니다. 담당자에게 문의하세요.
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  const end = daysAgoISO(0)
+  const start = daysAgoISO(13)
+  const prevEnd = daysAgoISO(14)
+  const prevStart = daysAgoISO(27)
+
+  const supabase = await createClient()
+
+  const [campaignsResult, utmEntriesResult, activitiesResult, ga4PropResult] = await Promise.all([
+    supabase
+      .from("campaigns")
+      .select("id, name, channel, status")
+      .in("brand_id", brandIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("ga4_utm_entries")
+      .select("id, utm_campaign, utm_source, utm_medium")
+      .in("brand_id", brandIds),
+    supabase
+      .from("activities")
+      .select("id, title, content, channel, activity_date")
+      .in("brand_id", brandIds)
+      .order("activity_date", { ascending: false })
+      .limit(6),
+    supabase
+      .from("ga4_properties")
+      .select("property_id")
+      .in("brand_id", brandIds)
+      .limit(1),
+  ])
+
+  const ga4Prop = ga4PropResult.data?.[0] ?? null
+
+  const campaigns = (campaignsResult.data ?? []) as {
+    id: string
+    name: string
+    channel: string
+    status: string
+  }[]
+  const campaignIds = campaigns.map((c) => c.id)
+  const utmEntries = (utmEntriesResult.data ?? []) as {
+    id: string
+    utm_campaign: string | null
+    utm_source: string | null
+    utm_medium: string | null
+  }[]
+  const utmEntryIds = utmEntries.map((e) => e.id)
+
+  const [spendCurResult, spendPrevResult, perfCurResult, utmPerfCurResult, utmPerfPrevResult, budgetResult] = await Promise.all([
+    campaignIds.length > 0
+      ? supabase
+          .from("spend_records")
+          .select("campaign_id, spend_date, amount")
+          .in("campaign_id", campaignIds)
+          .gte("spend_date", start)
+          .lte("spend_date", end)
+      : Promise.resolve({ data: [] }),
+    campaignIds.length > 0
+      ? supabase
+          .from("spend_records")
+          .select("amount")
+          .in("campaign_id", campaignIds)
+          .gte("spend_date", prevStart)
+          .lte("spend_date", prevEnd)
+      : Promise.resolve({ data: [] }),
+    campaignIds.length > 0
+      ? supabase
+          .from("performance_records")
+          .select("campaign_id, values")
+          .in("campaign_id", campaignIds)
+          .gte("record_date", start)
+          .lte("record_date", end)
+      : Promise.resolve({ data: [] }),
+    utmEntryIds.length > 0
+      ? supabase
+          .from("ga4_utm_performance")
+          .select("utm_entry_id, record_date, sessions, conversions, revenue")
+          .in("utm_entry_id", utmEntryIds)
+          .gte("record_date", start)
+          .lte("record_date", end)
+      : Promise.resolve({ data: [] }),
+    utmEntryIds.length > 0
+      ? supabase
+          .from("ga4_utm_performance")
+          .select("sessions, conversions, revenue")
+          .in("utm_entry_id", utmEntryIds)
+          .gte("record_date", prevStart)
+          .lte("record_date", prevEnd)
+      : Promise.resolve({ data: [] }),
+    campaignIds.length > 0
+      ? supabase
+          .from("budgets")
+          .select("campaign_id, total_budget, period_start, period_end")
+          .in("campaign_id", campaignIds)
+          .lte("period_start", end)
+          .gte("period_end", start)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const spendCur = (spendCurResult.data ?? []) as { campaign_id: string; spend_date: string; amount: number }[]
+  const spendPrev = (spendPrevResult.data ?? []) as { amount: number }[]
+  const perfCur = (perfCurResult.data ?? []) as { campaign_id: string; values: PerfValues }[]
+  const utmPerfCur = (utmPerfCurResult.data ?? []) as {
+    utm_entry_id: string
+    record_date: string
+    sessions: number
+    conversions: number
+    revenue: number
+  }[]
+  const utmPerfPrev = (utmPerfPrevResult.data ?? []) as {
+    sessions: number
+    conversions: number
+    revenue: number
+  }[]
+  const budgets = (budgetResult.data ?? []) as { campaign_id: string; total_budget: number }[]
+
+  // Totals — current window
+  const totalSpend = spendCur.reduce((s, r) => s + Number(r.amount), 0)
+  const totalRevenue = utmPerfCur.reduce((s, r) => s + Number(r.revenue ?? 0), 0)
+  const totalSessions = utmPerfCur.reduce((s, r) => s + (r.sessions ?? 0), 0)
+  const totalConversions = utmPerfCur.reduce((s, r) => s + (r.conversions ?? 0), 0)
+  const blendedRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0
+  const cac = totalConversions > 0 ? totalSpend / totalConversions : 0
+  const convRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : 0
+
+  // Totals — previous window
+  const prevSpend = spendPrev.reduce((s, r) => s + Number(r.amount), 0)
+  const prevRevenue = utmPerfPrev.reduce((s, r) => s + Number(r.revenue ?? 0), 0)
+  const prevSessions = utmPerfPrev.reduce((s, r) => s + (r.sessions ?? 0), 0)
+  const prevConversions = utmPerfPrev.reduce((s, r) => s + (r.conversions ?? 0), 0)
+  const prevRoas = prevSpend > 0 ? prevRevenue / prevSpend : 0
+  const prevCac = prevConversions > 0 ? prevSpend / prevConversions : 0
+  const prevConvRate = prevSessions > 0 ? (prevConversions / prevSessions) * 100 : 0
+
+  const pctDelta = (cur: number, prev: number) => {
+    if (prev === 0) return cur === 0 ? 0 : 100
+    return ((cur - prev) / prev) * 100
+  }
+  const fmtDelta = (d: number, suffix = "%") => `${d >= 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(1)}${suffix}`
+
+  // Daily series for chart — 14 days
+  const days: string[] = []
+  for (let i = 13; i >= 0; i--) days.push(daysAgoISO(i))
+  const spendByDay = new Map<string, number>(days.map((d) => [d, 0]))
+  const revByDay = new Map<string, number>(days.map((d) => [d, 0]))
+  for (const r of spendCur) {
+    spendByDay.set(r.spend_date, (spendByDay.get(r.spend_date) ?? 0) + Number(r.amount))
+  }
+  for (const r of utmPerfCur) {
+    revByDay.set(r.record_date, (revByDay.get(r.record_date) ?? 0) + Number(r.revenue ?? 0))
+  }
+  const dailySeries = days.map((d) => ({
+    date: d,
+    spend: spendByDay.get(d) ?? 0,
+    revenue: revByDay.get(d) ?? 0,
+  }))
+
+  // Per-campaign aggregates
+  const spendByCampaign = new Map<string, number>()
+  for (const r of spendCur) {
+    spendByCampaign.set(r.campaign_id, (spendByCampaign.get(r.campaign_id) ?? 0) + Number(r.amount))
+  }
+  const budgetByCampaign = new Map<string, number>()
+  for (const b of budgets) {
+    budgetByCampaign.set(b.campaign_id, (budgetByCampaign.get(b.campaign_id) ?? 0) + Number(b.total_budget))
+  }
+  const perfByCampaign = new Map<string, PerfValues>()
+  for (const r of perfCur) {
+    const agg = perfByCampaign.get(r.campaign_id) ?? {}
+    for (const [k, v] of Object.entries(r.values ?? {})) {
+      agg[k] = (agg[k] ?? 0) + Number(v)
+    }
+    perfByCampaign.set(r.campaign_id, agg)
+  }
+
+  // Match ga4 utm_campaign → campaign by normalized name
+  const campaignByKey = new Map<string, string>()
+  for (const c of campaigns) campaignByKey.set(normalizeKey(c.name), c.id)
+  const campaignByUtmEntry = new Map<string, string>()
+  for (const e of utmEntries) {
+    const match = campaignByKey.get(normalizeKey(e.utm_campaign))
+    if (match) campaignByUtmEntry.set(e.id, match)
+  }
+  const revByCampaign = new Map<string, number>()
+  const convByCampaignUtm = new Map<string, number>()
+  for (const r of utmPerfCur) {
+    const cid = campaignByUtmEntry.get(r.utm_entry_id)
+    if (!cid) continue
+    revByCampaign.set(cid, (revByCampaign.get(cid) ?? 0) + Number(r.revenue ?? 0))
+    convByCampaignUtm.set(cid, (convByCampaignUtm.get(cid) ?? 0) + (r.conversions ?? 0))
+  }
+
+  const campaignRows = campaigns
+    .map((c) => {
+      const spend = spendByCampaign.get(c.id) ?? 0
+      const budget = budgetByCampaign.get(c.id) ?? 0
+      const perf = perfByCampaign.get(c.id) ?? {}
+      const revenue = revByCampaign.get(c.id) ?? 0
+      const conv = convByCampaignUtm.get(c.id) ?? perf.conversions ?? 0
+      const impressions = perf.impressions ?? 0
+      const clicks = perf.clicks ?? 0
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
+      const roas = spend > 0 && revenue > 0 ? revenue / spend : 0
+      const cacRow = conv > 0 && spend > 0 ? spend / conv : 0
+      const pacing = budget > 0 ? Math.min(100, (spend / budget) * 100) : null
+      const { ic, icLabel } = channelIcon(c.channel)
+      return {
+        id: c.id,
+        name: c.name,
+        channel: c.channel,
+        status: c.status,
+        ic,
+        icLabel,
+        spend,
+        revenue,
+        conv,
+        ctr,
+        roas,
+        cac: cacRow,
+        pacing,
+      }
+    })
+    .sort((a, b) => b.revenue - a.revenue || b.spend - a.spend)
+
+  type OverviewDim = { label: string; sessions: number; users: number; revenue: number }
+  let ga4Devices: OverviewDim[] = []
+  let ga4Regions: OverviewDim[] = []
+  let ga4Channels: OverviewDim[] = []
+  type FunnelStep = { label: string; count: number }
+  let ga4Funnel: FunnelStep[] = []
+
+  if (ga4Prop) {
+    const [devRes, regRes, chRes, funnelRes] = await Promise.all([
+      runGa4Report({
+        propertyId: ga4Prop.property_id,
+        startDate: start,
+        endDate: end,
+        dimensions: ["deviceCategory"],
+        metrics: ["sessions", "totalUsers", "totalRevenue"],
+        orderByMetric: "sessions",
+        limit: 10,
+      }),
+      runGa4Report({
+        propertyId: ga4Prop.property_id,
+        startDate: start,
+        endDate: end,
+        dimensions: ["city"],
+        metrics: ["sessions", "totalUsers", "totalRevenue"],
+        orderByMetric: "sessions",
+        limit: 8,
+      }),
+      runGa4Report({
+        propertyId: ga4Prop.property_id,
+        startDate: start,
+        endDate: end,
+        dimensions: ["sessionDefaultChannelGroup"],
+        metrics: ["sessions", "totalUsers", "totalRevenue"],
+        orderByMetric: "sessions",
+        limit: 10,
+      }),
+      runGa4Report({
+        propertyId: ga4Prop.property_id,
+        startDate: start,
+        endDate: end,
+        dimensions: ["eventName"],
+        metrics: ["eventCount"],
+        orderByMetric: "eventCount",
+        limit: 200,
+      }),
+    ])
+    const toDim = (res: typeof devRes): OverviewDim[] => {
+      if ("error" in res) return []
+      return res.rows.map((r) => ({
+        label: r.dimensions[0] ?? "—",
+        sessions: Number(r.metrics[0] ?? 0),
+        users: Number(r.metrics[1] ?? 0),
+        revenue: Number(r.metrics[2] ?? 0),
+      }))
+    }
+    ga4Devices = toDim(devRes)
+    ga4Regions = toDim(regRes)
+    ga4Channels = toDim(chRes)
+
+    if (!("error" in funnelRes)) {
+      const eventCounts = new Map<string, number>()
+      for (const row of funnelRes.rows) {
+        const name = row.dimensions[0]
+        if (!name) continue
+        eventCounts.set(name, Number(row.metrics[0] ?? 0))
+      }
+      const steps: { key: string[]; label: string }[] = [
+        { key: ["session_start"], label: "Sessions" },
+        { key: ["view_item", "view_item_list"], label: "View item" },
+        { key: ["add_to_cart"], label: "Add to cart" },
+        { key: ["begin_checkout"], label: "Begin checkout" },
+        { key: ["purchase"], label: "Purchase" },
+      ]
+      ga4Funnel = steps.map((s) => ({
+        label: s.label,
+        count: s.key.reduce((sum, k) => sum + (eventCounts.get(k) ?? 0), 0),
+      }))
+    }
+  }
+
+  const connectedSources = campaigns.length > 0 ? new Set(campaigns.map((c) => c.channel)).size : 0
+  const rangeLabel = `${start} — ${end}`
+
+  const activities = activitiesResult.data ?? []
+
+  const kpis = [
+    {
+      label: "Revenue",
+      value: formatWon(totalRevenue),
+      chg: fmtDelta(pctDelta(totalRevenue, prevRevenue)),
+      dir: totalRevenue >= prevRevenue ? "up" : "dn",
+      vs: `vs ${formatWon(prevRevenue)}`,
+      color: "#5EC27A",
+    },
+    {
+      label: "Ad Spend",
+      value: formatWon(totalSpend),
+      chg: fmtDelta(pctDelta(totalSpend, prevSpend)),
+      dir: totalSpend >= prevSpend ? "up" : "dn",
+      vs: `vs ${formatWon(prevSpend)}`,
+      color: "#E8B04B",
+    },
+    {
+      label: "Blended ROAS",
+      value: blendedRoas > 0 ? blendedRoas.toFixed(2) : "—",
+      unit: blendedRoas > 0 ? "×" : "",
+      chg: fmtDelta(blendedRoas - prevRoas, ""),
+      dir: blendedRoas >= prevRoas ? "up" : "dn",
+      vs: prevRoas > 0 ? `vs ${prevRoas.toFixed(2)}×` : "vs —",
+      color: "#5EC27A",
+    },
+    {
+      label: "CAC",
+      value: cac > 0 ? formatWon(cac) : "—",
+      chg: fmtDelta(pctDelta(cac, prevCac)),
+      dir: cac <= prevCac ? "up" : "dn",
+      vs: prevCac > 0 ? `vs ${formatWon(prevCac)}` : "vs —",
+      color: "#5EC27A",
+    },
+    {
+      label: "Sessions",
+      value: formatNumber(totalSessions),
+      chg: fmtDelta(pctDelta(totalSessions, prevSessions)),
+      dir: totalSessions >= prevSessions ? "up" : "dn",
+      vs: `vs ${formatNumber(prevSessions)}`,
+      color: "#7DB8D6",
+    },
+    {
+      label: "Conv. Rate",
+      value: convRate > 0 ? convRate.toFixed(2) : "—",
+      unit: convRate > 0 ? "%" : "",
+      chg: fmtDelta(convRate - prevConvRate, "pp"),
+      dir: convRate >= prevConvRate ? "up" : "dn",
+      vs: prevConvRate > 0 ? `vs ${prevConvRate.toFixed(2)}%` : "vs —",
+      color: "#E5553B",
+    },
+  ]
+
   return (
     <>
       <Topbar
         crumbs={[
           { label: "Workspace" },
-          { label: "Haeundae" },
+          { label: brandName ?? "Brand" },
           { label: "Overview", strong: true },
         ]}
       />
@@ -22,36 +446,33 @@ export default function ConsoleOverviewPage() {
               Performance <em>overview</em>
             </h1>
             <div className="sub">
-              Apr 1 — Apr 13, 2026 &nbsp; · &nbsp; 12 sources connected &nbsp;{" "}
-              <span className="live">streaming</span>
+              {rangeLabel} &nbsp; · &nbsp; {connectedSources} channels &nbsp;·&nbsp; {campaigns.length} campaigns{" "}
+              <span className="live">live</span>
             </div>
           </div>
           <div className="pg-actions">
-            <button className="btn">＋ New report</button>
-            <button className="btn">⇅ Sync now</button>
-            <button className="btn primary">Share view ↗</button>
+            <Link href="/dashboard/performance" className="btn">
+              View performance →
+            </Link>
+            <Link href="/console/ga4" className="btn">
+              GA4 →
+            </Link>
           </div>
         </div>
 
         <div className="kpi-row">
-          {KPIS.map((k) => (
+          {kpis.map((k) => (
             <div key={k.label} className="kpi">
               <div className="top">
                 <span>{k.label}</span>
-                <span className="i">ⓘ</span>
               </div>
               <div className="v">
                 {k.value}
-                <span className="u">{k.unit}</span>
+                {k.unit && <span className="u">{k.unit}</span>}
               </div>
               <div className="d">
                 <span className={`chg ${k.dir}`}>{k.chg}</span>
                 <span>{k.vs}</span>
-              </div>
-              <div className="spark">
-                <svg viewBox="0 0 100 28" preserveAspectRatio="none">
-                  <path d={k.spark} fill="none" stroke={k.color} strokeWidth="1.3" />
-                </svg>
               </div>
             </div>
           ))}
@@ -61,9 +482,8 @@ export default function ConsoleOverviewPage() {
           <div className="panel">
             <div className="p-head">
               <h3>Revenue vs Spend</h3>
-              <div className="sub">Apr 1 — Apr 13</div>
-              <TabGroup tabs={["Daily", "Hourly", "Weekly"]} initial="Daily" />
-              <button className="more">···</button>
+              <div className="sub">{rangeLabel}</div>
+              <TabGroup tabs={["Daily"]} initial="Daily" />
             </div>
             <div className="p-body">
               <div className="chart-stat">
@@ -72,25 +492,25 @@ export default function ConsoleOverviewPage() {
                     <i style={{ background: "#E8B04B" }} />
                     Revenue
                   </div>
-                  <div className="v">₩184.2M</div>
+                  <div className="v">{formatWon(totalRevenue)}</div>
                 </div>
                 <div className="s">
                   <div className="l">
                     <i style={{ background: "#7DB8D6" }} />
                     Spend
                   </div>
-                  <div className="v">₩44.1M</div>
+                  <div className="v">{formatWon(totalSpend)}</div>
                 </div>
                 <div className="s">
                   <div className="l">
                     <i style={{ background: "#5EC27A" }} />
                     Margin
                   </div>
-                  <div className="v">₩140.1M</div>
+                  <div className="v">{formatWon(totalRevenue - totalSpend)}</div>
                 </div>
               </div>
               <div className="chart-wrap">
-                <RevSpendChart />
+                <RevSpendChart series={dailySeries} />
               </div>
             </div>
           </div>
@@ -98,20 +518,24 @@ export default function ConsoleOverviewPage() {
           <div className="panel alerts">
             <div className="p-head">
               <h3>Live activity</h3>
-              <div className="sub">Last 24 h</div>
-              <button className="more">···</button>
+              <div className="sub">Last 6 updates</div>
             </div>
             <div className="p-body">
-              {ALERTS.map((a, i) => (
-                <div key={i} className={`alert ${a.kind}`}>
+              {activities.length === 0 && (
+                <div style={{ padding: 12, color: "var(--dim)", fontSize: 11 }}>
+                  등록된 운영 현황이 없습니다.
+                </div>
+              )}
+              {activities.map((a) => (
+                <div key={a.id} className="alert info">
                   <div className="bullet" />
                   <div className="body">
                     <div className="top">
-                      <span className="tag">{a.tag}</span>
-                      <span className="time">{a.time}</span>
+                      <span className="tag">{a.channel ?? "General"}</span>
+                      <span className="time">{a.activity_date}</span>
                     </div>
-                    <div className="msg" dangerouslySetInnerHTML={{ __html: a.msg }} />
-                    <div className="meta" dangerouslySetInnerHTML={{ __html: a.meta }} />
+                    <div className="msg">{a.title}</div>
+                    {a.content && <div className="meta">{a.content}</div>}
                   </div>
                 </div>
               ))}
@@ -122,58 +546,58 @@ export default function ConsoleOverviewPage() {
         <div className="panel">
           <div className="p-head">
             <h3>Campaign Performance</h3>
-            <div className="sub">24 active · sorted by revenue</div>
-            <TabGroup tabs={["All", "Meta", "Google", "TikTok"]} initial="All" />
-            <button className="more">···</button>
+            <div className="sub">
+              {campaignRows.length} campaigns · sorted by revenue
+            </div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
                   <th style={{ width: "32%" }}>Campaign</th>
-                  <th className="num sortable">Spend</th>
-                  <th className="num sortable">
-                    Revenue <span className="ar">↓</span>
-                  </th>
-                  <th className="num sortable">ROAS</th>
-                  <th className="num sortable">CAC</th>
-                  <th className="num sortable">CTR</th>
-                  <th className="num sortable">Conv</th>
+                  <th className="num">Spend</th>
+                  <th className="num">Revenue</th>
+                  <th className="num">ROAS</th>
+                  <th className="num">CAC</th>
+                  <th className="num">CTR</th>
+                  <th className="num">Conv</th>
                   <th className="num">Pacing</th>
                 </tr>
               </thead>
               <tbody>
-                {CAMPAIGNS.map((c) => (
-                  <tr key={c.name}>
+                {campaignRows.length === 0 && (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
+                      등록된 캠페인이 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {campaignRows.map((c) => (
+                  <tr key={c.id}>
                     <td>
-                      {c.href ? (
-                        <Link href={c.href} style={{ color: "inherit", textDecoration: "none" }}>
-                          <CampaignCell c={c} linked />
-                        </Link>
-                      ) : (
-                        <CampaignCell c={c} />
-                      )}
+                      <div className="cell-main">
+                        <div className={`ic ${c.ic}`}>{c.icLabel}</div>
+                        <div>
+                          <div>{c.name}</div>
+                          <div className="cell-sub">
+                            {c.channel} · {c.status}
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="num">{c.spend}</td>
+                    <td className="num">{c.spend > 0 ? formatWon(c.spend) : "—"}</td>
+                    <td className="num">{c.revenue > 0 ? formatWon(c.revenue) : "—"}</td>
+                    <td className="num">{c.roas > 0 ? `${c.roas.toFixed(2)}×` : "—"}</td>
+                    <td className="num">{c.cac > 0 ? formatWon(c.cac) : "—"}</td>
+                    <td className="num">{c.ctr > 0 ? `${c.ctr.toFixed(2)}%` : "—"}</td>
+                    <td className="num">{c.conv > 0 ? formatNumber(c.conv) : "—"}</td>
                     <td className="num">
-                      {c.revenue} <span className={`delta ${c.deltaDir}`}>{c.delta}</span>
-                    </td>
-                    <td className="num">{c.roas}</td>
-                    <td className="num">{c.cac}</td>
-                    <td className="num">{c.ctr}</td>
-                    <td className="num">{c.conv}</td>
-                    <td className="num">
-                      {c.pacing === "steady" ? (
-                        <span style={{ color: "var(--good)", fontSize: 10 }}>↗ steady</span>
-                      ) : (
+                      {c.pacing !== null ? (
                         <span className="hbar">
-                          <b
-                            style={{
-                              width: `${c.pacing}%`,
-                              background: c.pacingBad ? "var(--bad)" : undefined,
-                            }}
-                          />
+                          <b style={{ width: `${c.pacing}%`, background: c.pacing > 90 ? "var(--bad)" : undefined }} />
                         </span>
+                      ) : (
+                        "—"
                       )}
                     </td>
                   </tr>
@@ -187,43 +611,73 @@ export default function ConsoleOverviewPage() {
           <div className="panel">
             <div className="p-head">
               <h3>Conversion Funnel</h3>
-              <div className="sub">Checkout flow · 14 d</div>
-              <button className="more">···</button>
+              <div className="sub">GA4 eventCount · {rangeLabel}</div>
             </div>
             <div className="p-body">
-              {FUNNEL.map((f) => (
-                <div key={f.label} className="funnel-row">
-                  <div className="n">
-                    {f.n}
-                    <span style={{ fontSize: 11, color: "var(--dim)" }}>k</span>
-                  </div>
-                  <div className="l">
-                    <div className="t">{f.label}</div>
-                    <div className="s">{f.sub}</div>
-                    <div className="bar">
-                      <b style={{ width: `${f.w}%` }} />
-                    </div>
-                  </div>
-                  <div className={`pct ${f.bad ? "bad" : ""}`}>{f.pct}</div>
+              {!ga4Prop && (
+                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                  GA4 Property 미연결
                 </div>
-              ))}
+              )}
+              {ga4Prop && ga4Funnel.every((s) => s.count === 0) && (
+                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                  이벤트 데이터 없음
+                </div>
+              )}
+              {ga4Prop && ga4Funnel.some((s) => s.count > 0) && (() => {
+                const maxCount = Math.max(1, ...ga4Funnel.map((s) => s.count))
+                const firstCount = ga4Funnel[0]?.count ?? 0
+                return (
+                  <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {ga4Funnel.map((s, i) => {
+                      const prev = i > 0 ? ga4Funnel[i - 1].count : firstCount
+                      const step = prev > 0 ? (s.count / prev) * 100 : 0
+                      const total = firstCount > 0 ? (s.count / firstCount) * 100 : 0
+                      return (
+                        <div key={s.label}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
+                            <span>{s.label}</span>
+                            <span>
+                              <b>{formatNumber(s.count)}</b>
+                              <span className="pct"> {total.toFixed(0)}%</span>
+                              {i > 0 && <span className="pct"> · step {step.toFixed(0)}%</span>}
+                            </span>
+                          </div>
+                          <span className="hbar">
+                            <b style={{ width: `${(s.count / maxCount) * 100}%` }} />
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
             </div>
           </div>
 
           <div className="panel">
             <div className="p-head">
               <h3>Top Regions</h3>
-              <div className="sub">By revenue</div>
-              <button className="more">···</button>
+              <div className="sub">GA4 city · sessions 상위</div>
             </div>
             <div className="p-body">
-              {REGIONS.map((r) => (
-                <div key={r.city} className="geo-row">
-                  <span className="flag">{r.flag}</span>
-                  <span>{r.city}</span>
+              {!ga4Prop && (
+                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                  GA4 Property 미연결
+                </div>
+              )}
+              {ga4Prop && ga4Regions.length === 0 && (
+                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                  데이터 없음
+                </div>
+              )}
+              {ga4Regions.map((r) => (
+                <div key={r.label} className="geo-row">
+                  <span>{r.label}</span>
+                  <span />
                   <span>
-                    <b className="v">{r.v}</b>
-                    <span className="pct">{r.pct}</span>
+                    <b className="v">{formatNumber(r.sessions)}</b>
+                    <span className="pct">{r.revenue > 0 ? formatWon(r.revenue) : "—"}</span>
                   </span>
                 </div>
               ))}
@@ -233,53 +687,48 @@ export default function ConsoleOverviewPage() {
           <div className="panel">
             <div className="p-head">
               <h3>Devices &amp; Channels</h3>
-              <div className="sub">Share of sessions</div>
-              <button className="more">···</button>
+              <div className="sub">GA4 deviceCategory · channelGroup</div>
             </div>
             <div className="p-body">
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "var(--dim)",
-                  textTransform: "uppercase",
-                  letterSpacing: ".12em",
-                  marginBottom: 8,
-                }}
-              >
-                Device
-              </div>
-              {DEVICES.map((d) => (
-                <div key={d.label} className="dev-row">
-                  <span>{d.icon}</span>
-                  <span>{d.label}</span>
-                  <span>
-                    <b>{d.pct}</b>
-                    <span className="pct" style={{ color: "var(--dim)", marginLeft: 6 }}>
-                      {d.sub}
-                    </span>
-                  </span>
+              {!ga4Prop && (
+                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                  GA4 Property 미연결
                 </div>
-              ))}
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "var(--dim)",
-                  textTransform: "uppercase",
-                  letterSpacing: ".12em",
-                  margin: "18px 0 8px",
-                }}
-              >
-                Channel
-              </div>
-              {CHANNELS.map((c) => (
-                <div key={c.label} className="dev-row">
-                  <span>◉</span>
-                  <span>{c.label}</span>
-                  <span>
-                    <b>{c.pct}</b>
-                  </span>
-                </div>
-              ))}
+              )}
+              {ga4Prop && (
+                <>
+                  <div style={{ padding: "8px 12px 4px", fontSize: 10, color: "var(--dim)" }}>
+                    Devices
+                  </div>
+                  {ga4Devices.length === 0 && (
+                    <div style={{ padding: 8, color: "var(--dim)", fontSize: 11 }}>데이터 없음</div>
+                  )}
+                  {ga4Devices.map((d) => (
+                    <div key={`dev-${d.label}`} className="geo-row">
+                      <span>{d.label}</span>
+                      <span />
+                      <span>
+                        <b className="v">{formatNumber(d.sessions)}</b>
+                      </span>
+                    </div>
+                  ))}
+                  <div style={{ padding: "10px 12px 4px", fontSize: 10, color: "var(--dim)" }}>
+                    Channels
+                  </div>
+                  {ga4Channels.length === 0 && (
+                    <div style={{ padding: 8, color: "var(--dim)", fontSize: 11 }}>데이터 없음</div>
+                  )}
+                  {ga4Channels.slice(0, 6).map((c) => (
+                    <div key={`ch-${c.label}`} className="geo-row">
+                      <span>{c.label}</span>
+                      <span />
+                      <span>
+                        <b className="v">{formatNumber(c.sessions)}</b>
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -290,338 +739,67 @@ export default function ConsoleOverviewPage() {
   )
 }
 
-function CampaignCell({ c, linked }: { c: Campaign; linked?: boolean }) {
+function RevSpendChart({ series }: { series: { date: string; spend: number; revenue: number }[] }) {
+  const W = 700
+  const H = 260
+  const padL = 40
+  const padR = 10
+  const padT = 20
+  const padB = 30
+
+  const maxVal = Math.max(1, ...series.map((d) => Math.max(d.revenue, d.spend)))
+  const xAt = (i: number) => {
+    if (series.length <= 1) return padL
+    return padL + ((W - padL - padR) * i) / (series.length - 1)
+  }
+  const yAt = (v: number) => H - padB - ((H - padT - padB) * v) / maxVal
+
+  const revPath = series.map((d, i) => `${i === 0 ? "M" : "L"}${xAt(i)},${yAt(d.revenue)}`).join(" ")
+  const spendPath = series.map((d, i) => `${i === 0 ? "M" : "L"}${xAt(i)},${yAt(d.spend)}`).join(" ")
+  const revArea = series.length > 0
+    ? `${revPath} L${xAt(series.length - 1)},${H - padB} L${xAt(0)},${H - padB} Z`
+    : ""
+
+  const yTicks = [0.25, 0.5, 0.75, 1].map((f) => Math.round(maxVal * f))
+  const firstLabel = series[0]?.date.slice(5) ?? ""
+  const midLabel = series[Math.floor(series.length / 2)]?.date.slice(5) ?? ""
+  const lastLabel = series[series.length - 1]?.date.slice(5) ?? ""
+
   return (
-    <div className="cell-main">
-      <div className={`ic ${c.ic}`}>{c.icLabel}</div>
-      <div>
-        <div>
-          {c.name}
-          {linked && (
-            <span style={{ color: "var(--amber)", fontSize: 10, marginLeft: 4 }}>↗</span>
-          )}
-        </div>
-        <div className="cell-sub">{c.sub}</div>
-      </div>
-    </div>
-  )
-}
-
-// ---- client stub for tab toggle ----
-import { TabGroup } from "./_components/TabGroup"
-
-// ---- data ----
-const KPIS = [
-  {
-    label: "Revenue",
-    value: "₩184",
-    unit: ".2M",
-    chg: "▲ 24.8%",
-    dir: "up",
-    vs: "vs ₩147.6M",
-    color: "#5EC27A",
-    spark: "M0,22 L10,20 20,18 30,14 40,16 50,10 60,12 70,6 80,8 90,4 100,2",
-  },
-  {
-    label: "Ad Spend",
-    value: "₩44",
-    unit: ".1M",
-    chg: "▲ 8.2%",
-    dir: "up",
-    vs: "vs ₩40.8M",
-    color: "#E8B04B",
-    spark: "M0,16 L10,18 20,14 30,16 40,12 50,14 60,10 70,12 80,8 90,10 100,6",
-  },
-  {
-    label: "Blended ROAS",
-    value: "4.18",
-    unit: "×",
-    chg: "▲ 0.62",
-    dir: "up",
-    vs: "Target 3.5×",
-    color: "#5EC27A",
-    spark: "M0,18 L10,16 20,20 30,14 40,12 50,16 60,10 70,8 80,10 90,4 100,2",
-  },
-  {
-    label: "CAC",
-    value: "₩9",
-    unit: ",240",
-    chg: "▼ 12.1%",
-    dir: "dn",
-    vs: "vs ₩10,512",
-    color: "#5EC27A",
-    spark: "M0,6 L10,10 20,8 30,12 40,10 50,14 60,12 70,16 80,14 90,18 100,22",
-  },
-  {
-    label: "Sessions",
-    value: "412",
-    unit: "k",
-    chg: "▲ 38.4%",
-    dir: "up",
-    vs: "vs 298k",
-    color: "#7DB8D6",
-    spark: "M0,24 L10,20 20,18 30,22 40,14 50,12 60,14 70,8 80,10 90,6 100,4",
-  },
-  {
-    label: "Conv. Rate",
-    value: "3.84",
-    unit: "%",
-    chg: "▼ 0.3pp",
-    dir: "dn",
-    vs: "vs 4.14%",
-    color: "#E5553B",
-    spark: "M0,8 L10,10 20,6 30,12 40,14 50,10 60,16 70,14 80,18 90,16 100,20",
-  },
-]
-
-const ALERTS = [
-  {
-    kind: "crit",
-    tag: "Critical · Budget",
-    time: "2m ago",
-    msg: "Campaign <b>Spring·Brand·PROS</b> pacing 148% — will exhaust daily cap in 1h 20m",
-    meta: "Meta · Spend <b>₩3.2M / ₩2.2M</b>",
-  },
-  {
-    kind: "warn",
-    tag: "Warn · CAC",
-    time: "14m",
-    msg: "Blended CAC on <b>TikTok / Launch·04</b> up 34% hour-over-hour",
-    meta: "₩8,120 → <b>₩10,880</b>",
-  },
-  {
-    kind: "info",
-    tag: "Info · Creative",
-    time: "48m",
-    msg: 'New top creative: <b>"Morning Ritual 06"</b> CTR 3.9% · F.Freq 1.2',
-    meta: "Consider scaling +30% budget",
-  },
-  {
-    kind: "ok",
-    tag: "OK · Goal",
-    time: "1h",
-    msg: "Monthly DTC revenue goal <b>hit</b> 18 days ahead of plan",
-    meta: "₩180M / ₩180M · 100%",
-  },
-  {
-    kind: "info",
-    tag: "Info · SEO",
-    time: "2h",
-    msg: "<b>+14 keywords</b> entered top 10 on Google Search Console",
-    meta: "Impressions <b>+28%</b>",
-  },
-  {
-    kind: "warn",
-    tag: "Warn · Funnel",
-    time: "3h",
-    msg: "Checkout → Payment dropoff <b>+6.2pp</b> on mobile Safari",
-    meta: "Investigate · 412 affected sessions",
-  },
-]
-
-type Campaign = {
-  name: string
-  href?: string
-  ic: string
-  icLabel: string
-  sub: string
-  spend: string
-  revenue: string
-  delta: string
-  deltaDir: "up" | "dn"
-  roas: string
-  cac: string
-  ctr: string
-  conv: string
-  pacing: number | "steady"
-  pacingBad?: boolean
-}
-
-const CAMPAIGNS: Campaign[] = [
-  {
-    name: "Spring · Brand Prospecting",
-    href: "/console/meta-ads",
-    ic: "meta",
-    icLabel: "M",
-    sub: "Meta · 12 ad sets · ACTIVE",
-    spend: "₩12,420,000",
-    revenue: "₩61,840,000",
-    delta: "+28%",
-    deltaDir: "up",
-    roas: "4.98×",
-    cac: "₩8,120",
-    ctr: "2.84%",
-    conv: "1,529",
-    pacing: 88,
-  },
-  {
-    name: "Brand · Exact Match",
-    ic: "goog",
-    icLabel: "G",
-    sub: "Google · 4 campaigns · ACTIVE",
-    spend: "₩6,240,000",
-    revenue: "₩42,180,000",
-    delta: "+14%",
-    deltaDir: "up",
-    roas: "6.76×",
-    cac: "₩4,820",
-    ctr: "8.12%",
-    conv: "1,294",
-    pacing: 62,
-  },
-  {
-    name: "Organic Social",
-    ic: "org",
-    icLabel: "O",
-    sub: "Instagram + Naver · 48 posts",
-    spend: "—",
-    revenue: "₩28,930,000",
-    delta: "+41%",
-    deltaDir: "up",
-    roas: "∞",
-    cac: "—",
-    ctr: "—",
-    conv: "842",
-    pacing: "steady",
-  },
-  {
-    name: "Lifecycle · Returning Buyers",
-    ic: "em",
-    icLabel: "E",
-    sub: "CRM · 6 flows · AUTOMATED",
-    spend: "₩480,000",
-    revenue: "₩22,410,000",
-    delta: "+9%",
-    deltaDir: "up",
-    roas: "46.7×",
-    cac: "₩1,240",
-    ctr: "24.1%",
-    conv: "612",
-    pacing: 74,
-  },
-  {
-    name: "Launch · 04 Morning Ritual",
-    ic: "tiktok",
-    icLabel: "T",
-    sub: "TikTok · 8 creatives · ACTIVE",
-    spend: "₩18,240,000",
-    revenue: "₩18,904,000",
-    delta: "−6%",
-    deltaDir: "dn",
-    roas: "1.04×",
-    cac: "₩10,880",
-    ctr: "3.94%",
-    conv: "488",
-    pacing: 98,
-    pacingBad: true,
-  },
-  {
-    name: "Retargeting · Cart Abandon",
-    ic: "meta",
-    icLabel: "M",
-    sub: "Meta · 3 ad sets · ACTIVE",
-    spend: "₩2,140,000",
-    revenue: "₩9,816,000",
-    delta: "+2%",
-    deltaDir: "up",
-    roas: "4.59×",
-    cac: "₩5,620",
-    ctr: "4.12%",
-    conv: "224",
-    pacing: 44,
-  },
-]
-
-const FUNNEL = [
-  { n: "412", label: "Sessions", sub: "All sources", w: 100, pct: "100%" },
-  { n: "284", label: "Product View", sub: "−31% dropoff", w: 69, pct: "68.9%" },
-  { n: "58", label: "Add to Cart", sub: "−79%", w: 14, pct: "14.1%" },
-  { n: "22", label: "Checkout", sub: "−62%", w: 5.3, pct: "5.3%", bad: true },
-  { n: "15", label: "Purchase", sub: "−32%", w: 3.84, pct: "3.84%" },
-]
-
-const REGIONS = [
-  { flag: "🇰🇷", city: "Seoul", v: "₩68.2M", pct: "37%" },
-  { flag: "🇰🇷", city: "Busan", v: "₩32.4M", pct: "18%" },
-  { flag: "🇰🇷", city: "Incheon", v: "₩21.8M", pct: "12%" },
-  { flag: "🇯🇵", city: "Tokyo", v: "₩18.6M", pct: "10%" },
-  { flag: "🇰🇷", city: "Daegu", v: "₩14.2M", pct: "8%" },
-  { flag: "🇰🇷", city: "Daejeon", v: "₩9.8M", pct: "5%" },
-  { flag: "🇯🇵", city: "Osaka", v: "₩8.2M", pct: "4%" },
-  { flag: "🇺🇸", city: "Los Angeles", v: "₩6.1M", pct: "3%" },
-]
-
-const DEVICES = [
-  { icon: "📱", label: "Mobile · iOS", pct: "54.2%", sub: "223k" },
-  { icon: "📱", label: "Mobile · Android", pct: "28.8%", sub: "119k" },
-  { icon: "💻", label: "Desktop", pct: "15.4%", sub: "63k" },
-  { icon: "◻️", label: "Tablet", pct: "1.6%", sub: "7k" },
-]
-
-const CHANNELS = [
-  { label: "Paid Social", pct: "42%" },
-  { label: "Organic Search", pct: "24%" },
-  { label: "Email / CRM", pct: "18%" },
-  { label: "Direct", pct: "11%" },
-  { label: "Referral", pct: "5%" },
-]
-
-function RevSpendChart() {
-  return (
-    <svg viewBox="0 0 700 260" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
       <defs>
         <linearGradient id="rev" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0" stopColor="#E8B04B" stopOpacity=".4" />
           <stop offset="1" stopColor="#E8B04B" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <line className="grid-line" x1="40" x2="700" y1="40" y2="40" />
-      <line className="grid-line" x1="40" x2="700" y1="100" y2="100" />
-      <line className="grid-line" x1="40" x2="700" y1="160" y2="160" />
-      <line className="grid-line" x1="40" x2="700" y1="220" y2="220" />
-      <text className="y-label" x="0" y="44">25M</text>
-      <text className="y-label" x="0" y="104">18M</text>
-      <text className="y-label" x="0" y="164">12M</text>
-      <text className="y-label" x="0" y="224">6M</text>
-
-      <path
-        d="M40,200 L90,190 140,180 190,150 240,160 290,120 340,130 390,90 440,100 490,70 540,80 590,40 640,60 690,30 L690,240 L40,240 Z"
-        fill="url(#rev)"
-      />
-      <path
-        d="M40,200 L90,190 140,180 190,150 240,160 290,120 340,130 390,90 440,100 490,70 540,80 590,40 640,60 690,30"
-        fill="none"
-        stroke="#E8B04B"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M40,225 L90,222 140,220 190,218 240,215 290,210 340,212 390,205 440,208 490,200 540,202 590,195 640,198 690,190"
-        fill="none"
-        stroke="#7DB8D6"
-        strokeWidth="1.5"
-        strokeDasharray="4 3"
-      />
-
+      {yTicks.map((t, i) => (
+        <g key={i}>
+          <line className="grid-line" x1={padL} x2={W - padR} y1={yAt(t)} y2={yAt(t)} />
+          <text className="y-label" x="0" y={yAt(t) + 4}>
+            {formatWon(t)}
+          </text>
+        </g>
+      ))}
+      {revArea && <path d={revArea} fill="url(#rev)" />}
+      {revPath && <path d={revPath} fill="none" stroke="#E8B04B" strokeWidth="1.8" />}
+      {spendPath && (
+        <path d={spendPath} fill="none" stroke="#7DB8D6" strokeWidth="1.5" strokeDasharray="4 3" />
+      )}
       <g fill="#E8B04B">
-        {[
-          [40, 200], [90, 190], [140, 180], [190, 150], [240, 160], [290, 120],
-          [340, 130], [390, 90], [440, 100], [490, 70], [540, 80], [590, 40], [640, 60],
-        ].map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="2" />
+        {series.map((d, i) => (
+          <circle key={i} cx={xAt(i)} cy={yAt(d.revenue)} r="2" />
         ))}
-        <circle cx="690" cy="30" r="3" stroke="#0A0B0E" strokeWidth="1.5" />
       </g>
-      <line x1="690" y1="30" x2="690" y2="240" stroke="#E8B04B" strokeWidth="1" strokeDasharray="2 3" opacity=".5" />
-      <rect x="632" y="6" width="68" height="20" rx="3" fill="#E8B04B" />
-      <text x="666" y="20" fill="#0A0B0E" fontSize="10" fontFamily="JetBrains Mono" textAnchor="middle" fontWeight="600">
-        ₩22.4M
+      <text className="x-label" x={padL} y={H - 8}>
+        {firstLabel}
       </text>
-
-      <text className="x-label" x="40" y="256">Apr 1</text>
-      <text className="x-label" x="190" y="256">Apr 4</text>
-      <text className="x-label" x="340" y="256">Apr 7</text>
-      <text className="x-label" x="490" y="256">Apr 10</text>
-      <text className="x-label" x="660" y="256" textAnchor="end">Apr 13</text>
+      <text className="x-label" x={xAt(Math.floor(series.length / 2))} y={H - 8}>
+        {midLabel}
+      </text>
+      <text className="x-label" x={W - padR} y={H - 8} textAnchor="end">
+        {lastLabel}
+      </text>
     </svg>
   )
 }
