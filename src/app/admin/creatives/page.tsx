@@ -31,7 +31,7 @@ export default async function AdminCreativesPage() {
     <div className="canvas">
       <div className="page-head">
         <div>
-          <h1>Creative <em>Assets</em></h1>
+          <h1>소재 <em>관리</em></h1>
           <p className="sub">소재 관리</p>
         </div>
       </div>

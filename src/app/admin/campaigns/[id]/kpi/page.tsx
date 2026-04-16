@@ -22,7 +22,7 @@ export default async function KpiPage({ params }: { params: Promise<{ id: string
       <Link href="/admin/campaigns" className="back">브랜드 KPI</Link>
 
       <div className="page-head">
-        <h1>KPI · <em>Budget</em></h1>
+        <h1>KPI · <em>예산</em></h1>
         <p className="sub">
           {(campaign.brands as unknown as { name: string } | null)?.name} · {campaign.channel} · {campaign.name}
         </p>

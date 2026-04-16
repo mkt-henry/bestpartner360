@@ -91,30 +91,30 @@ const Icon = {
 
 // ── Viewer nav (/dashboard/*) ─────────────────────────────────────────
 const viewerMonitor: NavItem[] = [
-  { href: "/dashboard", label: "Overview", exact: true, icon: Icon.grid },
-  { href: "/dashboard/performance", label: "Performance", icon: Icon.chart },
+  { href: "/dashboard", label: "개요", exact: true, icon: Icon.grid },
+  { href: "/dashboard/performance", label: "성과", icon: Icon.chart },
   { href: "/dashboard/ga4", label: "GA4 UTM", icon: Icon.trending },
 ]
 const viewerWorkspace: NavItem[] = [
-  { href: "/dashboard/activity", label: "Activity", icon: Icon.doc },
-  { href: "/dashboard/calendar", label: "Calendar", icon: Icon.calendar },
-  { href: "/dashboard/creatives", label: "Creatives", icon: Icon.image },
+  { href: "/dashboard/activity", label: "운영현황", icon: Icon.doc },
+  { href: "/dashboard/calendar", label: "캘린더", icon: Icon.calendar },
+  { href: "/dashboard/creatives", label: "소재", icon: Icon.image },
 ]
 
 // ── Admin nav (/admin/*) ──────────────────────────────────────────────
 const adminMonitor: NavItem[] = [
-  { href: "/admin/campaigns", label: "Brand KPI", icon: Icon.chart },
-  { href: "/admin/meta", label: "Meta Insights", icon: Icon.megaphone },
+  { href: "/admin/campaigns", label: "브랜드 KPI", icon: Icon.chart },
+  { href: "/admin/meta", label: "Meta 인사이트", icon: Icon.megaphone },
   { href: "/admin/ga4-utm", label: "GA4 UTM", icon: Icon.trending },
-  { href: "/admin/viewer", label: "Partner Viewer", icon: Icon.eye },
+  { href: "/admin/viewer", label: "파트너 뷰어", icon: Icon.eye },
 ]
 const adminWorkspace: NavItem[] = [
-  { href: "/admin/brands", label: "Brands", icon: Icon.building },
-  { href: "/admin/users", label: "Users", icon: Icon.users },
-  { href: "/admin/activity", label: "Activity", icon: Icon.doc },
-  { href: "/admin/calendar", label: "Calendar", icon: Icon.calendar },
-  { href: "/admin/creatives", label: "Creatives", icon: Icon.image },
-  { href: "/admin/settings", label: "API Settings", icon: Icon.key },
+  { href: "/admin/brands", label: "브랜드", icon: Icon.building },
+  { href: "/admin/users", label: "계정", icon: Icon.users },
+  { href: "/admin/activity", label: "운영현황", icon: Icon.doc },
+  { href: "/admin/calendar", label: "캘린더", icon: Icon.calendar },
+  { href: "/admin/creatives", label: "소재", icon: Icon.image },
+  { href: "/admin/settings", label: "API 설정", icon: Icon.key },
 ]
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -151,14 +151,14 @@ export function Sidebar({ role, userName, brandName, propertyCount }: SidebarPro
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/")
 
-  const brandDisplay = brandName ?? (isAdmin ? "Administrator" : "Workspace")
+  const brandDisplay = brandName ?? (isAdmin ? "관리자" : "워크스페이스")
   const brandAvatar = initials(brandName, isAdmin ? "AD" : "WS")
-  const userDisplay = userName ?? "User"
+  const userDisplay = userName ?? "사용자"
   const userAvatar = initials(userName, "U")
   const subline = isAdmin
-    ? "Admin workspace"
+    ? "관리자 워크스페이스"
     : propertyCount != null
-      ? `${propertyCount} ${propertyCount === 1 ? "property" : "properties"} · KRW`
+      ? `${propertyCount}개 속성 · KRW`
       : "KRW"
 
   return (
@@ -181,7 +181,7 @@ export function Sidebar({ role, userName, brandName, propertyCount }: SidebarPro
       </div>
 
       <div className="nav-group">
-        <div className="title">Monitor</div>
+        <div className="title">모니터</div>
         <div className="nav">
           {monitor.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(item)} />
@@ -190,7 +190,7 @@ export function Sidebar({ role, userName, brandName, propertyCount }: SidebarPro
       </div>
 
       <div className="nav-group">
-        <div className="title">Workspace</div>
+        <div className="title">워크스페이스</div>
         <div className="nav">
           {workspace.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(item)} />
@@ -203,7 +203,7 @@ export function Sidebar({ role, userName, brandName, propertyCount }: SidebarPro
           <div className="av">{userAvatar}</div>
           <div className="meta">
             <div className="n">{userDisplay}</div>
-            <div className="r">{isAdmin ? "Admin" : "Viewer"}</div>
+            <div className="r">{isAdmin ? "관리자" : "뷰어"}</div>
           </div>
           <div className="st" />
         </div>

@@ -16,7 +16,7 @@ export default async function NewCampaignPage({ searchParams }: PageProps) {
       <Link href="/admin/campaigns" className="back">브랜드 KPI</Link>
 
       <div className="page-head">
-        <h1>Add <em>Channel</em></h1>
+        <h1>매체 <em>추가</em></h1>
       </div>
 
       <div className="panel">

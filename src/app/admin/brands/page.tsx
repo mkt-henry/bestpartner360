@@ -34,7 +34,7 @@ export default async function AdminBrandsPage() {
       <div className="page-head">
         <div>
           <h1>
-            Brand <em>Management</em>
+            브랜드 <em>관리</em>
           </h1>
           <p className="sub">
             브랜드 및 광고 매체 연결 관리

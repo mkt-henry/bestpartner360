@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   if (brandIds.length === 0) {
     return (
       <>
-        <Topbar crumbs={[{ label: "Workspace" }, { label: "Overview", strong: true }]} />
+        <Topbar crumbs={[{ label: "워크스페이스" }, { label: "개요", strong: true }]} />
         <div className="canvas">
           <div className="panel">
             <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
@@ -139,40 +139,40 @@ export default async function DashboardPage() {
   // KPI row
   const kpis = [
     {
-      label: "Campaigns",
+      label: "캠페인",
       value: String(campaignIds.length),
       unit: "",
-      hint: `${channelSummaries.length} channels`,
+      hint: `${channelSummaries.length}개 채널`,
     },
     {
-      label: "Spend MTD",
+      label: "이번 달 지출",
       value: formatCurrency(totalSpend),
       unit: "",
-      hint: totalBudget > 0 ? `${budgetPercent.toFixed(0)}% of ₩${formatNumber(totalBudget)}` : "No budget set",
+      hint: totalBudget > 0 ? `예산 대비 ${budgetPercent.toFixed(0)}%` : "설정된 예산 없음",
     },
     {
-      label: "Budget used",
+      label: "예산 사용",
       value: totalBudget > 0 ? budgetPercent.toFixed(1) : "—",
       unit: totalBudget > 0 ? "%" : "",
-      hint: totalBudget > 0 ? `₩${formatNumber(totalBudget - totalSpend)} left` : "No budget",
+      hint: totalBudget > 0 ? `잔여 ₩${formatNumber(totalBudget - totalSpend)}` : "예산 없음",
     },
     {
-      label: "GA4 Sessions",
+      label: "GA4 세션",
       value: formatNumber(ga4Totals.sessions),
       unit: "",
-      hint: `${formatNumber(ga4Totals.users)} users`,
+      hint: `${formatNumber(ga4Totals.users)} 사용자`,
     },
     {
-      label: "Conversions",
+      label: "전환수",
       value: formatNumber(ga4Totals.conversions),
       unit: "",
       hint: ga4Totals.revenue > 0 ? formatCurrency(ga4Totals.revenue) : "—",
     },
     {
-      label: "Creatives",
+      label: "소재",
       value: String(creativeStats.length),
       unit: "",
-      hint: `${creativeCounts.review_requested} review · ${creativeCounts.feedback_pending} pending`,
+      hint: `리뷰 ${creativeCounts.review_requested} · 대기 ${creativeCounts.feedback_pending}`,
     },
   ]
 
@@ -180,9 +180,9 @@ export default async function DashboardPage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
-          { label: brandName ?? "Brand" },
-          { label: "Overview", strong: true },
+          { label: "워크스페이스" },
+          { label: brandName ?? "브랜드" },
+          { label: "개요", strong: true },
         ]}
       />
 
@@ -192,16 +192,16 @@ export default async function DashboardPage() {
         <div className="page-head">
           <div>
             <h1>
-              Performance <em>overview</em>
+              성과 <em>개요</em>
             </h1>
             <div className="sub">
-              {greeting} · {monthLabel} &nbsp; · &nbsp; {campaignIds.length} campaigns &nbsp;
-              <span className="live">live</span>
+              {greeting} · {monthLabel} &nbsp; · &nbsp; {campaignIds.length}개 캠페인 &nbsp;
+              <span className="live">운영중</span>
             </div>
           </div>
           <div className="pg-actions">
             <Link href="/dashboard/performance" className="btn">
-              View performance →
+              성과 보기 →
             </Link>
             <Link href="/dashboard/ga4" className="btn">
               GA4 UTM →
@@ -231,18 +231,18 @@ export default async function DashboardPage() {
         <div className="grid">
           <div className="panel">
             <div className="p-head">
-              <h3>Channel performance</h3>
-              <div className="sub">Month-to-date · spend vs budget</div>
+              <h3>채널 성과</h3>
+              <div className="sub">이번 달 · 지출 vs 예산</div>
             </div>
             <div className="tbl-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: "24%" }}>Channel</th>
-                    <th className="num">Campaigns</th>
-                    <th className="num">Spend</th>
-                    <th className="num">Budget</th>
-                    <th className="num">Usage</th>
+                    <th style={{ width: "24%" }}>채널</th>
+                    <th className="num">캠페인</th>
+                    <th className="num">지출</th>
+                    <th className="num">예산</th>
+                    <th className="num">사용률</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,8 +287,8 @@ export default async function DashboardPage() {
 
           <div className="panel alerts">
             <div className="p-head">
-              <h3>Recent activity</h3>
-              <div className="sub">Last 6 updates</div>
+              <h3>최근 운영현황</h3>
+              <div className="sub">최근 6건</div>
             </div>
             <div className="p-body">
               {activities.length === 0 && (
@@ -301,7 +301,7 @@ export default async function DashboardPage() {
                   <div className="bullet" />
                   <div className="body">
                     <div className="top">
-                      <span className="tag">{a.channel ?? "General"}</span>
+                      <span className="tag">{a.channel ?? "일반"}</span>
                       <span className="time">{formatDate(a.activity_date)}</span>
                     </div>
                     <div className="msg">{a.title}</div>
@@ -317,16 +317,16 @@ export default async function DashboardPage() {
         <div className="trio">
           <div className="panel">
             <div className="p-head">
-              <h3>Creative pipeline</h3>
-              <div className="sub">{creativeStats.length} items</div>
+              <h3>소재 현황</h3>
+              <div className="sub">{creativeStats.length}건</div>
             </div>
             <div className="p-body">
-              <StatRow label="Review requested" value={creativeCounts.review_requested} />
-              <StatRow label="Feedback pending" value={creativeCounts.feedback_pending} />
-              <StatRow label="Completed" value={creativeCounts.completed} />
+              <StatRow label="리뷰 요청" value={creativeCounts.review_requested} />
+              <StatRow label="피드백 대기" value={creativeCounts.feedback_pending} />
+              <StatRow label="완료" value={creativeCounts.completed} />
               <div style={{ marginTop: 12 }}>
                 <Link href="/dashboard/creatives" style={{ color: "var(--amber)", fontSize: 11 }}>
-                  View creatives →
+                  소재 보기 →
                 </Link>
               </div>
             </div>
@@ -334,8 +334,8 @@ export default async function DashboardPage() {
 
           <div className="panel">
             <div className="p-head">
-              <h3>Upcoming</h3>
-              <div className="sub">Next 7 days</div>
+              <h3>예정 일정</h3>
+              <div className="sub">7일 이내</div>
             </div>
             <div className="p-body">
               {upcomingEvents.length === 0 && (
@@ -354,7 +354,7 @@ export default async function DashboardPage() {
               ))}
               <div style={{ marginTop: 8 }}>
                 <Link href="/dashboard/calendar" style={{ color: "var(--amber)", fontSize: 11 }}>
-                  View calendar →
+                  캘린더 보기 →
                 </Link>
               </div>
             </div>
@@ -362,20 +362,20 @@ export default async function DashboardPage() {
 
           <div className="panel">
             <div className="p-head">
-              <h3>GA4 totals</h3>
-              <div className="sub">{utmEntryIds.length} UTM · MTD</div>
+              <h3>GA4 합계</h3>
+              <div className="sub">{utmEntryIds.length} UTM · 이번 달</div>
             </div>
             <div className="p-body">
-              <StatRow label="Sessions" value={formatNumber(ga4Totals.sessions)} />
-              <StatRow label="Users" value={formatNumber(ga4Totals.users)} />
-              <StatRow label="Pageviews" value={formatNumber(ga4Totals.pageviews)} />
-              <StatRow label="Conversions" value={formatNumber(ga4Totals.conversions)} />
+              <StatRow label="세션" value={formatNumber(ga4Totals.sessions)} />
+              <StatRow label="사용자" value={formatNumber(ga4Totals.users)} />
+              <StatRow label="페이지뷰" value={formatNumber(ga4Totals.pageviews)} />
+              <StatRow label="전환수" value={formatNumber(ga4Totals.conversions)} />
               {ga4Totals.revenue > 0 && (
-                <StatRow label="Revenue" value={formatCurrency(ga4Totals.revenue)} />
+                <StatRow label="수익" value={formatCurrency(ga4Totals.revenue)} />
               )}
               <div style={{ marginTop: 12 }}>
                 <Link href="/dashboard/ga4" style={{ color: "var(--amber)", fontSize: 11 }}>
-                  View GA4 →
+                  GA4 보기 →
                 </Link>
               </div>
             </div>

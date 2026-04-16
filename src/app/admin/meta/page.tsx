@@ -20,7 +20,7 @@ export default async function AdminMetaPage() {
     <div className="canvas">
       <div className="page-head">
         <div>
-          <h1>Meta <em>Insights</em></h1>
+          <h1>Meta <em>인사이트</em></h1>
           <p className="sub">Facebook · Instagram 광고 성과</p>
         </div>
         <Link href="/admin/brands" className="btn">계정 관리 →</Link>

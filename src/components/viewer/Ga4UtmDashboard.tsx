@@ -62,7 +62,7 @@ export default function Ga4UtmDashboard({ entries }: Props) {
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800">
                 <th className="text-left px-4 py-2.5 font-medium text-slate-500 dark:text-slate-400">UTM</th>
-                <th className="text-left px-3 py-2.5 font-medium text-slate-500 dark:text-slate-400">source / medium</th>
+                <th className="text-left px-3 py-2.5 font-medium text-slate-500 dark:text-slate-400">소스 / 매체</th>
                 <th className="text-right px-3 py-2.5 font-medium text-slate-500 dark:text-slate-400">세션</th>
                 <th className="text-right px-3 py-2.5 font-medium text-slate-500 dark:text-slate-400">사용자</th>
                 <th className="text-right px-3 py-2.5 font-medium text-slate-500 dark:text-slate-400">페이지뷰</th>

@@ -23,7 +23,7 @@ export default async function DashboardGa4Page() {
   if (brandIds.length === 0) {
     return (
       <>
-        <Topbar crumbs={[{ label: "Workspace" }, { label: "GA4", strong: true }]} />
+        <Topbar crumbs={[{ label: "워크스페이스" }, { label: "GA4", strong: true }]} />
         <div className="canvas">
           <div className="panel">
             <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
@@ -115,17 +115,17 @@ export default async function DashboardGa4Page() {
 
   return (
     <>
-      <Topbar crumbs={[{ label: "Workspace" }, { label: "GA4", strong: true }]} />
+      <Topbar crumbs={[{ label: "워크스페이스" }, { label: "GA4", strong: true }]} />
       <Filters />
 
       <div className="canvas">
         <div className="page-head">
           <div>
             <h1>
-              GA4 <em>analytics</em>
+              GA4 <em>분석</em>
             </h1>
             <div className="sub">
-              {properties.length} properties &nbsp; · &nbsp; {entryIds.length} UTM &nbsp; · &nbsp; {monthStart} — {today}
+              {properties.length}개 속성 &nbsp; · &nbsp; {entryIds.length} UTM &nbsp; · &nbsp; {monthStart} — {today}
             </div>
           </div>
         </div>
@@ -134,11 +134,11 @@ export default async function DashboardGa4Page() {
         {entryIds.length > 0 && (
           <div className="kpi-row">
             {[
-              { label: "Sessions", value: formatNumber(totals.sessions) },
-              { label: "Users", value: formatNumber(totals.users) },
-              { label: "Pageviews", value: formatNumber(totals.pageviews) },
-              { label: "Conversions", value: formatNumber(totals.conversions) },
-              { label: "Revenue", value: formatCurrency(totals.revenue) },
+              { label: "세션", value: formatNumber(totals.sessions) },
+              { label: "사용자", value: formatNumber(totals.users) },
+              { label: "페이지뷰", value: formatNumber(totals.pageviews) },
+              { label: "전환수", value: formatNumber(totals.conversions) },
+              { label: "수익", value: formatCurrency(totals.revenue) },
             ].map((card) => (
               <div key={card.label} className="kpi">
                 <div className="top"><span>{card.label}</span></div>
@@ -151,8 +151,8 @@ export default async function DashboardGa4Page() {
         {/* GA4 properties */}
         <div className="panel">
           <div className="p-head">
-            <h3>Site analytics</h3>
-            <div className="sub">{properties.length} properties</div>
+            <h3>사이트 분석</h3>
+            <div className="sub">{properties.length}개 속성</div>
           </div>
           <div className="p-body">
             {properties.length > 0 ? (
@@ -185,8 +185,8 @@ export default async function DashboardGa4Page() {
         {entryIds.length > 0 && (
           <div className="panel">
             <div className="p-head">
-              <h3>UTM performance</h3>
-              <div className="sub">{entryIds.length} entries</div>
+              <h3>UTM 성과</h3>
+              <div className="sub">{entryIds.length}건</div>
             </div>
             <div className="p-body">
               <Ga4UtmDashboard entries={entriesWithPerf} />

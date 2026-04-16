@@ -27,15 +27,15 @@ export default async function CalendarPage() {
 
   return (
     <>
-      <Topbar crumbs={[{ label: "Workspace" }, { label: "Calendar", strong: true }]} />
+      <Topbar crumbs={[{ label: "워크스페이스" }, { label: "캘린더", strong: true }]} />
       <div className="canvas">
         <div className="page-head">
           <div>
             <h1>
-              Operational <em>calendar</em>
+              운영 <em>캘린더</em>
             </h1>
             <div className="sub">
-              {(events ?? []).length} events &nbsp; · &nbsp; {from} — {to}
+              {(events ?? []).length}건 &nbsp; · &nbsp; {from} — {to}
             </div>
           </div>
         </div>

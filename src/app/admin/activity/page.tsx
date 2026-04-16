@@ -20,7 +20,7 @@ export default async function AdminActivityPage() {
     <div className="canvas">
       <div className="page-head">
         <div>
-          <h1>Activity <em>Log</em></h1>
+          <h1>운영 <em>현황</em></h1>
           <p className="sub">운영 현황 작성</p>
         </div>
       </div>

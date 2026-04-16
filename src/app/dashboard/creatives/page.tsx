@@ -54,14 +54,14 @@ export default async function CreativesPage() {
 
   return (
     <>
-      <Topbar crumbs={[{ label: "Workspace" }, { label: "Creatives", strong: true }]} />
+      <Topbar crumbs={[{ label: "워크스페이스" }, { label: "소재", strong: true }]} />
       <div className="canvas">
         <div className="page-head">
           <div>
             <h1>
-              Creative <em>pipeline</em>
+              소재 <em>관리</em>
             </h1>
-            <div className="sub">{creatives.length} assets</div>
+            <div className="sub">{creatives.length}건</div>
           </div>
         </div>
 
@@ -76,7 +76,7 @@ export default async function CreativesPage() {
             <div key={status} className="panel">
               <div className="p-head">
                 <h3>{STATUS_LABELS[status as CalendarEventStatus]}</h3>
-                <div className="sub">{items.length} items</div>
+                <div className="sub">{items.length}건</div>
               </div>
               <div className="p-body">
                 <div

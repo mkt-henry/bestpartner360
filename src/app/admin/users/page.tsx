@@ -26,7 +26,7 @@ export default async function AdminUsersPage() {
     <div className="canvas">
       <div className="page-head">
         <div>
-          <h1>User <em>Management</em></h1>
+          <h1>계정 <em>관리</em></h1>
           <p className="sub">계정 관리</p>
         </div>
       </div>

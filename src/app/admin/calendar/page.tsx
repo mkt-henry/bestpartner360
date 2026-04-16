@@ -35,7 +35,7 @@ export default async function AdminCalendarPage() {
     <div className="canvas">
       <div className="page-head">
         <div>
-          <h1>Calendar <em>Events</em></h1>
+          <h1>캘린더 <em>관리</em></h1>
           <p className="sub">캘린더 관리</p>
         </div>
       </div>

@@ -26,7 +26,7 @@ export default async function BudgetPage({ params }: { params: Promise<{ id: str
       <Link href="/admin/campaigns" className="back">브랜드 KPI</Link>
 
       <div className="page-head">
-        <h1>Budget <em>Settings</em></h1>
+        <h1>예산 <em>설정</em></h1>
         <p className="sub">
           {(campaign.brands as unknown as { name: string } | null)?.name} · {campaign.channel} · {campaign.name}
         </p>

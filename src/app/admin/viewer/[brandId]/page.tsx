@@ -144,7 +144,7 @@ export default async function AdminViewerDashboardPage({
       {/* Header */}
       <div className="page-head">
         <div>
-          <h1>{brandName} <em>Dashboard</em></h1>
+          <h1>{brandName} <em>대시보드</em></h1>
           <p className="sub">
             {now.getFullYear()}년 {now.getMonth() + 1}월 현황 · 파트너가 보는 화면입니다
           </p>

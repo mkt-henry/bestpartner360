@@ -26,7 +26,7 @@ export default async function PerformancePage({ searchParams }: Props) {
   if (brandIds.length === 0) {
     return (
       <>
-        <Topbar crumbs={[{ label: "Workspace" }, { label: "Performance", strong: true }]} />
+        <Topbar crumbs={[{ label: "워크스페이스" }, { label: "성과", strong: true }]} />
         <div className="canvas">
           <div className="panel">
             <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
@@ -129,8 +129,8 @@ export default async function PerformancePage({ searchParams }: Props) {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
-          { label: "Performance", strong: !selectedChannel },
+          { label: "워크스페이스" },
+          { label: "성과", strong: !selectedChannel },
           ...(selectedChannel ? [{ label: selectedChannel, strong: true }] : []),
         ]}
       />
@@ -141,10 +141,10 @@ export default async function PerformancePage({ searchParams }: Props) {
         <div className="page-head">
           <div>
             <h1>
-              Performance <em>detail</em>
+              성과 <em>상세</em>
             </h1>
             <div className="sub">
-              {monthStart} — {today} &nbsp; · &nbsp; {campaigns.length} campaigns
+              {monthStart} — {today} &nbsp; · &nbsp; {campaigns.length}개 캠페인
               {selectedChannel && <> &nbsp; · &nbsp; {selectedChannel}</>}
             </div>
           </div>
@@ -152,7 +152,7 @@ export default async function PerformancePage({ searchParams }: Props) {
             {channels.length > 1 && (
               <>
                 <Link href="/dashboard/performance" className={`btn ${!selectedChannel ? "primary" : ""}`}>
-                  All
+                  전체
                 </Link>
                 {channels.map((ch) => (
                   <Link
@@ -192,23 +192,23 @@ export default async function PerformancePage({ searchParams }: Props) {
         {/* Budget panel */}
         <div className="panel">
           <div className="p-head">
-            <h3>Budget status</h3>
-            <div className="sub">MTD · {budgetPercent.toFixed(1)}% used</div>
+            <h3>예산 현황</h3>
+            <div className="sub">이번 달 · {budgetPercent.toFixed(1)}% 사용</div>
           </div>
           <div className="p-body">
             {totalBudget > 0 ? (
               <>
                 <div className="chart-stat">
                   <div className="s">
-                    <div className="l"><i style={{ background: "#7DB8D6" }} />Total</div>
+                    <div className="l"><i style={{ background: "#7DB8D6" }} />총 예산</div>
                     <div className="v">{formatCurrency(totalBudget)}</div>
                   </div>
                   <div className="s">
-                    <div className="l"><i style={{ background: "#E8B04B" }} />Spent</div>
+                    <div className="l"><i style={{ background: "#E8B04B" }} />지출</div>
                     <div className="v">{formatCurrency(totalSpend)}</div>
                   </div>
                   <div className="s">
-                    <div className="l"><i style={{ background: "#5EC27A" }} />Remaining</div>
+                    <div className="l"><i style={{ background: "#5EC27A" }} />잔여</div>
                     <div className="v">{formatCurrency(totalBudget - totalSpend)}</div>
                   </div>
                 </div>
@@ -238,8 +238,8 @@ export default async function PerformancePage({ searchParams }: Props) {
         {uniqueKpiDefs.length > 0 && kpiChartData.length > 1 && (
           <div className="panel">
             <div className="p-head">
-              <h3>KPI trend</h3>
-              <div className="sub">Daily</div>
+              <h3>KPI 추이</h3>
+              <div className="sub">일별</div>
             </div>
             <div className="p-body">
               <div className="chart-wrap" style={{ background: "var(--bg-2)", padding: 16, borderRadius: 6 }}>
@@ -259,19 +259,19 @@ export default async function PerformancePage({ searchParams }: Props) {
         {/* Campaign table */}
         <div className="panel">
           <div className="p-head">
-            <h3>Campaigns</h3>
-            <div className="sub">{campaigns.length} items</div>
+            <h3>캠페인</h3>
+            <div className="sub">{campaigns.length}건</div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "42%" }}>Campaign</th>
-                  <th>Channel</th>
-                  <th>Status</th>
-                  <th className="num">Spend</th>
-                  <th className="num">Budget</th>
-                  <th className="num">Usage</th>
+                  <th style={{ width: "42%" }}>캠페인</th>
+                  <th>채널</th>
+                  <th>상태</th>
+                  <th className="num">지출</th>
+                  <th className="num">예산</th>
+                  <th className="num">사용률</th>
                 </tr>
               </thead>
               <tbody>

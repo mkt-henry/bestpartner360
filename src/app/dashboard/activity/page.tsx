@@ -39,16 +39,16 @@ export default async function ActivityPage() {
 
   return (
     <>
-      <Topbar crumbs={[{ label: "Workspace" }, { label: "Activity", strong: true }]} />
+      <Topbar crumbs={[{ label: "워크스페이스" }, { label: "운영현황", strong: true }]} />
 
       <div className="canvas">
         <div className="page-head">
           <div>
             <h1>
-              Activity <em>feed</em>
+              운영 <em>현황</em>
             </h1>
             <div className="sub">
-              {list.length} updates &nbsp; · &nbsp; {sortedDates.length} days
+              {list.length}건 &nbsp; · &nbsp; {sortedDates.length}일
             </div>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default async function ActivityPage() {
             <div key={date} className="panel alerts">
               <div className="p-head">
                 <h3>{formatDate(date)}</h3>
-                <div className="sub">{grouped[date]!.length} items</div>
+                <div className="sub">{grouped[date]!.length}건</div>
               </div>
               <div className="p-body">
                 {grouped[date]!.map((act) => (
@@ -72,7 +72,7 @@ export default async function ActivityPage() {
                     <div className="bullet" />
                     <div className="body">
                       <div className="top">
-                        <span className="tag">{act.channel ?? "General"}</span>
+                        <span className="tag">{act.channel ?? "일반"}</span>
                         {act.campaigns?.name && (
                           <span className="time">{act.campaigns.name}</span>
                         )}

@@ -36,7 +36,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       className={`console-scope ${fraunces.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
     >
       <div className="app">
-        <Sidebar role="admin" userName={userName} brandName="Administrator" />
+        <Sidebar role="admin" userName={userName} brandName="관리자" />
         <main>{children}</main>
       </div>
     </div>

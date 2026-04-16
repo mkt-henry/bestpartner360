@@ -39,7 +39,7 @@ export default async function CampaignDataPage({ params }: { params: Promise<{ i
       <Link href="/admin/campaigns" className="back">브랜드 KPI</Link>
 
       <div className="page-head">
-        <h1>Performance <em>Data</em></h1>
+        <h1>성과 <em>데이터</em></h1>
         <p className="sub">
           {(campaign.brands as unknown as { name: string } | null)?.name} · {campaign.channel} · {campaign.name}
         </p>

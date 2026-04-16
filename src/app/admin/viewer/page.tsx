@@ -26,7 +26,7 @@ export default async function AdminViewerPage() {
     <div className="canvas">
       <div className="page-head">
         <div>
-          <h1>Partner <em>Viewer</em></h1>
+          <h1>파트너 <em>뷰어</em></h1>
           <p className="sub">브랜드를 선택하면 파트너 관점의 대시보드를 확인할 수 있습니다.</p>
         </div>
       </div>

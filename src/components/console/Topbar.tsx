@@ -6,7 +6,7 @@ type Crumb = { label: string; strong?: boolean }
 
 export function Topbar({
   crumbs,
-  compare = "Previous period",
+  compare = "이전 기간",
   alerts = 0,
 }: {
   crumbs: Crumb[]
@@ -41,22 +41,22 @@ export function Topbar({
           <circle cx="9" cy="9" r="6" />
           <path d="M14 14l4 4" />
         </svg>
-        <input ref={inputRef} placeholder="Search campaigns, reports, keywords…" />
+        <input ref={inputRef} placeholder="캠페인, 리포트, 키워드 검색…" />
         <kbd>⌘K</kbd>
       </div>
       <div className="tbar-actions">
-        {alerts > 0 && <button className="pill warn">◉ {alerts} alerts</button>}
+        {alerts > 0 && <button className="pill warn">◉ {alerts}건 알림</button>}
         <button className="pill">
-          <span className="k">Compare:</span> {compare}
+          <span className="k">비교:</span> {compare}
         </button>
-        <button className="icon-btn" title="Notifications">
+        <button className="icon-btn" title="알림">
           <svg viewBox="0 0 20 20">
             <path d="M4 8a6 6 0 1 1 12 0v4l2 3H2l2-3z" />
             <path d="M8 17a2 2 0 0 0 4 0" />
           </svg>
           <span className="ping" />
         </button>
-        <button className="icon-btn" title="Export">
+        <button className="icon-btn" title="내보내기">
           <svg viewBox="0 0 20 20">
             <path d="M10 3v11M5 9l5 5 5-5M3 17h14" />
           </svg>
@@ -79,7 +79,7 @@ export function FooterBar() {
   return (
     <div className="footer-bar">
       <div className="g">
-        <span className="st">All systems operational</span>
+        <span className="st">시스템 정상 운영중</span>
       </div>
       <div className="g">
         <span>{time}</span>
