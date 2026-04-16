@@ -220,7 +220,7 @@ export default async function AdminViewerDashboardPage({
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">매체별 성과</h2>
             <Link href={`${basePath}/performance`} className="text-xs text-blue-600 hover:text-blue-700">상세보기</Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {channelSummaries.map((cs) => {
               const budgetPct = cs.budget > 0 ? Math.min(100, (cs.spend / cs.budget) * 100) : 0
               const kpiEntries = Object.entries(cs.kpiTotals).slice(0, 3)
@@ -228,14 +228,14 @@ export default async function AdminViewerDashboardPage({
                 <Link
                   key={cs.channel}
                   href={`${basePath}/performance?channel=${cs.channel}`}
-                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:shadow-sm transition group"
+                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-sm transition group"
                 >
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2.5 mb-4">
                     <span className={`w-2.5 h-2.5 rounded-full ${CHANNEL_COLORS[cs.channel] ?? "bg-slate-400"}`} />
                     <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{cs.channel}</span>
                     <span className="text-[10px] text-slate-400 ml-auto">{cs.campaignCount}개 캠페인</span>
                   </div>
-                  <div className="space-y-2 mb-3">
+                  <div className="space-y-2.5 mb-4">
                     <div className="flex justify-between text-xs">
                       <span className="text-slate-400">이번 달 지출</span>
                       <span className={`font-semibold ${CHANNEL_TEXT_COLORS[cs.channel] ?? "text-slate-700"} dark:text-slate-200`}>
@@ -261,7 +261,7 @@ export default async function AdminViewerDashboardPage({
                     )}
                   </div>
                   {kpiEntries.length > 0 && (
-                    <div className="border-t border-slate-100 dark:border-slate-700 pt-2 space-y-1">
+                    <div className="border-t border-slate-100 dark:border-slate-700 pt-3 space-y-2">
                       {kpiEntries.map(([key, val]) => (
                         <div key={key} className="flex justify-between text-xs">
                           <span className="text-slate-400 truncate max-w-[100px]">{key}</span>
@@ -277,14 +277,14 @@ export default async function AdminViewerDashboardPage({
             {hasGa4Data && (
               <Link
                 href={`${basePath}/ga4`}
-                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:shadow-sm transition group"
+                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-sm transition group"
               >
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2.5 mb-4">
                   <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">GA4</span>
                   <span className="text-[10px] text-slate-400 ml-auto">{utmEntryIds.length}개 UTM</span>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-400">세션</span>
                     <span className="font-semibold text-orange-600 dark:text-orange-400">{formatNumber(ga4Totals.sessions)}</span>
@@ -322,20 +322,20 @@ export default async function AdminViewerDashboardPage({
             <Link href={`${basePath}/activity`} className="text-xs text-blue-600 hover:text-blue-700">전체보기</Link>
           </div>
           {activities && activities.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {activities.map((a) => (
-                <div key={a.id} className="border-l-2 border-blue-200 dark:border-blue-700 pl-3">
-                  <p className="text-xs text-slate-400 mb-0.5">
+                <div key={a.id} className="border-l-2 border-blue-200 dark:border-blue-700 pl-3.5">
+                  <p className="text-xs text-slate-400 mb-1">
                     {a.channel && <span className="font-medium text-slate-600 dark:text-slate-400">[{a.channel}]</span>}{" "}
                     {formatDate(a.activity_date)}
                   </p>
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100 leading-snug">{a.title}</p>
-                  <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{a.content}</p>
+                  {a.content && <p className="text-xs text-slate-500 line-clamp-1 mt-1">{a.content}</p>}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-400">운영 현황이 없습니다.</p>
+            <p className="text-sm text-slate-400 py-4 text-center">운영 현황이 없습니다.</p>
           )}
         </div>
 
@@ -345,28 +345,28 @@ export default async function AdminViewerDashboardPage({
             <Link href={`${basePath}/calendar`} className="text-xs text-blue-600 hover:text-blue-700">전체보기</Link>
           </div>
           {upcomingEvents && upcomingEvents.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3.5">
               {upcomingEvents.map((e) => (
                 <div key={e.id} className="flex items-start gap-3">
                   <span className="text-xs text-slate-400 w-16 flex-shrink-0 pt-0.5">{formatDate(e.event_date)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {e.channel && (
-                        <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">
                           {e.channel}
                         </span>
                       )}
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${STATUS_COLORS[e.status as CalendarEventStatus]}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[e.status as CalendarEventStatus]}`}>
                         {STATUS_LABELS[e.status as CalendarEventStatus]}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 mt-0.5 truncate">{e.title}</p>
+                    <p className="text-sm text-slate-800 dark:text-slate-200 mt-1 truncate">{e.title}</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-400">예정된 일정이 없습니다.</p>
+            <p className="text-sm text-slate-400 py-4 text-center">예정된 일정이 없습니다.</p>
           )}
         </div>
       </div>

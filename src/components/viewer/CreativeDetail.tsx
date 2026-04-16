@@ -87,9 +87,9 @@ export default function CreativeDetail({ creative, comments: initialComments, cu
       <div className="flex gap-6">
         {/* Left: Preview */}
         <div className="flex-1">
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             {/* Main Preview */}
-            <div className="aspect-video bg-slate-100 flex items-center justify-center">
+            <div className="aspect-video bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
               {selectedVersion ? (
                 creative.asset_type === "video" ? (
                   <video
@@ -119,7 +119,7 @@ export default function CreativeDetail({ creative, comments: initialComments, cu
 
             {/* Version Selector */}
             {versions.length > 1 && (
-              <div className="px-4 py-3 border-t border-slate-100 flex gap-2 overflow-x-auto">
+              <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-700 flex gap-2 overflow-x-auto">
                 {versions.map((v) => (
                   <button
                     key={v.id}
@@ -139,10 +139,10 @@ export default function CreativeDetail({ creative, comments: initialComments, cu
           </div>
 
           {/* Comments */}
-          <div className="bg-white rounded-xl border border-slate-200 mt-4 p-5">
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">피드백</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 mt-4 p-5">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">피드백</h3>
 
-            <div className="space-y-3 mb-4">
+            <div className="space-y-3.5 mb-5">
               {comments.length === 0 ? (
                 <p className="text-sm text-slate-400">아직 피드백이 없습니다.</p>
               ) : (
@@ -153,13 +153,13 @@ export default function CreativeDetail({ creative, comments: initialComments, cu
                     <div
                       key={c.id}
                       className={cn(
-                        "rounded-xl p-3.5 text-sm",
+                        "rounded-xl p-4 text-sm",
                         isAdminComment
-                          ? "bg-blue-50 border border-blue-100"
-                          : "bg-slate-50 border border-slate-100"
+                          ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
+                          : "bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700"
                       )}
                     >
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 mb-2">
                         <div
                           className={cn(
                             "w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium",
@@ -217,9 +217,9 @@ export default function CreativeDetail({ creative, comments: initialComments, cu
         </div>
 
         {/* Right: Info */}
-        <div className="w-64 flex-shrink-0 space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">{creative.title}</h3>
+        <div className="w-72 flex-shrink-0 space-y-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{creative.title}</h3>
 
             <div>
               <p className="text-xs text-slate-400 mb-1.5">상태</p>
@@ -235,22 +235,22 @@ export default function CreativeDetail({ creative, comments: initialComments, cu
 
             {creative.channel && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">채널</p>
-                <p className="text-sm text-slate-700">{creative.channel}</p>
+                <p className="text-xs text-slate-400 mb-1.5">채널</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{creative.channel}</p>
               </div>
             )}
 
             {creative.scheduled_date && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">업로드 예정</p>
-                <p className="text-sm text-slate-700">{creative.scheduled_date}</p>
+                <p className="text-xs text-slate-400 mb-1.5">업로드 예정</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{creative.scheduled_date}</p>
               </div>
             )}
 
             {creative.campaigns && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">캠페인</p>
-                <p className="text-sm text-slate-700">{(creative.campaigns as { name: string }).name}</p>
+                <p className="text-xs text-slate-400 mb-1.5">캠페인</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{(creative.campaigns as { name: string }).name}</p>
               </div>
             )}
 

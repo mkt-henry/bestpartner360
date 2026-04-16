@@ -243,10 +243,10 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{brand.name}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {metaLinked.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">Meta {metaLinked.length}</span>}
-            {naverLinked.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">네이버 {naverLinked.length}</span>}
-            {ga4Linked.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-medium">GA4 {ga4Linked.length}</span>}
+          <div className="flex items-center gap-2 mt-1">
+            {metaLinked.length > 0 && <span className="text-[10px] px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">Meta {metaLinked.length}</span>}
+            {naverLinked.length > 0 && <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-medium">네이버 {naverLinked.length}</span>}
+            {ga4Linked.length > 0 && <span className="text-[10px] px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-medium">GA4 {ga4Linked.length}</span>}
             {totalLinked === 0 && <span className="text-[10px] text-slate-400">연결된 매체 없음</span>}
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
 
             {/* 연결된 Meta 계정 */}
             {metaLinked.map((m) => (
-              <div key={m.meta_account_id} className="flex items-center gap-2 py-1.5">
+              <div key={m.meta_account_id} className="flex items-center gap-2 py-2">
                 <span className="text-xs text-slate-900 dark:text-slate-100 font-medium flex-1 truncate">{m.meta_account_name}</span>
                 <span className="text-[10px] text-slate-400 font-mono">{m.meta_account_id}</span>
                 <button onClick={() => unlinkMeta(m.meta_account_id)} disabled={saving} className="text-[10px] text-red-500 hover:text-red-700 flex items-center gap-0.5 disabled:opacity-50">
@@ -317,7 +317,7 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
             {naverError && <p className="text-xs text-red-500 mb-2">{naverError}</p>}
 
             {naverLinked.map((m) => (
-              <div key={m.naver_customer_id} className="flex items-center gap-2 py-1.5">
+              <div key={m.naver_customer_id} className="flex items-center gap-2 py-2">
                 <span className="text-xs text-slate-900 dark:text-slate-100 font-medium flex-1 truncate">{m.naver_account_name}</span>
                 <span className="text-[10px] text-slate-400 font-mono">{m.naver_customer_id}</span>
                 <button onClick={() => unlinkNaver(m.naver_customer_id)} disabled={saving} className="text-[10px] text-red-500 hover:text-red-700 flex items-center gap-0.5 disabled:opacity-50">
@@ -367,7 +367,7 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
 
             {/* 연결된 GA4 속성 */}
             {ga4Linked.map((m) => (
-              <div key={m.property_id} className="flex items-center gap-2 py-1.5">
+              <div key={m.property_id} className="flex items-center gap-2 py-2">
                 <span className="text-xs text-slate-900 dark:text-slate-100 font-medium flex-1 truncate">{m.property_name}</span>
                 <span className="text-[10px] text-slate-400 font-mono">{m.property_id}</span>
                 <button onClick={() => removeGa4(m.property_id)} disabled={saving} className="text-[10px] text-red-500 hover:text-red-700 flex items-center gap-0.5 disabled:opacity-50">

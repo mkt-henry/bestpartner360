@@ -64,22 +64,22 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
   return (
     <div className="flex gap-6">
       {/* Calendar */}
-      <div className="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             {year}년 {month + 1}월
           </h2>
           <div className="flex gap-1">
             <button
               onClick={prevMonth}
-              className="p-1.5 rounded hover:bg-slate-100 text-slate-500 transition"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={nextMonth}
-              className="p-1.5 rounded hover:bg-slate-100 text-slate-500 transition"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -87,9 +87,9 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
         </div>
 
         {/* Days of week */}
-        <div className="grid grid-cols-7 border-b border-slate-100">
+        <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-700">
           {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
-            <div key={d} className="py-2 text-center text-xs font-medium text-slate-400">
+            <div key={d} className="py-2.5 text-center text-xs font-medium text-slate-400">
               {d}
             </div>
           ))}
@@ -97,7 +97,7 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
 
         {/* Cells */}
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 divide-x divide-slate-100 border-b border-slate-100 last:border-b-0">
+          <div key={wi} className="grid grid-cols-7 divide-x divide-slate-100 dark:divide-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-b-0">
             {week.map((day, di) => {
               const dayStr = day ? `${monthStr}-${String(day).padStart(2, "0")}` : null
               const dayEvents = day ? eventsByDate[String(day).padStart(2, "0")] ?? [] : []
@@ -109,30 +109,30 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
                 <div
                   key={di}
                   className={cn(
-                    "min-h-[80px] p-1.5 relative",
-                    !day && "bg-slate-50",
-                    day && "hover:bg-slate-50 transition"
+                    "min-h-[88px] p-2 relative",
+                    !day && "bg-slate-50 dark:bg-slate-900/30",
+                    day && "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition"
                   )}
                 >
                   {day && (
                     <>
                       <span
                         className={cn(
-                          "inline-flex w-6 h-6 items-center justify-center text-xs rounded-full mb-1",
+                          "inline-flex w-6 h-6 items-center justify-center text-xs rounded-full mb-1.5",
                           isToday && "bg-blue-600 text-white font-bold",
                           !isToday && isSun && "text-red-500",
                           !isToday && isSat && "text-blue-500",
-                          !isToday && !isSun && !isSat && "text-slate-700"
+                          !isToday && !isSun && !isSat && "text-slate-700 dark:text-slate-300"
                         )}
                       >
                         {day}
                       </span>
-                      <div className="space-y-0.5">
+                      <div className="space-y-1">
                         {dayEvents.slice(0, 3).map((ev) => (
                           <button
                             key={ev.id}
                             onClick={() => setSelectedEvent(ev)}
-                            className="w-full flex items-center gap-1 text-left hover:opacity-80 transition"
+                            className="w-full flex items-center gap-1.5 text-left hover:opacity-80 transition"
                           >
                             <span
                               className={cn(
@@ -140,11 +140,11 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
                                 STATUS_DOT[ev.status] ?? "bg-slate-400"
                               )}
                             />
-                            <span className="text-xs text-slate-700 truncate">{ev.title}</span>
+                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{ev.title}</span>
                           </button>
                         ))}
                         {dayEvents.length > 3 && (
-                          <span className="text-xs text-slate-400 pl-2.5">+{dayEvents.length - 3}</span>
+                          <span className="text-xs text-slate-400 pl-3">+{dayEvents.length - 3}</span>
                         )}
                       </div>
                     </>
@@ -158,23 +158,23 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
 
       {/* Event Detail Panel */}
       {selectedEvent ? (
-        <div className="w-72 bg-white rounded-xl border border-slate-200 p-5 self-start">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-sm font-semibold text-slate-900 pr-2">{selectedEvent.title}</h3>
+        <div className="w-80 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 self-start">
+          <div className="flex justify-between items-start mb-5">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 pr-2 leading-snug">{selectedEvent.title}</h3>
             <button
               onClick={() => setSelectedEvent(null)}
-              className="p-1 rounded hover:bg-slate-100 text-slate-400 flex-shrink-0"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex-shrink-0 transition"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="space-y-3 text-sm">
+          <div className="space-y-4 text-sm">
             <div>
-              <p className="text-xs text-slate-400 mb-1">상태</p>
+              <p className="text-xs text-slate-400 mb-1.5">상태</p>
               <span
                 className={cn(
-                  "text-xs px-2 py-1 rounded-full font-medium",
+                  "text-xs px-2.5 py-1 rounded-full font-medium",
                   STATUS_COLORS[selectedEvent.status as CalendarEventStatus]
                 )}
               >
@@ -183,28 +183,28 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
             </div>
 
             <div>
-              <p className="text-xs text-slate-400 mb-1">날짜</p>
-              <p className="text-sm text-slate-700">{selectedEvent.event_date}</p>
+              <p className="text-xs text-slate-400 mb-1.5">날짜</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">{selectedEvent.event_date}</p>
             </div>
 
             {selectedEvent.channel && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">채널</p>
-                <p className="text-sm text-slate-700">{selectedEvent.channel}</p>
+                <p className="text-xs text-slate-400 mb-1.5">채널</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{selectedEvent.channel}</p>
               </div>
             )}
 
             {selectedEvent.asset_type && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">소재 유형</p>
-                <p className="text-sm text-slate-700">{selectedEvent.asset_type}</p>
+                <p className="text-xs text-slate-400 mb-1.5">소재 유형</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{selectedEvent.asset_type}</p>
               </div>
             )}
 
             {selectedEvent.description && (
               <div>
-                <p className="text-xs text-slate-400 mb-1">설명</p>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-xs text-slate-400 mb-1.5">설명</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                   {selectedEvent.description}
                 </p>
               </div>
@@ -212,7 +212,7 @@ export default function CalendarView({ events }: { events: CalendarEvent[] }) {
           </div>
         </div>
       ) : (
-        <div className="w-72 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-center text-slate-400 text-sm self-start min-h-[120px]">
+        <div className="w-80 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 text-sm self-start min-h-[140px]">
           일정을 클릭하세요
         </div>
       )}

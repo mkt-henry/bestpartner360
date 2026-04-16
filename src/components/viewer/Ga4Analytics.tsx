@@ -148,7 +148,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
 
   const SortHeader = ({ label, k, className }: { label: string; k: SortKey; className?: string }) => (
     <th
-      className={`px-3 py-2.5 font-medium text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none ${className ?? ""}`}
+      className={`px-4 py-3 font-medium text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none ${className ?? ""}`}
       onClick={() => handleSort(k)}
     >
       <span className="inline-flex items-center gap-0.5">
@@ -214,7 +214,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
   return (
     <div className="space-y-5">
       {/* 컨트롤 바 */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-4">
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           {/* 속성 선택 */}
           {properties.length > 1 && (
@@ -292,7 +292,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
       {!loading && summary && (
         <>
           {/* 요약 카드 */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
               { icon: Eye, label: "페이지뷰", value: summary.pageviews.toLocaleString(), color: "text-blue-600" },
               { icon: Users, label: "사용자", value: summary.users.toLocaleString(), color: "text-emerald-600" },
@@ -302,7 +302,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
               { icon: TrendingUp, label: "이탈률", value: `${(summary.bounceRate * 100).toFixed(1)}%`, color: "text-red-500" },
             ].map((card) => (
               <div key={card.label} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
+                <div className="flex items-center gap-2 mb-2.5">
                   <card.icon className={`w-3.5 h-3.5 ${card.color}`} />
                   <span className="text-[10px] text-slate-400 font-medium">{card.label}</span>
                 </div>
@@ -314,7 +314,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
           {/* 일별 추이 차트 */}
           {daily.length > 1 && (
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">일별 추이</h3>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-5">일별 추이</h3>
               <KpiLineChart
                 data={daily}
                 metrics={[
@@ -328,11 +328,11 @@ function Ga4AnalyticsInner({ properties }: Props) {
 
           {/* 페이지별 테이블 */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   페이지별 성과
-                  <span className="text-xs text-slate-400 font-normal ml-1">
+                  <span className="text-xs text-slate-400 font-normal ml-2">
                     {pathFilter.trim() ? `${filteredPages.length} / ${pages.length}개` : `상위 ${pages.length}개`}
                   </span>
                 </h3>
@@ -356,7 +356,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
                 </div>
               </div>
               {filteredSummary && (
-                <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                <div className="flex gap-4 mt-3 text-xs text-slate-500">
                   <span>필터 결과: 페이지뷰 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.pageviews.toLocaleString()}</strong></span>
                   <span>사용자 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.users.toLocaleString()}</strong></span>
                   <span>세션 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.sessions.toLocaleString()}</strong></span>
@@ -367,7 +367,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800">
-                    <th className="text-left px-4 py-2.5 font-medium text-slate-500 dark:text-slate-400">페이지</th>
+                    <th className="text-left px-5 py-3 font-medium text-slate-500 dark:text-slate-400">페이지</th>
                     <SortHeader label="페이지뷰" k="pageviews" className="text-right" />
                     <SortHeader label="사용자" k="users" className="text-right" />
                     <SortHeader label="세션" k="sessions" className="text-right" />
@@ -378,23 +378,23 @@ function Ga4AnalyticsInner({ properties }: Props) {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {sortedPages.map((row, i) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-                      <td className="px-4 py-3 max-w-[300px]">
+                      <td className="px-5 py-3.5 max-w-[300px]">
                         <p className="text-sm text-slate-900 dark:text-slate-100 truncate font-medium">
                           {row.title || row.path}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-mono truncate">{row.path}</p>
+                        <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5">{row.path}</p>
                       </td>
-                      <td className="px-3 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">{row.pageviews.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{row.users.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{row.sessions.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{formatDuration(row.avgDuration)}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{(row.bounceRate * 100).toFixed(1)}%</td>
+                      <td className="px-4 py-3.5 text-right font-semibold text-slate-700 dark:text-slate-300">{row.pageviews.toLocaleString()}</td>
+                      <td className="px-4 py-3.5 text-right text-slate-700 dark:text-slate-300">{row.users.toLocaleString()}</td>
+                      <td className="px-4 py-3.5 text-right text-slate-700 dark:text-slate-300">{row.sessions.toLocaleString()}</td>
+                      <td className="px-4 py-3.5 text-right text-slate-700 dark:text-slate-300">{formatDuration(row.avgDuration)}</td>
+                      <td className="px-4 py-3.5 text-right text-slate-700 dark:text-slate-300">{(row.bounceRate * 100).toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {sortedPages.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-8">해당 기간 데이터가 없습니다.</p>
+                <p className="text-sm text-slate-400 text-center py-12">해당 기간 데이터가 없습니다.</p>
               )}
             </div>
           </div>

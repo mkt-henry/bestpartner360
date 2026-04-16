@@ -39,12 +39,15 @@ export default async function AdminUsersPage() {
       {/* User List */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">계정 목록</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            계정 목록
+            <span className="text-xs text-slate-400 font-normal ml-2">{users?.length ?? 0}명</span>
+          </h2>
         </div>
         <div className="overflow-x-auto">
         <table className="w-full min-w-[600px]">
           <thead>
-            <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+            <tr className="border-b border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50">
               <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">이름</th>
               <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">이메일</th>
               <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-slate-400">역할</th>

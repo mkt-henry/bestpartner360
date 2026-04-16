@@ -45,12 +45,12 @@ export default async function AdminBrandsPage() {
       {/* GA4 계정 연결 (전체 공통) */}
       <Ga4ConnectButton connected={ga4Connected} />
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           브랜드 목록 ({brandList.length}개)
         </h2>
         {brandList.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-8">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-12">
             <p className="text-sm text-slate-400 text-center">등록된 브랜드가 없습니다.</p>
           </div>
         ) : (
