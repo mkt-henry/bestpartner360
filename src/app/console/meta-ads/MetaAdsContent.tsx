@@ -24,11 +24,11 @@ function formatNum(n: number): string {
 
 export function MetaAdsContent({ data }: { data: MetaAdsPageData }) {
   const TABS = [
-    { id: "overview", label: "Overview" },
-    { id: "adsets", label: "Ad Sets", count: String(data.adsets.length) },
-    { id: "creatives", label: "Creatives", count: String(data.creatives.length) },
-    { id: "audiences", label: "Audiences" },
-    { id: "placements", label: "Placements" },
+    { id: "overview", label: "개요" },
+    { id: "adsets", label: "광고 세트", count: String(data.adsets.length) },
+    { id: "creatives", label: "소재", count: String(data.creatives.length) },
+    { id: "audiences", label: "오디언스" },
+    { id: "placements", label: "게재 위치" },
   ]
   const [tab, setTab] = useState("overview")
   const show = (ids: string[]) => ids.includes(tab) || tab === "overview"
@@ -42,53 +42,53 @@ export function MetaAdsContent({ data }: { data: MetaAdsPageData }) {
       <div className="canvas">
         {show(["adsets", "creatives", "audiences", "placements"]) && (
           <div className="kpi-row">
-            <Kpi label="Spend" value={formatWon(kpis.spend)} />
-            <Kpi label="Revenue" value={kpis.revenue > 0 ? formatWon(kpis.revenue) : "—"} />
+            <Kpi label="광고비" value={formatWon(kpis.spend)} />
+            <Kpi label="매출" value={kpis.revenue > 0 ? formatWon(kpis.revenue) : "—"} />
             <Kpi label="ROAS" value={kpis.roas > 0 ? kpis.roas.toFixed(2) : "—"} unit={kpis.roas > 0 ? "×" : ""} />
             <Kpi label="CAC" value={kpis.cac > 0 ? formatWon(kpis.cac) : "—"} />
             <Kpi label="CTR" value={kpis.ctr > 0 ? kpis.ctr.toFixed(2) : "—"} unit="%" />
-            <Kpi label="Frequency" value={kpis.frequency > 0 ? kpis.frequency.toFixed(2) : "—"} />
+            <Kpi label="빈도" value={kpis.frequency > 0 ? kpis.frequency.toFixed(2) : "—"} />
           </div>
         )}
 
         {show(["adsets"]) && (
           <div className="kpi-row">
-            <Kpi label="Impressions" value={formatNum(kpis.impressions)} />
+            <Kpi label="노출" value={formatNum(kpis.impressions)} />
             <Kpi label="Reach" value={formatNum(kpis.reach)} />
-            <Kpi label="Clicks" value={formatNum(kpis.clicks)} />
+            <Kpi label="클릭" value={formatNum(kpis.clicks)} />
             <Kpi label="CPM" value={kpis.cpm > 0 ? `₩${Math.round(kpis.cpm).toLocaleString("ko-KR")}` : "—"} />
-            <Kpi label="Purchases" value={formatNum(kpis.purchases)} />
-            <Kpi label="Ad Sets" value={String(adsets.length)} />
+            <Kpi label="구매" value={formatNum(kpis.purchases)} />
+            <Kpi label="광고 세트" value={String(adsets.length)} />
           </div>
         )}
 
         {show(["adsets"]) && (
           <div className="panel">
             <div className="p-head">
-              <h3>Ad Sets</h3>
+              <h3>광고 세트</h3>
               <div className="sub">
-                {adsets.length} total · sorted by revenue
+                총 {adsets.length}개 · 매출 순 정렬
               </div>
             </div>
             <div className="tbl-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: "30%" }}>Ad Set</th>
-                    <th className="num">Spend</th>
-                    <th className="num">Revenue</th>
+                    <th style={{ width: "30%" }}>광고 세트</th>
+                    <th className="num">광고비</th>
+                    <th className="num">매출</th>
                     <th className="num">ROAS</th>
                     <th className="num">CAC</th>
                     <th className="num">CTR</th>
-                    <th className="num">Freq.</th>
-                    <th className="num">Purchases</th>
+                    <th className="num">빈도</th>
+                    <th className="num">구매</th>
                   </tr>
                 </thead>
                 <tbody>
                   {adsets.length === 0 && (
                     <tr>
                       <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
-                        기간 내 활성화된 Ad Set이 없습니다.
+                        기간 내 활성화된 광고 세트가 없습니다.
                       </td>
                     </tr>
                   )}
@@ -124,20 +124,20 @@ export function MetaAdsContent({ data }: { data: MetaAdsPageData }) {
         {show(["creatives"]) && (
           <div className="panel">
             <div className="p-head">
-              <h3>Creatives</h3>
-              <div className="sub">Top {creatives.length} by revenue</div>
+              <h3>소재</h3>
+              <div className="sub">매출 상위 {creatives.length}개</div>
             </div>
             <div className="tbl-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: "32%" }}>Ad</th>
-                    <th className="num">Spend</th>
-                    <th className="num">Revenue</th>
+                    <th style={{ width: "32%" }}>광고</th>
+                    <th className="num">광고비</th>
+                    <th className="num">매출</th>
                     <th className="num">ROAS</th>
                     <th className="num">CTR</th>
-                    <th className="num">Impressions</th>
-                    <th className="num">Purchases</th>
+                    <th className="num">노출</th>
+                    <th className="num">구매</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -195,26 +195,26 @@ function HourlyPanel({ hourly }: { hourly: HourlyCell[] }) {
   return (
     <div className="panel">
       <div className="p-head">
-        <h3>Hourly Performance</h3>
-        <div className="sub">Day breakdown · advertiser time zone</div>
+        <h3>시간대별 성과</h3>
+        <div className="sub">광고주 시간대 기준 분해</div>
       </div>
       <div className="p-body">
         <div style={{ display: "flex", gap: 28, marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 10, color: "var(--dim)", textTransform: "uppercase", letterSpacing: ".1em" }}>
-              ◼ Revenue
+              ◼ 매출
             </div>
             <div style={{ fontFamily: "var(--c-serif)", fontSize: 22 }}>{formatWon(totalRev)}</div>
           </div>
           <div>
             <div style={{ fontSize: 10, color: "var(--dim)", textTransform: "uppercase", letterSpacing: ".1em" }}>
-              ◼ Spend
+              ◼ 광고비
             </div>
             <div style={{ fontFamily: "var(--c-serif)", fontSize: 22 }}>{formatWon(totalSpend)}</div>
           </div>
           <div>
             <div style={{ fontSize: 10, color: "var(--dim)", textTransform: "uppercase", letterSpacing: ".1em" }}>
-              ◼ Peak hour
+              ◼ 피크 시간대
             </div>
             <div style={{ fontFamily: "var(--c-serif)", fontSize: 22 }}>
               {String(peak?.hour ?? 0).padStart(2, "0")}:00{" "}
@@ -255,8 +255,8 @@ function HourlySvg({
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: 220 }}>
       <defs>
         <linearGradient id="r2" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#E8B04B" stopOpacity=".35" />
-          <stop offset="1" stopColor="#E8B04B" stopOpacity="0" />
+          <stop offset="0" stopColor="#8AA6A1" stopOpacity=".35" />
+          <stop offset="1" stopColor="#8AA6A1" stopOpacity="0" />
         </linearGradient>
       </defs>
       {[0.25, 0.5, 0.75, 1].map((f) => (
@@ -271,7 +271,7 @@ function HourlySvg({
         />
       ))}
       <path d={area} fill="url(#r2)" />
-      <path d={revPath} fill="none" stroke="#E8B04B" strokeWidth="1.8" />
+      <path d={revPath} fill="none" stroke="#8AA6A1" strokeWidth="1.8" />
       <path d={spendPath} fill="none" stroke="#7DB8D6" strokeWidth="1.5" strokeDasharray="4 3" />
       {[0, 6, 12, 18, 23].map((h) => (
         <text key={h} x={xAt(h)} y={H - 8} fill="#6E717A" fontSize="9">
@@ -292,18 +292,18 @@ function AudiencePanel({ audiences }: { audiences: AudienceCell[] }) {
   const bgFor = (roas: number) => {
     if (roas <= 0) return "#14171D"
     const t = Math.min(1, roas / maxRoas)
-    if (t > 0.75) return "#E8B04B"
-    if (t > 0.5) return "#a17722"
-    if (t > 0.25) return "#6b4f19"
-    return "#3a2d10"
+    if (t > 0.75) return "#8AA6A1"
+    if (t > 0.5) return "#6F8B87"
+    if (t > 0.25) return "#4F6965"
+    return "#2F3C3A"
   }
 
   if (audiences.length === 0) {
     return (
       <div className="panel">
         <div className="p-head">
-          <h3>Audience · Age × Gender</h3>
-          <div className="sub">ROAS by segment</div>
+          <h3>오디언스 · 연령 × 성별</h3>
+          <div className="sub">세그먼트별 ROAS</div>
         </div>
         <div className="p-body" style={{ padding: 24, color: "var(--dim)", fontSize: 12 }}>
           기간 내 데이터가 없습니다.
@@ -318,8 +318,8 @@ function AudiencePanel({ audiences }: { audiences: AudienceCell[] }) {
   return (
     <div className="panel">
       <div className="p-head">
-        <h3>Audience · Age × Gender</h3>
-        <div className="sub">ROAS by segment</div>
+        <h3>오디언스 · 연령 × 성별</h3>
+        <div className="sub">세그먼트별 ROAS</div>
       </div>
       <div className="p-body">
         <div className="aud">
@@ -362,11 +362,11 @@ function AudiencePanel({ audiences }: { audiences: AudienceCell[] }) {
             }}
           >
             <span>
-              Best · <b style={{ color: "var(--amber)" }}>{best.gender} {best.age}</b>{" "}
+              최고 성과 · <b style={{ color: "var(--amber)" }}>{best.gender} {best.age}</b>{" "}
               ({best.roas.toFixed(2)}× ROAS, {formatWon(best.revenue)})
             </span>
             <span>
-              Weakest ·{" "}
+              최저 성과 ·{" "}
               <b style={{ color: "var(--bad)" }}>
                 {worst.gender} {worst.age}
               </b>
@@ -383,8 +383,8 @@ function PlacementPanel({ placements }: { placements: PlacementRow[] }) {
     return (
       <div className="panel">
         <div className="p-head">
-          <h3>Placements</h3>
-          <div className="sub">Share of impressions &amp; efficiency</div>
+          <h3>게재 위치</h3>
+          <div className="sub">노출 점유율 및 효율</div>
         </div>
         <div className="p-body" style={{ padding: 24, color: "var(--dim)", fontSize: 12 }}>
           기간 내 데이터가 없습니다.
@@ -396,8 +396,8 @@ function PlacementPanel({ placements }: { placements: PlacementRow[] }) {
   return (
     <div className="panel">
       <div className="p-head">
-        <h3>Placements</h3>
-        <div className="sub">Share of impressions &amp; efficiency</div>
+        <h3>게재 위치</h3>
+        <div className="sub">노출 점유율 및 효율</div>
       </div>
       <div className="p-body">
         {placements.map((p, i) => {

@@ -28,7 +28,7 @@ const s = {
   } as React.CSSProperties,
   avatar: {
     width: 32, height: 32, borderRadius: 6,
-    background: 'linear-gradient(135deg, var(--amber), #b07a20)',
+    background: 'linear-gradient(135deg, var(--amber), #5F7D78)',
     display: 'grid', placeItems: 'center',
     fontFamily: 'var(--c-serif)', fontSize: 15, color: 'var(--bg)', fontWeight: 600, flexShrink: 0,
   } as React.CSSProperties,
@@ -149,7 +149,7 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
       fetchNaverAccounts()
       if (ga4Connected) fetchGa4Properties()
     }
-  }, [open])
+  }, [open, ga4Connected])
 
   async function linkMeta() {
     if (!metaSelected) return
@@ -438,7 +438,7 @@ export default function BrandChannelManager({ brand, metaMappings, naverMappings
             {ga4ManualMode && (
               <>
                 <div style={s.selectWrap}>
-                  <input type="text" value={ga4PropertyId} onChange={(e) => setGa4PropertyId(e.target.value)} placeholder="Property ID" style={{ ...s.input, width: 120 }} />
+                  <input type="text" value={ga4PropertyId} onChange={(e) => setGa4PropertyId(e.target.value)} placeholder="속성 ID" style={{ ...s.input, width: 120 }} />
                   <input type="text" value={ga4PropertyName} onChange={(e) => setGa4PropertyName(e.target.value)} placeholder="속성 이름" style={{ ...s.input, flex: 1 }} />
                   <button onClick={addGa4} disabled={saving || !ga4PropertyId.trim() || !ga4PropertyName.trim()} className="btn" style={{ fontSize: 10, padding: '6px 10px', opacity: saving || !ga4PropertyId.trim() || !ga4PropertyName.trim() ? 0.4 : 1 }}>
                     추가

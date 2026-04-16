@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 const monitor = [
   {
     href: "/console",
-    label: "Overview",
+    label: "개요",
     exact: true,
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
@@ -16,7 +16,7 @@ const monitor = [
   },
   {
     href: "/console/realtime",
-    label: "Realtime",
+    label: "실시간",
     trailing: <span className="dot" />,
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
@@ -37,7 +37,7 @@ const monitor = [
   },
   {
     href: "/console/ga4",
-    label: "GA4 Analytics",
+    label: "GA4 분석",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
         <path d="M3 16l5-8 4 5 5-9" />
@@ -59,7 +59,7 @@ const monitor = [
 const workspace = [
   {
     href: "/console/reports",
-    label: "Reports",
+    label: "리포트",
     badge: "12",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
@@ -70,7 +70,7 @@ const workspace = [
   },
   {
     href: "/console/experiments",
-    label: "Experiments",
+    label: "실험",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
         <path d="M10 3v14M3 10h14" />
@@ -79,7 +79,7 @@ const workspace = [
   },
   {
     href: "/console/alerts",
-    label: "Alerts",
+    label: "알림",
     badge: "3",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
@@ -89,7 +89,7 @@ const workspace = [
   },
   {
     href: "/console/settings",
-    label: "Settings",
+    label: "설정",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
         <circle cx="10" cy="10" r="3" />
@@ -138,13 +138,13 @@ export function Sidebar() {
         <div className="av">H</div>
         <div className="meta">
           <div className="n">Haeundae Kombucha</div>
-          <div className="s">3 properties · KRW</div>
+          <div className="s">속성 3개 · KRW</div>
         </div>
         <div className="chev">▾</div>
       </div>
 
       <div className="nav-group">
-        <div className="title">Monitor</div>
+        <div className="title">모니터링</div>
         <div className="nav">
           {monitor.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(item)} />
@@ -153,7 +153,7 @@ export function Sidebar() {
       </div>
 
       <div className="nav-group">
-        <div className="title">Workspace</div>
+        <div className="title">워크스페이스</div>
         <div className="nav">
           {workspace.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(item)} />
@@ -166,7 +166,7 @@ export function Sidebar() {
           <div className="av">HP</div>
           <div className="meta">
             <div className="n">Henry Park</div>
-            <div className="r">Admin</div>
+            <div className="r">관리자</div>
           </div>
           <div className="st" />
         </div>

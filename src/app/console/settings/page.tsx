@@ -11,7 +11,7 @@ export default async function ConsoleSettingsPage() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -92,28 +92,28 @@ export default async function ConsoleSettingsPage() {
       bg: "#E8B04B20",
       color: "#E8B04B",
       name: "Google Analytics 4",
-      id: `${p.property_name} · Property ${p.property_id}${p.website_url ? ` · ${p.website_url}` : ""}`,
+      id: `${p.property_name} · 속성 ${p.property_id}${p.website_url ? ` · ${p.website_url}` : ""}`,
       connectedAt: p.created_at,
     })),
   ]
 
   const primaryBrand = brands[0] ?? null
   const config = [
-    { label: "Workspace name", value: primaryBrand?.name ?? brandName },
-    { label: "Brands", value: brands.length > 0 ? brands.map((b) => b.name).join(", ") : "—" },
-    { label: "Currency", value: "KRW (₩) · (기본값, 브랜드 설정 확장 예정)" },
-    { label: "Timezone", value: "Asia/Seoul · (기본값)" },
-    { label: "Attribution model", value: "Data-driven / 7d-click + 1d-view (기본값)" },
-    { label: "Plan", value: "— (workspace_settings 확장 예정)" },
+    { label: "워크스페이스 이름", value: primaryBrand?.name ?? brandName },
+    { label: "브랜드", value: brands.length > 0 ? brands.map((b) => b.name).join(", ") : "—" },
+    { label: "통화", value: "KRW (₩) · (기본값, 브랜드 설정 확장 예정)" },
+    { label: "시간대", value: "Asia/Seoul · (기본값)" },
+    { label: "어트리뷰션 모델", value: "Data-driven / 7d-click + 1d-view (기본값)" },
+    { label: "플랜", value: "— (workspace_settings 확장 예정)" },
   ]
 
   return (
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
-          { label: "Settings", strong: true },
+          { label: "설정", strong: true },
         ]}
       />
       <div className="detail-head">
@@ -121,17 +121,17 @@ export default async function ConsoleSettingsPage() {
           <div className="dh-main">
             <div className="src">
               <span className="ic">⚙</span>
-              <span>Workspace settings · {primaryBrand?.name ?? brandName}</span>
+              <span>워크스페이스 설정 · {primaryBrand?.name ?? brandName}</span>
             </div>
             <h1>
-              Workspace <em>settings</em>
+              워크스페이스 <em>설정</em>
             </h1>
             <div className="dh-meta">
-              <span>{sources.length} connected sources</span>
+              <span>연결된 소스 {sources.length}개</span>
               <span>·</span>
-              <span>{team.length} team members</span>
+              <span>팀원 {team.length}명</span>
               <span>·</span>
-              <span>{brands.length} brands</span>
+              <span>브랜드 {brands.length}개</span>
             </div>
           </div>
         </div>
@@ -141,8 +141,8 @@ export default async function ConsoleSettingsPage() {
         <div className="two">
           <div className="panel">
             <div className="p-head">
-              <h3>Connected Sources</h3>
-              <div className="sub">{sources.length} active</div>
+              <h3>연결된 소스</h3>
+              <div className="sub">활성 {sources.length}개</div>
             </div>
             <div className="p-body">
               {sources.length === 0 && (
@@ -176,7 +176,7 @@ export default async function ConsoleSettingsPage() {
                     <div>{s.name}</div>
                     <div style={{ fontSize: 10, color: "var(--dim)" }}>{s.id}</div>
                   </span>
-                  <span style={{ color: "var(--good)", fontSize: 10 }}>◉ Connected</span>
+                  <span style={{ color: "var(--good)", fontSize: 10 }}>◉ 연결됨</span>
                   <span style={{ fontSize: 10, color: "var(--dim)" }}>
                     {s.connectedAt.slice(0, 10)}
                   </span>
@@ -187,8 +187,8 @@ export default async function ConsoleSettingsPage() {
 
           <div className="panel">
             <div className="p-head">
-              <h3>Team</h3>
-              <div className="sub">{team.length} members</div>
+              <h3>팀</h3>
+              <div className="sub">{team.length}명</div>
             </div>
             <div className="p-body">
               {team.length === 0 && (
@@ -249,8 +249,8 @@ export default async function ConsoleSettingsPage() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>General</h3>
-            <div className="sub">Workspace configuration</div>
+            <h3>일반</h3>
+            <div className="sub">워크스페이스 설정 정보</div>
           </div>
           <div className="p-body" style={{ fontSize: 12 }}>
             {config.map((c) => (

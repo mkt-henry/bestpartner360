@@ -49,7 +49,6 @@ export default async function CreativeDetailPage({ params }: { params: Promise<{
       creative={creative as unknown as Parameters<typeof CreativeDetail>[0]["creative"]}
       comments={(comments ?? []) as unknown as Parameters<typeof CreativeDetail>[0]["comments"]}
       currentUserId={user.id}
-      isAdmin={isAdmin}
     />
   )
 }

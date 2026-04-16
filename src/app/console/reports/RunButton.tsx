@@ -51,7 +51,7 @@ export function RunButton({ reportId, title }: { reportId: string; title: string
           cursor: busy ? "wait" : "pointer",
         }}
       >
-        {busy ? "생성 중…" : "Run CSV"}
+        {busy ? "생성 중…" : "CSV 생성"}
       </button>
       {err && (
         <span style={{ fontSize: 10, color: "var(--bad)" }} title={err}>

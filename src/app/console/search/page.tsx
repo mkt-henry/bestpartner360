@@ -33,7 +33,7 @@ function Empty({ brandName, message }: { brandName: string; message: string }) {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
           { label: "Search Console", strong: true },
         ]}
@@ -56,7 +56,7 @@ export default async function ConsoleSearchPage() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -151,14 +151,14 @@ export default async function ConsoleSearchPage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
           { label: "Search Console", strong: true },
         ]}
       />
       <div className="detail-head">
         <Link className="back-link" href="/console">
-          ← Back to Overview
+          ← 개요로 돌아가기
         </Link>
         <div className="dh-row">
           <div className="dh-main">
@@ -169,17 +169,17 @@ export default async function ConsoleSearchPage() {
               <span>Google Search Console · {siteUrl}</span>
             </div>
             <h1>
-              Search <em>performance</em>
+              검색 <em>성과</em>
             </h1>
             <div className="dh-meta">
-              <span className="live-pill">Last 28 days</span>
+              <span className="live-pill">최근 28일</span>
               <span>{rangeLabel}</span>
               <span>·</span>
               <span>
-                Compared vs <b>previous 28 days</b>
+                <b>이전 28일</b> 대비
               </span>
               <span>·</span>
-              <span>{sitesRes.sites.length} verified sites</span>
+              <span>인증된 사이트 {sitesRes.sites.length}개</span>
             </div>
           </div>
           <div className="dh-actions">
@@ -189,7 +189,7 @@ export default async function ConsoleSearchPage() {
               target="_blank"
               rel="noreferrer"
             >
-              Open in GSC ↗
+              GSC에서 열기 ↗
             </a>
           </div>
         </div>
@@ -198,27 +198,27 @@ export default async function ConsoleSearchPage() {
       <div className="canvas">
         <div className="kpi-row">
           <div className="kpi">
-            <div className="top">Clicks</div>
+            <div className="top">클릭</div>
             <div className="v">{formatNumber(clicks)}</div>
             <div className="d">
               <span className={`chg ${clicks >= prevClicks ? "up" : "dn"}`}>
                 {fmtDelta(pct(clicks, prevClicks))}
               </span>
-              <span>vs {formatNumber(prevClicks)}</span>
+              <span>이전 {formatNumber(prevClicks)}</span>
             </div>
           </div>
           <div className="kpi">
-            <div className="top">Impressions</div>
+            <div className="top">노출</div>
             <div className="v">{formatNumber(impressions)}</div>
             <div className="d">
               <span className={`chg ${impressions >= prevImpressions ? "up" : "dn"}`}>
                 {fmtDelta(pct(impressions, prevImpressions))}
               </span>
-              <span>vs {formatNumber(prevImpressions)}</span>
+              <span>이전 {formatNumber(prevImpressions)}</span>
             </div>
           </div>
           <div className="kpi">
-            <div className="top">Avg CTR</div>
+            <div className="top">평균 CTR</div>
             <div className="v">
               {ctr.toFixed(2)}
               <span className="u">%</span>
@@ -227,45 +227,45 @@ export default async function ConsoleSearchPage() {
               <span className={`chg ${ctr >= prevCtr ? "up" : "dn"}`}>
                 {fmtDelta(ctr - prevCtr, "pp")}
               </span>
-              <span>vs {prevCtr.toFixed(2)}%</span>
+              <span>이전 {prevCtr.toFixed(2)}%</span>
             </div>
           </div>
           <div className="kpi">
-            <div className="top">Avg Position</div>
+            <div className="top">평균 순위</div>
             <div className="v">{position > 0 ? position.toFixed(1) : "—"}</div>
             <div className="d">
               <span className={`chg ${position <= prevPosition && position > 0 ? "up" : "dn"}`}>
                 {fmtDelta(position - prevPosition, "")}
               </span>
-              <span>vs {prevPosition > 0 ? prevPosition.toFixed(1) : "—"}</span>
+              <span>이전 {prevPosition > 0 ? prevPosition.toFixed(1) : "—"}</span>
             </div>
           </div>
           <div className="kpi">
-            <div className="top">Top 3 queries</div>
+            <div className="top">상위 3위 검색어</div>
             <div className="v">{top3}</div>
-            <div className="d">of {queries.length} top queries</div>
+            <div className="d">상위 검색어 {queries.length}개 중</div>
           </div>
           <div className="kpi">
-            <div className="top">Pages ranked</div>
+            <div className="top">집계된 페이지</div>
             <div className="v">{pages.length}</div>
-            <div className="d">top {pages.length} pages</div>
+            <div className="d">상위 페이지 {pages.length}개</div>
           </div>
         </div>
 
         <div className="panel">
           <div className="p-head">
-            <h3>Top Queries</h3>
-            <div className="sub">{queries.length} queries · by clicks · last 28 days</div>
+            <h3>상위 검색어</h3>
+            <div className="sub">검색어 {queries.length}개 · 클릭 기준 · 최근 28일</div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "40%" }}>Query</th>
-                  <th className="num">Clicks</th>
-                  <th className="num">Impressions</th>
+                  <th style={{ width: "40%" }}>검색어</th>
+                  <th className="num">클릭</th>
+                  <th className="num">노출</th>
                   <th className="num">CTR</th>
-                  <th className="num">Position</th>
+                  <th className="num">순위</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,18 +310,18 @@ export default async function ConsoleSearchPage() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>Top Pages</h3>
-            <div className="sub">{pages.length} pages · by clicks</div>
+            <h3>상위 페이지</h3>
+            <div className="sub">페이지 {pages.length}개 · 클릭 기준</div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "50%" }}>Page</th>
-                  <th className="num">Clicks</th>
-                  <th className="num">Impressions</th>
+                  <th style={{ width: "50%" }}>페이지</th>
+                  <th className="num">클릭</th>
+                  <th className="num">노출</th>
                   <th className="num">CTR</th>
-                  <th className="num">Avg Position</th>
+                  <th className="num">평균 순위</th>
                 </tr>
               </thead>
               <tbody>

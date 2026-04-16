@@ -128,7 +128,7 @@ function EmptyShell({ brandName, message }: { brandName: string; message: string
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
           { label: "Meta Ads", strong: true },
         ]}
@@ -151,7 +151,7 @@ export default async function ConsoleMetaAdsPage() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -353,7 +353,7 @@ export default async function ConsoleMetaAdsPage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
           { label: "Meta Ads", strong: true },
         ]}
@@ -361,7 +361,7 @@ export default async function ConsoleMetaAdsPage() {
 
       <div className="detail-head">
         <Link className="back-link" href="/console">
-          ← Back to Overview
+          ← 개요로 돌아가기
         </Link>
         <div className="dh-row">
           <div className="dh-main">
@@ -375,13 +375,13 @@ export default async function ConsoleMetaAdsPage() {
               Meta <em>Ads</em>
             </h1>
             <div className="dh-meta">
-              <span className="status-pill">Live</span>
+              <span className="status-pill">실시간</span>
               <span className="sep">·</span>
               <span className="m">{data.rangeLabel}</span>
               <span className="sep">·</span>
-              <span className="m">{adsets.length} ad sets</span>
+              <span className="m">광고 세트 {adsets.length}개</span>
               <span className="sep">·</span>
-              <span className="m">{creatives.length} creatives</span>
+              <span className="m">소재 {creatives.length}개</span>
             </div>
           </div>
           <div className="dh-actions">

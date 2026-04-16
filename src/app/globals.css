@@ -7,7 +7,15 @@
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --primary: #2563eb;
+  --primary: #5f7d78;
+  --primary-hover: #4f6965;
+  --primary-soft: #e7eeec;
+  --primary-soft-strong: #d5e1de;
+  --primary-dark-soft: rgb(95 125 120 / 0.18);
+  --primary-dark-mid: rgb(95 125 120 / 0.28);
+  --primary-dark-strong: rgb(95 125 120 / 0.42);
+  --primary-dark-text: #9fb7b3;
+  --primary-dark-text-strong: #c7d6d3;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -16,7 +24,7 @@
   --accent: #f1f5f9;
   --accent-foreground: #0f172a;
   --border: #e2e8f0;
-  --ring: #2563eb;
+  --ring: #7e9a95;
   --radius: 0.5rem;
 }
 
@@ -34,9 +42,70 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.bg-blue-50 {
+  background-color: var(--primary-soft) !important;
+}
+
+.bg-blue-100 {
+  background-color: var(--primary-soft-strong) !important;
+}
+
+.bg-blue-500,
+.bg-blue-600 {
+  background-color: var(--primary) !important;
+}
+
+.border-blue-100 {
+  border-color: var(--primary-soft-strong) !important;
+}
+
+.border-blue-500,
+.border-blue-600 {
+  border-color: var(--ring) !important;
+}
+
+.text-blue-500,
+.text-blue-600,
+.text-blue-700 {
+  color: var(--primary) !important;
+}
+
+.hover\:bg-blue-700:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.hover\:text-blue-600:hover,
+.hover\:text-blue-700:hover {
+  color: var(--primary) !important;
+}
+
+.focus\:ring-blue-500:focus {
+  --tw-ring-color: var(--ring) !important;
+}
+
 /* Dark mode global overrides */
 .dark {
   color-scheme: dark;
+}
+
+.dark .dark\:bg-blue-900\/20 {
+  background-color: var(--primary-dark-soft) !important;
+}
+
+.dark .dark\:bg-blue-900\/30 {
+  background-color: var(--primary-dark-mid) !important;
+}
+
+.dark .dark\:bg-blue-900\/50 {
+  background-color: var(--primary-dark-strong) !important;
+}
+
+.dark .dark\:text-blue-300 {
+  color: var(--primary-dark-text-strong) !important;
+}
+
+.dark .dark\:text-blue-400 {
+  color: var(--primary-dark-text) !important;
 }
 
 /* Card pattern */

@@ -31,7 +31,7 @@ function durationLabel(start: string | null, end: string | null): string {
   const s = new Date(start)
   const e = end ? new Date(end) : new Date()
   const diff = Math.max(0, Math.floor((e.getTime() - s.getTime()) / 86400000))
-  return diff < 2 ? `${Math.max(1, Math.floor((Date.now() - s.getTime()) / 3600000))}h` : `${diff}d`
+  return diff < 2 ? `${Math.max(1, Math.floor((Date.now() - s.getTime()) / 3600000))}시간` : `${diff}일`
 }
 
 export default async function ConsoleExperimentsPage() {
@@ -40,7 +40,7 @@ export default async function ConsoleExperimentsPage() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -93,9 +93,9 @@ export default async function ConsoleExperimentsPage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
-          { label: "Experiments", strong: true },
+          { label: "실험", strong: true },
         ]}
       />
       <div className="detail-head">
@@ -106,16 +106,16 @@ export default async function ConsoleExperimentsPage() {
                 +
               </span>
               <span>
-                A/B Tests · {active.length} running · {completed.length} completed
+                A/B 테스트 · 진행 중 {active.length}개 · 완료 {completed.length}개
               </span>
             </div>
             <h1>
-              Experiments &amp; <em>tests</em>
+              실험 및 <em>테스트</em>
             </h1>
             <div className="dh-meta">
-              <span>{active.length} active experiments</span>
+              <span>진행 중인 실험 {active.length}개</span>
               <span>·</span>
-              <span>{nearingSig} nearing significance</span>
+              <span>유의수준 근접 {nearingSig}개</span>
             </div>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default async function ConsoleExperimentsPage() {
         {schemaMissing && (
           <div className="panel">
             <div className="p-body" style={{ padding: 24, color: "var(--dim)", fontSize: 12 }}>
-              Experiments 모듈 DB 스키마가 아직 적용되지 않았습니다.{" "}
+              실험 모듈 DB 스키마가 아직 적용되지 않았습니다.{" "}
               <code>supabase/migrations/009_experiments.sql</code> 마이그레이션을 실행하세요.
             </div>
           </div>
@@ -133,19 +133,19 @@ export default async function ConsoleExperimentsPage() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>Active Experiments</h3>
-            <div className="sub">{active.length} running</div>
+            <h3>진행 중인 실험</h3>
+            <div className="sub">진행 중 {active.length}개</div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "30%" }}>Experiment</th>
-                  <th>Platform</th>
-                  <th className="num">Confidence</th>
-                  <th className="num">Lift</th>
-                  <th className="num">Duration</th>
-                  <th className="num">Status</th>
+                  <th style={{ width: "30%" }}>실험</th>
+                  <th>플랫폼</th>
+                  <th className="num">신뢰도</th>
+                  <th className="num">리프트</th>
+                  <th className="num">기간</th>
+                  <th className="num">상태</th>
                 </tr>
               </thead>
               <tbody>
@@ -195,7 +195,7 @@ export default async function ConsoleExperimentsPage() {
                             border: "1px solid #5ec27a33",
                           }}
                         >
-                          Running
+                          진행 중
                         </span>
                       </td>
                     </tr>
@@ -208,8 +208,8 @@ export default async function ConsoleExperimentsPage() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>Recently Completed</h3>
-            <div className="sub">Last 30 days</div>
+            <h3>최근 완료된 실험</h3>
+            <div className="sub">최근 30일</div>
           </div>
           <div className="p-body" style={{ paddingTop: 8 }}>
             {completed.length === 0 && (
@@ -230,10 +230,10 @@ export default async function ConsoleExperimentsPage() {
                   <div className="what">
                     {e.hypothesis ?? "—"}
                     {r?.lift_pct !== null && r?.lift_pct !== undefined
-                      ? ` · lift ${r.lift_pct >= 0 ? "+" : ""}${r.lift_pct.toFixed(1)}%`
+                      ? ` · 리프트 ${r.lift_pct >= 0 ? "+" : ""}${r.lift_pct.toFixed(1)}%`
                       : ""}
                   </div>
-                  <div className="act">{won ? "Winner" : "No winner"}</div>
+                  <div className="act">{won ? "승자" : "승자 없음"}</div>
                 </div>
               )
             })}

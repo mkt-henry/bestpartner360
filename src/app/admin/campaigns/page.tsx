@@ -25,7 +25,6 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
     ])
 
   const activeBrandId = selectedBrandId ?? brands?.[0]?.id ?? ""
-  const activeBrand = brands?.find((b) => b.id === activeBrandId)
 
   const campaigns = allCampaigns?.filter((c) => c.brand_id === activeBrandId) ?? []
 
@@ -52,7 +51,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
   return (
     <div className="console-scope canvas">
       <div className="page-head">
-        <h1>Brand <em>KPI</em></h1>
+        <h1>브랜드 <em>KPI</em></h1>
       </div>
 
       {/* Brand Tabs */}

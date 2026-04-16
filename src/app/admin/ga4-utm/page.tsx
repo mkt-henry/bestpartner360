@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import Ga4UtmManager from "@/components/admin/Ga4UtmManager"
-import type { Brand } from "@/types"
 
 interface PageProps {
   searchParams: Promise<{ brand?: string }>
@@ -62,7 +61,6 @@ export default async function AdminGa4UtmPage({ searchParams }: PageProps) {
           <Ga4UtmManager
             key={activeBrandId}
             brandId={activeBrandId}
-            brands={(brands ?? []) as Brand[]}
             entries={entriesWithPerf}
           />
         </>

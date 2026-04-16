@@ -31,10 +31,10 @@ function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diffMs / 60000)
   if (min < 1) return "방금"
-  if (min < 60) return `${min}m`
+  if (min < 60) return `${min}분`
   const h = Math.floor(min / 60)
-  if (h < 24) return `${h}h`
-  return `${Math.floor(h / 24)}d`
+  if (h < 24) return `${h}시간`
+  return `${Math.floor(h / 24)}일`
 }
 
 export default async function ConsoleAlertsPage() {
@@ -43,7 +43,7 @@ export default async function ConsoleAlertsPage() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -90,9 +90,9 @@ export default async function ConsoleAlertsPage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
-          { label: "Alerts", strong: true },
+          { label: "알림", strong: true },
         ]}
         alerts={openEvents.length}
       />
@@ -104,19 +104,19 @@ export default async function ConsoleAlertsPage() {
                 !
               </span>
               <span>
-                Alert center · {openEvents.length} active · {resolvedToday} resolved today
+                알림 센터 · 활성 {openEvents.length}개 · 오늘 해결 {resolvedToday}개
               </span>
             </div>
             <h1>
-              Alerts &amp; <em>rules</em>
+              알림 및 <em>규칙</em>
             </h1>
             <div className="dh-meta">
-              <span style={{ color: "var(--bad)" }}>{critCount} critical</span>
+              <span style={{ color: "var(--bad)" }}>치명 {critCount}개</span>
               <span>·</span>
-              <span style={{ color: "var(--amber)" }}>{warnCount} warnings</span>
+              <span style={{ color: "var(--amber)" }}>주의 {warnCount}개</span>
               <span>·</span>
               <span>
-                {activeRules} active rules · {rules.length} total
+                활성 규칙 {activeRules}개 · 총 {rules.length}개
               </span>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default async function ConsoleAlertsPage() {
         {schemaMissing && (
           <div className="panel">
             <div className="p-body" style={{ padding: 24, color: "var(--dim)", fontSize: 12 }}>
-              Alerts 모듈 DB 스키마가 아직 적용되지 않았습니다. <code>supabase/migrations/008_alerts.sql</code>{" "}
+              알림 모듈 DB 스키마가 아직 적용되지 않았습니다. <code>supabase/migrations/008_alerts.sql</code>{" "}
               마이그레이션을 실행하세요.
             </div>
           </div>
@@ -135,8 +135,8 @@ export default async function ConsoleAlertsPage() {
 
         <div className="panel alerts">
           <div className="p-head">
-            <h3>Active Alerts</h3>
-            <div className="sub">{openEvents.length} unresolved</div>
+            <h3>활성 알림</h3>
+            <div className="sub">미해결 {openEvents.length}개</div>
           </div>
           <div className="p-body">
             {!schemaMissing && openEvents.length === 0 && (
@@ -154,10 +154,10 @@ export default async function ConsoleAlertsPage() {
                   <div className="top">
                     <span className="tag">
                       {a.severity === "crit"
-                        ? "Critical"
+                        ? "치명"
                         : a.severity === "warn"
-                          ? "Warn"
-                          : "Info"}
+                          ? "주의"
+                          : "정보"}
                     </span>
                     <span className="time">{relativeTime(a.fired_at)}</span>
                   </div>
@@ -171,20 +171,20 @@ export default async function ConsoleAlertsPage() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>Alert Rules</h3>
+            <h3>알림 규칙</h3>
             <div className="sub">
-              {activeRules} active · {rules.length} total
+              활성 {activeRules}개 · 총 {rules.length}개
             </div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "35%" }}>Rule</th>
-                  <th>Condition</th>
-                  <th>Channel</th>
-                  <th className="num">Triggered</th>
-                  <th className="num">Status</th>
+                  <th style={{ width: "35%" }}>규칙</th>
+                  <th>조건</th>
+                  <th>채널</th>
+                  <th className="num">발생 횟수</th>
+                  <th className="num">상태</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,7 +204,7 @@ export default async function ConsoleAlertsPage() {
                         {r.metric} {r.operator} {r.threshold}
                       </td>
                       <td>{r.notify_channel}</td>
-                      <td className="num">{formatNumber(triggered)} times</td>
+                      <td className="num">{formatNumber(triggered)}회</td>
                       <td className="num">
                         <span
                           className="stat-dot"
@@ -213,7 +213,7 @@ export default async function ConsoleAlertsPage() {
                             background: r.is_active ? "var(--good)" : "var(--dim)",
                           }}
                         />{" "}
-                        {r.is_active ? "Active" : "Paused"}
+                        {r.is_active ? "활성" : "일시중지"}
                       </td>
                     </tr>
                   )

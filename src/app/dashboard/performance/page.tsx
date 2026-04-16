@@ -123,7 +123,7 @@ export default async function PerformancePage({ searchParams }: Props) {
   }
   const spendChartArr = Object.entries(spendChartData).sort(([a], [b]) => a.localeCompare(b)).map(([date, amount]) => ({ date, amount }))
 
-  const CHART_COLORS = ["#E8B04B", "#7DB8D6", "#5EC27A", "#C77DD6", "#E5553B"]
+  const CHART_COLORS = ["#8AA6A1", "#7DB8D6", "#5EC27A", "#C77DD6", "#E5553B"]
 
   return (
     <>
@@ -204,7 +204,7 @@ export default async function PerformancePage({ searchParams }: Props) {
                     <div className="v">{formatCurrency(totalBudget)}</div>
                   </div>
                   <div className="s">
-                    <div className="l"><i style={{ background: "#E8B04B" }} />지출</div>
+                    <div className="l"><i style={{ background: "#8AA6A1" }} />지출</div>
                     <div className="v">{formatCurrency(totalSpend)}</div>
                   </div>
                   <div className="s">

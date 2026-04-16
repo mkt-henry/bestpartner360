@@ -27,7 +27,7 @@ export default async function ConsoleGa4Page() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -37,9 +37,9 @@ export default async function ConsoleGa4Page() {
       <>
         <Topbar
           crumbs={[
-            { label: "Workspace" },
+            { label: "워크스페이스" },
             { label: brandName },
-            { label: "GA4 Analytics", strong: true },
+            { label: "GA4 분석", strong: true },
           ]}
         />
         <div className="canvas">
@@ -243,47 +243,47 @@ export default async function ConsoleGa4Page() {
 
   const kpis = [
     {
-      label: "Sessions",
+      label: "세션",
       value: formatNumber(totals.sessions),
       chg: fmtDelta(pct(totals.sessions, prevTotals.sessions)),
       dir: totals.sessions >= prevTotals.sessions ? "up" : "dn",
-      vs: `vs ${formatNumber(prevTotals.sessions)}`,
+      vs: `이전 ${formatNumber(prevTotals.sessions)}`,
     },
     {
-      label: "Users",
+      label: "사용자",
       value: formatNumber(totals.users),
       chg: fmtDelta(pct(totals.users, prevTotals.users)),
       dir: totals.users >= prevTotals.users ? "up" : "dn",
-      vs: `vs ${formatNumber(prevTotals.users)}`,
+      vs: `이전 ${formatNumber(prevTotals.users)}`,
     },
     {
-      label: "Pageviews",
+      label: "페이지뷰",
       value: formatNumber(totals.pageviews),
       chg: fmtDelta(pct(totals.pageviews, prevTotals.pageviews)),
       dir: totals.pageviews >= prevTotals.pageviews ? "up" : "dn",
-      vs: `vs ${formatNumber(prevTotals.pageviews)}`,
+      vs: `이전 ${formatNumber(prevTotals.pageviews)}`,
     },
     {
-      label: "Conversions",
+      label: "전환",
       value: formatNumber(totals.conversions),
       chg: fmtDelta(pct(totals.conversions, prevTotals.conversions)),
       dir: totals.conversions >= prevTotals.conversions ? "up" : "dn",
-      vs: `vs ${formatNumber(prevTotals.conversions)}`,
+      vs: `이전 ${formatNumber(prevTotals.conversions)}`,
     },
     {
-      label: "Conv. Rate",
+      label: "전환율",
       value: convRate > 0 ? convRate.toFixed(2) : "—",
       unit: convRate > 0 ? "%" : "",
       chg: `${convRate - prevConvRate >= 0 ? "▲" : "▼"} ${Math.abs(convRate - prevConvRate).toFixed(2)}pp`,
       dir: convRate >= prevConvRate ? "up" : "dn",
-      vs: prevConvRate > 0 ? `vs ${prevConvRate.toFixed(2)}%` : "vs —",
+      vs: prevConvRate > 0 ? `이전 ${prevConvRate.toFixed(2)}%` : "이전 —",
     },
     {
-      label: "Revenue",
+      label: "매출",
       value: totals.revenue > 0 ? formatWon(totals.revenue) : "—",
       chg: fmtDelta(pct(totals.revenue, prevTotals.revenue)),
       dir: totals.revenue >= prevTotals.revenue ? "up" : "dn",
-      vs: prevTotals.revenue > 0 ? `vs ${formatWon(prevTotals.revenue)}` : "vs —",
+      vs: prevTotals.revenue > 0 ? `이전 ${formatWon(prevTotals.revenue)}` : "이전 —",
     },
   ]
 
@@ -293,14 +293,14 @@ export default async function ConsoleGa4Page() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
-          { label: "GA4 Analytics", strong: true },
+          { label: "GA4 분석", strong: true },
         ]}
       />
       <div className="detail-head">
         <Link className="back-link" href="/console">
-          ← Back to Overview
+          ← 개요로 돌아가기
         </Link>
         <div className="dh-row">
           <div className="dh-main">
@@ -308,22 +308,22 @@ export default async function ConsoleGa4Page() {
               <span className="ic">Ω</span>
               <span>
                 Google Analytics 4
-                {prop ? ` · ${prop.website_url ?? ""} · Property ${prop.property_id}` : " · (property 미연결)"}
+                {prop ? ` · ${prop.website_url ?? ""} · 속성 ${prop.property_id}` : " · (속성 미연결)"}
               </span>
             </div>
             <h1>
-              UTM <em>performance</em>
+              UTM <em>성과</em>
             </h1>
             <div className="dh-meta">
-              <span className="live-pill">Last 14 days</span>
+              <span className="live-pill">최근 14일</span>
               <span>{rangeLabel}</span>
               <span>·</span>
               <span>
-                Compared vs <b>previous 14 days</b>
+                <b>이전 14일</b> 대비
               </span>
               <span>·</span>
               <span>
-                {entries.length} UTM entries · {entryRows.filter((r) => r.stats.sessions > 0).length} active
+                UTM 항목 {entries.length}개 · 활성 {entryRows.filter((r) => r.stats.sessions > 0).length}개
               </span>
             </div>
           </div>
@@ -351,30 +351,30 @@ export default async function ConsoleGa4Page() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>UTM Performance</h3>
+            <h3>UTM 성과</h3>
             <div className="sub">
-              {entryRows.length} entries · sorted by sessions
+              {entryRows.length}개 항목 · 세션 순 정렬
             </div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "28%" }}>Entry</th>
-                  <th>Source / Medium</th>
-                  <th>Campaign</th>
-                  <th className="num">Sessions</th>
-                  <th className="num">Users</th>
-                  <th className="num">Pageviews</th>
-                  <th className="num">Conv</th>
-                  <th className="num">Revenue</th>
+                  <th style={{ width: "28%" }}>항목</th>
+                  <th>소스 / 매체</th>
+                  <th>캠페인</th>
+                  <th className="num">세션</th>
+                  <th className="num">사용자</th>
+                  <th className="num">페이지뷰</th>
+                  <th className="num">전환</th>
+                  <th className="num">매출</th>
                 </tr>
               </thead>
               <tbody>
                 {entryRows.length === 0 && (
                   <tr>
                     <td colSpan={8} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
-                      등록된 UTM 엔트리가 없습니다.
+                      등록된 UTM 항목이 없습니다.
                     </td>
                   </tr>
                 )}
@@ -411,7 +411,7 @@ export default async function ConsoleGa4Page() {
         {!prop && (
           <div className="panel">
             <div className="p-body" style={{ padding: 24, color: "var(--dim)", fontSize: 12 }}>
-              GA4 Property가 연결되지 않아 속성 단위 리포트(Acquisition / Devices / Channels)를 표시할 수 없습니다.
+              GA4 속성이 연결되지 않아 속성 단위 리포트(유입 / 기기 / 채널)를 표시할 수 없습니다.
             </div>
           </div>
         )}
@@ -427,18 +427,18 @@ export default async function ConsoleGa4Page() {
           <div className="trio">
             <div className="panel">
               <div className="p-head">
-                <h3>Acquisition</h3>
-                <div className="sub">Source / Medium · sessions 기준 상위</div>
+                <h3>유입</h3>
+                <div className="sub">소스 / 매체 · 세션 기준 상위</div>
               </div>
               <div className="tbl-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Source / Medium</th>
-                      <th className="num">Sessions</th>
-                      <th className="num">Users</th>
-                      <th className="num">Conv</th>
-                      <th className="num">Revenue</th>
+                      <th>소스 / 매체</th>
+                      <th className="num">세션</th>
+                      <th className="num">사용자</th>
+                      <th className="num">전환</th>
+                      <th className="num">매출</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -467,17 +467,17 @@ export default async function ConsoleGa4Page() {
 
             <div className="panel">
               <div className="p-head">
-                <h3>Top Pages</h3>
-                <div className="sub">Page path · pageviews 기준 상위</div>
+                <h3>상위 페이지</h3>
+                <div className="sub">페이지 경로 · 페이지뷰 기준 상위</div>
               </div>
               <div className="tbl-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Page path</th>
-                      <th className="num">Views</th>
-                      <th className="num">Users</th>
-                      <th className="num">Avg. dur</th>
+                      <th>페이지 경로</th>
+                      <th className="num">조회수</th>
+                      <th className="num">사용자</th>
+                      <th className="num">평균 체류</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -505,17 +505,17 @@ export default async function ConsoleGa4Page() {
 
             <div className="panel">
               <div className="p-head">
-                <h3>Devices</h3>
-                <div className="sub">Device category</div>
+                <h3>기기</h3>
+                <div className="sub">기기 카테고리</div>
               </div>
               <div className="tbl-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Device</th>
-                      <th className="num">Sessions</th>
-                      <th className="num">Users</th>
-                      <th className="num">Conv</th>
+                      <th>기기</th>
+                      <th className="num">세션</th>
+                      <th className="num">사용자</th>
+                      <th className="num">전환</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -545,18 +545,18 @@ export default async function ConsoleGa4Page() {
           <div className="two">
             <div className="panel">
               <div className="p-head">
-                <h3>Channels</h3>
-                <div className="sub">Default channel grouping</div>
+                <h3>채널</h3>
+                <div className="sub">기본 채널 그룹</div>
               </div>
               <div className="tbl-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Channel</th>
-                      <th className="num">Sessions</th>
-                      <th className="num">Users</th>
-                      <th className="num">Conv</th>
-                      <th className="num">Revenue</th>
+                      <th>채널</th>
+                      <th className="num">세션</th>
+                      <th className="num">사용자</th>
+                      <th className="num">전환</th>
+                      <th className="num">매출</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -583,16 +583,16 @@ export default async function ConsoleGa4Page() {
 
             <div className="panel">
               <div className="p-head">
-                <h3>Regions</h3>
-                <div className="sub">City · sessions 기준 상위</div>
+                <h3>지역</h3>
+                <div className="sub">도시 · 세션 기준 상위</div>
               </div>
               <div className="tbl-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>City</th>
-                      <th className="num">Sessions</th>
-                      <th className="num">Users</th>
+                      <th>도시</th>
+                      <th className="num">세션</th>
+                      <th className="num">사용자</th>
                     </tr>
                   </thead>
                   <tbody>

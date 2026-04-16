@@ -124,7 +124,7 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
             </div>
 
             <div>
-              <label className="form-label">Property ID</label>
+              <label className="form-label">속성 ID</label>
               <input
                 type="text"
                 value={propertyId}

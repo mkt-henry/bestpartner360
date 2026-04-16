@@ -3,11 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, Trash2, ChevronDown, ChevronUp, Save, Link2 } from "lucide-react"
-import type { Brand, Ga4UtmEntry, Ga4UtmPerformance } from "@/types"
+import type { Ga4UtmEntry, Ga4UtmPerformance } from "@/types"
 
 interface Props {
   brandId: string
-  brands: Brand[]
   entries: (Ga4UtmEntry & { performance: Ga4UtmPerformance[] })[]
 }
 
@@ -21,7 +20,7 @@ const METRICS = [
   { key: "revenue", label: "수익", unit: "원" },
 ]
 
-export default function Ga4UtmManager({ brandId, brands, entries: initialEntries }: Props) {
+export default function Ga4UtmManager({ brandId, entries: initialEntries }: Props) {
   const router = useRouter()
   const [entries, setEntries] = useState(initialEntries)
   const [expandedId, setExpandedId] = useState<string | null>(null)

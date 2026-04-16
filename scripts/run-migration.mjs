@@ -6,8 +6,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const PROJECT_REF = "dhxiifldvfzbmgoyamce"
 const ACCESS_TOKEN = "sbp_1455e41b4b9dc59fc126d99abc6a9368f0abd9de"
-const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoeGlpZmxkdmZ6Ym1nb3lhbWNlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDQxOTM2MywiZXhwIjoyMDg5OTk1MzYzfQ.cDU7U1JjZtF_-NXMeVnPeJxF3NkLljkAJMzYKV0gPyA"
-const SUPABASE_URL = "https://dhxiifldvfzbmgoyamce.supabase.co"
 
 const sqlPath = join(__dirname, "../supabase/migrations/001_schema.sql")
 const sql = readFileSync(sqlPath, "utf8")

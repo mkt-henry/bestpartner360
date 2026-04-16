@@ -39,10 +39,9 @@ interface Props {
   creative: Creative
   comments: Comment[]
   currentUserId: string
-  isAdmin: boolean
 }
 
-export default function CreativeDetail({ creative, comments: initialComments, currentUserId, isAdmin }: Props) {
+export default function CreativeDetail({ creative, comments: initialComments, currentUserId }: Props) {
   const router = useRouter()
   const [comments, setComments] = useState(initialComments)
   const [newComment, setNewComment] = useState("")
@@ -147,7 +146,6 @@ export default function CreativeDetail({ creative, comments: initialComments, cu
                 <p className="text-sm text-slate-400">아직 피드백이 없습니다.</p>
               ) : (
                 comments.map((c) => {
-                  const isMyComment = false // user_id 비교로 구현 가능
                   const isAdminComment = c.user_profiles?.role === "admin"
                   return (
                     <div

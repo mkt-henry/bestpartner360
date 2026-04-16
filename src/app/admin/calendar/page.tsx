@@ -6,7 +6,7 @@ import type { CalendarEventStatus } from "@/types"
 const STATUS_INLINE_COLORS: Record<CalendarEventStatus, { background: string; color: string }> = {
   draft: { background: "var(--bg-2)", color: "var(--text-2)" },
   review_requested: { background: "#1877F220", color: "#6FA8F5" },
-  feedback_pending: { background: "#e8b04b1f", color: "var(--amber)" },
+  feedback_pending: { background: "#8aa6a11f", color: "var(--amber)" },
   in_revision: { background: "#e5553b1a", color: "var(--bad)" },
   upload_scheduled: { background: "#c77dd620", color: "var(--plum)" },
   completed: { background: "#5ec27a1a", color: "var(--good)" },

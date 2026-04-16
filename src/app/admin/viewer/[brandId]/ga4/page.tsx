@@ -29,7 +29,7 @@ export default async function AdminViewerGa4Page({
       .order("created_at", { ascending: false }),
   ])
 
-  let properties = ga4Properties ?? []
+  const properties = ga4Properties ?? []
 
   const missingUrl = properties.filter((p) => !p.website_url)
   if (missingUrl.length > 0) {

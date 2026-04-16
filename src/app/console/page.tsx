@@ -54,7 +54,7 @@ export default async function ConsoleOverviewPage() {
   if (brandIds.length === 0) {
     return (
       <>
-        <Topbar crumbs={[{ label: "Workspace" }, { label: "Overview", strong: true }]} />
+        <Topbar crumbs={[{ label: "워크스페이스" }, { label: "개요", strong: true }]} />
         <div className="canvas">
           <div className="panel">
             <div className="p-body" style={{ padding: 40, textAlign: "center", color: "var(--dim)" }}>
@@ -356,11 +356,11 @@ export default async function ConsoleOverviewPage() {
         eventCounts.set(name, Number(row.metrics[0] ?? 0))
       }
       const steps: { key: string[]; label: string }[] = [
-        { key: ["session_start"], label: "Sessions" },
-        { key: ["view_item", "view_item_list"], label: "View item" },
-        { key: ["add_to_cart"], label: "Add to cart" },
-        { key: ["begin_checkout"], label: "Begin checkout" },
-        { key: ["purchase"], label: "Purchase" },
+        { key: ["session_start"], label: "세션" },
+        { key: ["view_item", "view_item_list"], label: "상품 조회" },
+        { key: ["add_to_cart"], label: "장바구니 담기" },
+        { key: ["begin_checkout"], label: "결제 시작" },
+        { key: ["purchase"], label: "구매" },
       ]
       ga4Funnel = steps.map((s) => ({
         label: s.label,
@@ -376,28 +376,28 @@ export default async function ConsoleOverviewPage() {
 
   const kpis = [
     {
-      label: "Revenue",
+      label: "매출",
       value: formatWon(totalRevenue),
       chg: fmtDelta(pctDelta(totalRevenue, prevRevenue)),
       dir: totalRevenue >= prevRevenue ? "up" : "dn",
-      vs: `vs ${formatWon(prevRevenue)}`,
+      vs: `이전 ${formatWon(prevRevenue)}`,
       color: "#5EC27A",
     },
     {
-      label: "Ad Spend",
+      label: "광고비",
       value: formatWon(totalSpend),
       chg: fmtDelta(pctDelta(totalSpend, prevSpend)),
       dir: totalSpend >= prevSpend ? "up" : "dn",
-      vs: `vs ${formatWon(prevSpend)}`,
-      color: "#E8B04B",
+      vs: `이전 ${formatWon(prevSpend)}`,
+      color: "#8AA6A1",
     },
     {
-      label: "Blended ROAS",
+      label: "블렌디드 ROAS",
       value: blendedRoas > 0 ? blendedRoas.toFixed(2) : "—",
       unit: blendedRoas > 0 ? "×" : "",
       chg: fmtDelta(blendedRoas - prevRoas, ""),
       dir: blendedRoas >= prevRoas ? "up" : "dn",
-      vs: prevRoas > 0 ? `vs ${prevRoas.toFixed(2)}×` : "vs —",
+      vs: prevRoas > 0 ? `이전 ${prevRoas.toFixed(2)}×` : "이전 —",
       color: "#5EC27A",
     },
     {
@@ -405,24 +405,24 @@ export default async function ConsoleOverviewPage() {
       value: cac > 0 ? formatWon(cac) : "—",
       chg: fmtDelta(pctDelta(cac, prevCac)),
       dir: cac <= prevCac ? "up" : "dn",
-      vs: prevCac > 0 ? `vs ${formatWon(prevCac)}` : "vs —",
+      vs: prevCac > 0 ? `이전 ${formatWon(prevCac)}` : "이전 —",
       color: "#5EC27A",
     },
     {
-      label: "Sessions",
+      label: "세션",
       value: formatNumber(totalSessions),
       chg: fmtDelta(pctDelta(totalSessions, prevSessions)),
       dir: totalSessions >= prevSessions ? "up" : "dn",
-      vs: `vs ${formatNumber(prevSessions)}`,
+      vs: `이전 ${formatNumber(prevSessions)}`,
       color: "#7DB8D6",
     },
     {
-      label: "Conv. Rate",
+      label: "전환율",
       value: convRate > 0 ? convRate.toFixed(2) : "—",
       unit: convRate > 0 ? "%" : "",
       chg: fmtDelta(convRate - prevConvRate, "pp"),
       dir: convRate >= prevConvRate ? "up" : "dn",
-      vs: prevConvRate > 0 ? `vs ${prevConvRate.toFixed(2)}%` : "vs —",
+      vs: prevConvRate > 0 ? `이전 ${prevConvRate.toFixed(2)}%` : "이전 —",
       color: "#E5553B",
     },
   ]
@@ -431,9 +431,9 @@ export default async function ConsoleOverviewPage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
-          { label: brandName ?? "Brand" },
-          { label: "Overview", strong: true },
+          { label: "워크스페이스" },
+          { label: brandName ?? "브랜드" },
+          { label: "개요", strong: true },
         ]}
       />
 
@@ -443,19 +443,19 @@ export default async function ConsoleOverviewPage() {
         <div className="page-head">
           <div>
             <h1>
-              Performance <em>overview</em>
+              성과 <em>개요</em>
             </h1>
             <div className="sub">
-              {rangeLabel} &nbsp; · &nbsp; {connectedSources} channels &nbsp;·&nbsp; {campaigns.length} campaigns{" "}
-              <span className="live">live</span>
+              {rangeLabel} &nbsp; · &nbsp; {connectedSources}개 채널 &nbsp;·&nbsp; {campaigns.length}개 캠페인{" "}
+              <span className="live">실시간</span>
             </div>
           </div>
           <div className="pg-actions">
             <Link href="/dashboard/performance" className="btn">
-              View performance →
+              성과 보기 →
             </Link>
             <Link href="/console/ga4" className="btn">
-              GA4 →
+              GA4 보기 →
             </Link>
           </div>
         </div>
@@ -481,30 +481,30 @@ export default async function ConsoleOverviewPage() {
         <div className="grid">
           <div className="panel">
             <div className="p-head">
-              <h3>Revenue vs Spend</h3>
+              <h3>매출 vs 광고비</h3>
               <div className="sub">{rangeLabel}</div>
-              <TabGroup tabs={["Daily"]} initial="Daily" />
+              <TabGroup tabs={["일별"]} initial="일별" />
             </div>
             <div className="p-body">
               <div className="chart-stat">
                 <div className="s">
                   <div className="l">
-                    <i style={{ background: "#E8B04B" }} />
-                    Revenue
+                    <i style={{ background: "#8AA6A1" }} />
+                    매출
                   </div>
                   <div className="v">{formatWon(totalRevenue)}</div>
                 </div>
                 <div className="s">
                   <div className="l">
                     <i style={{ background: "#7DB8D6" }} />
-                    Spend
+                    광고비
                   </div>
                   <div className="v">{formatWon(totalSpend)}</div>
                 </div>
                 <div className="s">
                   <div className="l">
                     <i style={{ background: "#5EC27A" }} />
-                    Margin
+                    마진
                   </div>
                   <div className="v">{formatWon(totalRevenue - totalSpend)}</div>
                 </div>
@@ -517,8 +517,8 @@ export default async function ConsoleOverviewPage() {
 
           <div className="panel alerts">
             <div className="p-head">
-              <h3>Live activity</h3>
-              <div className="sub">Last 6 updates</div>
+              <h3>운영 현황</h3>
+              <div className="sub">최근 업데이트 6건</div>
             </div>
             <div className="p-body">
               {activities.length === 0 && (
@@ -531,7 +531,7 @@ export default async function ConsoleOverviewPage() {
                   <div className="bullet" />
                   <div className="body">
                     <div className="top">
-                      <span className="tag">{a.channel ?? "General"}</span>
+                      <span className="tag">{a.channel ?? "기타"}</span>
                       <span className="time">{a.activity_date}</span>
                     </div>
                     <div className="msg">{a.title}</div>
@@ -545,23 +545,23 @@ export default async function ConsoleOverviewPage() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>Campaign Performance</h3>
+            <h3>캠페인 성과</h3>
             <div className="sub">
-              {campaignRows.length} campaigns · sorted by revenue
+              {campaignRows.length}개 캠페인 · 매출 순 정렬
             </div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "32%" }}>Campaign</th>
-                  <th className="num">Spend</th>
-                  <th className="num">Revenue</th>
+                  <th style={{ width: "32%" }}>캠페인</th>
+                  <th className="num">광고비</th>
+                  <th className="num">매출</th>
                   <th className="num">ROAS</th>
                   <th className="num">CAC</th>
                   <th className="num">CTR</th>
-                  <th className="num">Conv</th>
-                  <th className="num">Pacing</th>
+                  <th className="num">전환</th>
+                  <th className="num">예산 소진율</th>
                 </tr>
               </thead>
               <tbody>
@@ -610,13 +610,13 @@ export default async function ConsoleOverviewPage() {
         <div className="trio">
           <div className="panel">
             <div className="p-head">
-              <h3>Conversion Funnel</h3>
-              <div className="sub">GA4 eventCount · {rangeLabel}</div>
+              <h3>전환 퍼널</h3>
+              <div className="sub">GA4 이벤트 수 · {rangeLabel}</div>
             </div>
             <div className="p-body">
               {!ga4Prop && (
                 <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  GA4 Property 미연결
+                  GA4 속성 미연결
                 </div>
               )}
               {ga4Prop && ga4Funnel.every((s) => s.count === 0) && (
@@ -640,7 +640,7 @@ export default async function ConsoleOverviewPage() {
                             <span>
                               <b>{formatNumber(s.count)}</b>
                               <span className="pct"> {total.toFixed(0)}%</span>
-                              {i > 0 && <span className="pct"> · step {step.toFixed(0)}%</span>}
+                              {i > 0 && <span className="pct"> · 단계 전환 {step.toFixed(0)}%</span>}
                             </span>
                           </div>
                           <span className="hbar">
@@ -657,13 +657,13 @@ export default async function ConsoleOverviewPage() {
 
           <div className="panel">
             <div className="p-head">
-              <h3>Top Regions</h3>
-              <div className="sub">GA4 city · sessions 상위</div>
+              <h3>상위 지역</h3>
+              <div className="sub">GA4 도시 · 세션 기준 상위</div>
             </div>
             <div className="p-body">
               {!ga4Prop && (
                 <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  GA4 Property 미연결
+                  GA4 속성 미연결
                 </div>
               )}
               {ga4Prop && ga4Regions.length === 0 && (
@@ -686,19 +686,19 @@ export default async function ConsoleOverviewPage() {
 
           <div className="panel">
             <div className="p-head">
-              <h3>Devices &amp; Channels</h3>
-              <div className="sub">GA4 deviceCategory · channelGroup</div>
+              <h3>기기 및 채널</h3>
+              <div className="sub">GA4 기기 카테고리 · 채널 그룹</div>
             </div>
             <div className="p-body">
               {!ga4Prop && (
                 <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  GA4 Property 미연결
+                  GA4 속성 미연결
                 </div>
               )}
               {ga4Prop && (
                 <>
                   <div style={{ padding: "8px 12px 4px", fontSize: 10, color: "var(--dim)" }}>
-                    Devices
+                    기기
                   </div>
                   {ga4Devices.length === 0 && (
                     <div style={{ padding: 8, color: "var(--dim)", fontSize: 11 }}>데이터 없음</div>
@@ -713,7 +713,7 @@ export default async function ConsoleOverviewPage() {
                     </div>
                   ))}
                   <div style={{ padding: "10px 12px 4px", fontSize: 10, color: "var(--dim)" }}>
-                    Channels
+                    채널
                   </div>
                   {ga4Channels.length === 0 && (
                     <div style={{ padding: 8, color: "var(--dim)", fontSize: 11 }}>데이터 없음</div>
@@ -769,8 +769,8 @@ function RevSpendChart({ series }: { series: { date: string; spend: number; reve
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
       <defs>
         <linearGradient id="rev" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#E8B04B" stopOpacity=".4" />
-          <stop offset="1" stopColor="#E8B04B" stopOpacity="0" />
+          <stop offset="0" stopColor="#8AA6A1" stopOpacity=".4" />
+          <stop offset="1" stopColor="#8AA6A1" stopOpacity="0" />
         </linearGradient>
       </defs>
       {yTicks.map((t, i) => (
@@ -782,11 +782,11 @@ function RevSpendChart({ series }: { series: { date: string; spend: number; reve
         </g>
       ))}
       {revArea && <path d={revArea} fill="url(#rev)" />}
-      {revPath && <path d={revPath} fill="none" stroke="#E8B04B" strokeWidth="1.8" />}
+      {revPath && <path d={revPath} fill="none" stroke="#8AA6A1" strokeWidth="1.8" />}
       {spendPath && (
         <path d={spendPath} fill="none" stroke="#7DB8D6" strokeWidth="1.5" strokeDasharray="4 3" />
       )}
-      <g fill="#E8B04B">
+      <g fill="#8AA6A1">
         {series.map((d, i) => (
           <circle key={i} cx={xAt(i)} cy={yAt(d.revenue)} r="2" />
         ))}

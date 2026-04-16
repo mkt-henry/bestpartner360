@@ -12,7 +12,7 @@ export default async function RealtimePage() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -32,9 +32,9 @@ export default async function RealtimePage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
-          { label: "Realtime", strong: true },
+          { label: "실시간", strong: true },
         ]}
       />
 
@@ -45,16 +45,16 @@ export default async function RealtimePage() {
               <span className="ic" style={{ background: "#5ec27a20", color: "#5EC27A" }}>◉</span>
               <span>
                 {prop
-                  ? `GA4 · ${prop.website_url ?? ""} · Property ${prop.property_id}`
-                  : "GA4 Realtime · (property 미연결)"}
+                  ? `GA4 · ${prop.website_url ?? ""} · 속성 ${prop.property_id}`
+                  : "GA4 실시간 · (속성 미연결)"}
               </span>
             </div>
             <h1>
-              Realtime <em>monitor</em>
+              실시간 <em>모니터</em>
             </h1>
             <div className="dh-meta">
-              <span className="live-pill">Live · streaming</span>
-              <span>Auto refresh · 10s</span>
+              <span className="live-pill">실시간 스트리밍</span>
+              <span>자동 새로고침 · 10초</span>
             </div>
           </div>
         </div>

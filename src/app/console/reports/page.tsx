@@ -24,23 +24,23 @@ function formatRelativeDate(iso: string | null): string {
 }
 
 function scheduleLabel(cron: string | null, type: string): string {
-  if (!cron) return type === "manual" ? "—" : "Manual"
+  if (!cron) return type === "manual" ? "—" : "수동"
   // Minimal cron pattern recognizer
-  if (/^0 0 \* \* \*$/.test(cron)) return "Daily"
-  if (/^0 0 \* \* 1$/.test(cron)) return "Weekly"
-  if (/^0 0 1 \* \*$/.test(cron)) return "Monthly"
-  if (/^0 0 1 \*\/3 \*$/.test(cron)) return "Quarterly"
+  if (/^0 0 \* \* \*$/.test(cron)) return "매일"
+  if (/^0 0 \* \* 1$/.test(cron)) return "매주"
+  if (/^0 0 1 \* \*$/.test(cron)) return "매월"
+  if (/^0 0 1 \*\/3 \*$/.test(cron)) return "분기별"
   return cron
 }
 
 function typeBadge(type: "manual" | "scheduled" | "ai") {
   if (type === "ai") {
-    return { label: "AI · Auto", bg: "#c77dd61a", color: "#C77DD6" }
+    return { label: "AI · 자동", bg: "#c77dd61a", color: "#C77DD6" }
   }
   if (type === "scheduled") {
-    return { label: "Scheduled", bg: "#7db8d61a", color: "#7DB8D6" }
+    return { label: "예약", bg: "#7db8d61a", color: "#7DB8D6" }
   }
-  return { label: "Manual", bg: "var(--bg-2)", color: "var(--text-2)" }
+  return { label: "수동", bg: "var(--bg-2)", color: "var(--text-2)" }
 }
 
 export default async function ConsoleReportsPage() {
@@ -49,7 +49,7 @@ export default async function ConsoleReportsPage() {
   const brandIdsHeader = h.get("x-user-brand-ids")
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
-    : "Brand"
+    : "브랜드"
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
@@ -92,9 +92,9 @@ export default async function ConsoleReportsPage() {
     <>
       <Topbar
         crumbs={[
-          { label: "Workspace" },
+          { label: "워크스페이스" },
           { label: brandName },
-          { label: "Reports", strong: true },
+          { label: "리포트", strong: true },
         ]}
       />
       <div className="detail-head">
@@ -103,17 +103,17 @@ export default async function ConsoleReportsPage() {
             <div className="src">
               <span className="ic">R</span>
               <span>
-                Reports · {reports.length} saved · {scheduledCount} scheduled
+                리포트 · 저장됨 {reports.length}개 · 예약됨 {scheduledCount}개
               </span>
             </div>
             <h1>
-              Reports &amp; <em>exports</em>
+              리포트 및 <em>내보내기</em>
             </h1>
             <div className="dh-meta">
-              <span>{reports.length} reports</span>
+              <span>리포트 {reports.length}개</span>
               <span>·</span>
               <span>
-                Last generated <b>{latestRunAt ? formatRelativeDate(latestRunAt) : "—"}</b>
+                최근 생성일 <b>{latestRunAt ? formatRelativeDate(latestRunAt) : "—"}</b>
               </span>
             </div>
           </div>
@@ -124,7 +124,7 @@ export default async function ConsoleReportsPage() {
         {schemaMissing && (
           <div className="panel">
             <div className="p-body" style={{ padding: 24, color: "var(--dim)", fontSize: 12 }}>
-              Reports 모듈 DB 스키마가 아직 적용되지 않았습니다.{" "}
+              리포트 모듈 DB 스키마가 아직 적용되지 않았습니다.{" "}
               <code>supabase/migrations/010_reports.sql</code> 마이그레이션을 실행하세요.
             </div>
           </div>
@@ -132,19 +132,19 @@ export default async function ConsoleReportsPage() {
 
         <div className="panel">
           <div className="p-head">
-            <h3>All Reports</h3>
-            <div className="sub">{reports.length} total</div>
+            <h3>전체 리포트</h3>
+            <div className="sub">총 {reports.length}개</div>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: "40%" }}>Report</th>
-                  <th>Author</th>
-                  <th>Type</th>
-                  <th className="num">Last run</th>
-                  <th className="num">Schedule</th>
-                  <th className="num">Action</th>
+                  <th style={{ width: "40%" }}>리포트</th>
+                  <th>작성자</th>
+                  <th>유형</th>
+                  <th className="num">최근 실행</th>
+                  <th className="num">주기</th>
+                  <th className="num">실행</th>
                 </tr>
               </thead>
               <tbody>
