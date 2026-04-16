@@ -1,9 +1,16 @@
 import { createClient } from "@/lib/supabase/server"
 import CalendarEventForm from "@/components/admin/CalendarEventForm"
-import { Calendar } from "lucide-react"
-import { STATUS_LABELS, STATUS_COLORS } from "@/types"
+import { STATUS_LABELS } from "@/types"
 import type { CalendarEventStatus } from "@/types"
-import { cn } from "@/lib/utils"
+
+const STATUS_INLINE_COLORS: Record<CalendarEventStatus, { background: string; color: string }> = {
+  draft: { background: "var(--bg-2)", color: "var(--text-2)" },
+  review_requested: { background: "#1877F220", color: "#6FA8F5" },
+  feedback_pending: { background: "#e8b04b1f", color: "var(--amber)" },
+  in_revision: { background: "#e5553b1a", color: "var(--bad)" },
+  upload_scheduled: { background: "#c77dd620", color: "var(--plum)" },
+  completed: { background: "#5ec27a1a", color: "var(--good)" },
+}
 
 export default async function AdminCalendarPage() {
   const supabase = await createClient()
@@ -25,50 +32,65 @@ export default async function AdminCalendarPage() {
     .limit(30)
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Calendar className="w-5 h-5 text-slate-500" />
-        <h1 className="text-xl font-bold text-slate-900">캘린더 관리</h1>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-4">일정 등록</h2>
-        <CalendarEventForm brands={brands ?? []} campaigns={campaigns ?? []} />
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">최근 일정</h2>
+    <div className="canvas">
+      <div className="page-head">
+        <div>
+          <h1>Calendar <em>Events</em></h1>
+          <p className="sub">캘린더 관리</p>
         </div>
-        <div className="divide-y divide-slate-100">
-          {events?.map((e) => (
-            <div key={e.id} className="px-5 py-3.5 hover:bg-slate-50 transition flex items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs text-slate-400">{e.event_date}</span>
-                  {e.channel && (
-                    <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                      {e.channel}
-                    </span>
-                  )}
+      </div>
+
+      <div className="panel">
+        <div className="p-head">
+          <h3>일정 등록</h3>
+        </div>
+        <div className="p-body">
+          <CalendarEventForm brands={brands ?? []} campaigns={campaigns ?? []} />
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="p-head">
+          <h3>최근 일정</h3>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {events?.map((ev) => {
+            const statusStyle = STATUS_INLINE_COLORS[ev.status as CalendarEventStatus] ?? {}
+            return (
+              <div
+                key={ev.id}
+                style={{
+                  padding: "12px 18px",
+                  borderBottom: "1px solid var(--line)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                  transition: "background .15s",
+                  cursor: "default",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: "var(--dim)" }}>{ev.event_date}</span>
+                    {ev.channel && (
+                      <span className={`tag ${ev.channel.toLowerCase()}`}>{ev.channel}</span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--text)" }}>{ev.title}</p>
                 </div>
-                <p className="text-sm text-slate-800">{e.title}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: "var(--dim)" }}>
+                    {(ev.brands as unknown as { name: string } | null)?.name}
+                  </span>
+                  <span className="tag" style={statusStyle}>
+                    {STATUS_LABELS[ev.status as CalendarEventStatus]}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <span className="text-xs text-slate-400">
-                  {(e.brands as unknown as { name: string } | null)?.name}
-                </span>
-                <span
-                  className={cn(
-                    "text-xs px-2 py-0.5 rounded-full font-medium",
-                    STATUS_COLORS[e.status as CalendarEventStatus]
-                  )}
-                >
-                  {STATUS_LABELS[e.status as CalendarEventStatus]}
-                </span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

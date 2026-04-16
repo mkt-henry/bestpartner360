@@ -413,6 +413,7 @@
 .console-scope .rt-dot.hot{background:var(--bad);box-shadow:0 0 0 3px #e5553b20}
 .console-scope .rt-dot::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:1px solid currentColor;opacity:.4;animation:expand 2s infinite}
 @keyframes ping{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes expand{0%{transform:scale(.5);opacity:.6}100%{transform:scale(1.8);opacity:0}}
 .console-scope .rt-bars{margin-top:10px;display:grid;grid-template-columns:repeat(30,1fr);gap:2px;align-items:end;height:48px}
 .console-scope .rt-bars .b{background:var(--steel);opacity:.4;border-radius:1px;min-height:2px;transition:height .8s}
@@ -495,6 +496,65 @@
 .console-scope .footer-bar .st{display:inline-flex;align-items:center;gap:6px}
 .console-scope .footer-bar .st::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--good)}
 
+/* Form elements */
+.console-scope .form-grid{display:grid;gap:12px}
+.console-scope .form-grid.cols-2{grid-template-columns:1fr 1fr}
+.console-scope .form-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+.console-scope .form-grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.console-scope .form-label{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.console-scope .form-input,.console-scope .form-select,.console-scope .form-textarea{width:100%;padding:8px 12px;background:var(--bg-2);border:1px solid var(--line);border-radius:6px;color:var(--text);font:inherit;font-size:12px;outline:none;transition:border-color .15s}
+.console-scope .form-input:focus,.console-scope .form-select:focus,.console-scope .form-textarea:focus{border-color:var(--amber)}
+.console-scope .form-input::placeholder,.console-scope .form-textarea::placeholder{color:var(--dimmer)}
+.console-scope .form-select option{background:var(--bg-1);color:var(--text)}
+.console-scope .form-textarea{resize:none}
+.console-scope .form-hint{font-size:10px;color:var(--dim);margin-top:4px}
+.console-scope .form-error{font-size:11px;color:var(--bad);margin-top:4px}
+.console-scope .form-actions{display:flex;align-items:center;gap:10px;margin-top:4px}
+.console-scope .form-success{font-size:11px;color:var(--good)}
+
+/* Tag / badge */
+.console-scope .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:500;letter-spacing:.04em}
+.console-scope .tag.meta{background:#1877F220;color:#6FA8F5}
+.console-scope .tag.naver{background:#03c75a20;color:#5ec27a}
+.console-scope .tag.google{background:#4285F420;color:#7AABF5}
+.console-scope .tag.ga4{background:#FBBC0520;color:#E8B04B}
+.console-scope .tag.instagram{background:#E1306C20;color:#E77FB3}
+.console-scope .tag.facebook{background:#1877F220;color:#6FA8F5}
+.console-scope .tag.kakao{background:#FEE50020;color:#E8B04B}
+.console-scope .tag.tiktok{background:#ff004020;color:#ff4770}
+.console-scope .tag.youtube{background:#FF000020;color:#E5553B}
+.console-scope .tag.admin{background:var(--amber-dim);color:var(--amber)}
+.console-scope .tag.client{background:var(--bg-2);color:var(--text-2)}
+.console-scope .tag.good{background:#5ec27a1a;color:var(--good)}
+.console-scope .tag.warn{background:#e8b04b1f;color:var(--amber)}
+.console-scope .tag.bad{background:#e5553b1a;color:var(--bad)}
+.console-scope .tag.neutral{background:var(--bg-2);color:var(--text-2)}
+
+/* Back link */
+.console-scope .back{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.14em;cursor:pointer;transition:color .15s}
+.console-scope .back:hover{color:var(--amber)}
+
+/* Card grid */
+.console-scope .card-grid{display:grid;gap:14px}
+.console-scope .card-grid.cols-2{grid-template-columns:1fr 1fr}
+.console-scope .card-grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.console-scope .card{background:var(--bg-1);border:1px solid var(--line);border-radius:10px;padding:18px;cursor:pointer;transition:all .15s;position:relative}
+.console-scope .card:hover{border-color:var(--amber);background:var(--bg-2)}
+.console-scope .card .card-title{font-size:12px;color:var(--text);font-weight:500;margin-bottom:4px}
+.console-scope .card .card-sub{font-size:10px;color:var(--dim)}
+.console-scope .card .card-value{font-family:var(--c-serif);font-size:22px;font-variation-settings:"opsz" 144;color:var(--text);margin-top:8px}
+
+/* Empty state */
+.console-scope .empty{padding:40px 18px;text-align:center;font-size:12px;color:var(--dim)}
+
+/* File upload */
+.console-scope .file-drop{display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px dashed var(--line);border-radius:8px;cursor:pointer;transition:border-color .15s;font-size:12px;color:var(--dim)}
+.console-scope .file-drop:hover{border-color:var(--amber);color:var(--text-2)}
+
+/* Progress bar */
+.console-scope .progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.console-scope .progress b{display:block;height:100%;border-radius:2px;transition:width .4s}
+
 @media(max-width:1280px){
   .console-scope .kpi-row{grid-template-columns:repeat(3,1fr)}
   .console-scope .grid,.console-scope .two-70,.console-scope .two,.console-scope .three,.console-scope .trio{grid-template-columns:1fr}
@@ -508,4 +568,6 @@
   .console-scope .app{grid-template-columns:1fr}
   .console-scope aside{display:none}
   .console-scope .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .console-scope .form-grid.cols-2,.console-scope .form-grid.cols-3,.console-scope .form-grid.cols-4{grid-template-columns:1fr}
+  .console-scope .card-grid.cols-2,.console-scope .card-grid.cols-3{grid-template-columns:1fr}
 }

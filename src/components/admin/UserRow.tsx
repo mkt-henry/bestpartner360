@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Pencil, Trash2, X, Check } from "lucide-react"
 
 interface Brand { id: string; name: string }
 
@@ -72,73 +71,84 @@ export default function UserRow({ user, brands, currentBrandIds, isSelf, brandNa
 
   if (editing) {
     return (
-      <tr className="bg-blue-50 dark:bg-blue-900/20">
-        <td colSpan={5} className="px-5 py-4">
-          <div className="grid grid-cols-2 gap-3 max-w-2xl">
+      <tr>
+        <td colSpan={5} style={{ padding: "18px 14px" }}>
+          <div className="form-grid cols-2" style={{ maxWidth: 600 }}>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">이름</label>
+              <label className="form-label">이름</label>
               <input
                 value={form.full_name}
                 onChange={e => setForm({ ...form, full_name: e.target.value })}
-                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">이메일</label>
+              <label className="form-label">이메일</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
-                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                새 비밀번호 <span className="text-slate-400">(변경 시만 입력)</span>
+              <label className="form-label">
+                새 비밀번호{" "}
+                <span style={{ color: "var(--dim)", fontWeight: "normal", textTransform: "none", letterSpacing: "normal" }}>
+                  (변경 시만 입력)
+                </span>
               </label>
               <input
                 type="text"
                 value={form.password}
                 onChange={e => setForm({ ...form, password: e.target.value })}
                 placeholder="변경 없으면 비워두세요"
-                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 placeholder-slate-400"
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">브랜드 접근</label>
-              <div className="flex flex-wrap gap-1.5">
+              <label className="form-label">브랜드 접근</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {brands.map(b => (
                   <button
                     key={b.id}
                     type="button"
                     onClick={() => toggleBrand(b.id)}
-                    className={`text-xs px-2 py-1 rounded-full border transition ${
-                      form.brand_ids.includes(b.id)
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-blue-400"
-                    }`}
+                    style={{
+                      fontSize: 11,
+                      padding: "4px 10px",
+                      borderRadius: 4,
+                      border: "1px solid",
+                      borderColor: form.brand_ids.includes(b.id) ? "var(--amber)" : "var(--line)",
+                      background: form.brand_ids.includes(b.id) ? "var(--amber)" : "var(--bg-2)",
+                      color: form.brand_ids.includes(b.id) ? "var(--bg)" : "var(--text-2)",
+                      cursor: "pointer",
+                      fontWeight: form.brand_ids.includes(b.id) ? 500 : 400,
+                      transition: "all .15s",
+                    }}
                   >
                     {b.name}
                   </button>
                 ))}
-                {brands.length === 0 && <span className="text-xs text-slate-400">등록된 브랜드 없음</span>}
+                {brands.length === 0 && (
+                  <span style={{ fontSize: 11, color: "var(--dim)" }}>등록된 브랜드 없음</span>
+                )}
               </div>
             </div>
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="form-actions" style={{ marginTop: 12 }}>
             <button
               onClick={handleUpdate}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition"
+              className="btn primary"
+              style={loading ? { opacity: 0.6 } : undefined}
             >
-              <Check className="w-3.5 h-3.5" />
               {loading ? "저장 중..." : "저장"}
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 text-xs font-medium rounded-lg transition"
+              className="btn"
             >
-              <X className="w-3.5 h-3.5" />
               취소
             </button>
           </div>
@@ -148,59 +158,57 @@ export default function UserRow({ user, brands, currentBrandIds, isSelf, brandNa
   }
 
   return (
-    <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
-      <td className="px-5 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium">
+    <tr>
+      <td style={{ fontWeight: 500 }}>
         {user.full_name ?? "-"}
       </td>
-      <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">{user.email}</td>
-      <td className="px-5 py-3">
-        <span
-          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            user.role === "admin"
-              ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400"
-              : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-          }`}
-        >
+      <td>{user.email}</td>
+      <td>
+        <span className={user.role === "admin" ? "tag admin" : "tag client"}>
           {user.role === "admin" ? "관리자" : "고객"}
         </span>
       </td>
-      <td className="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">
+      <td>
         {brandNames.join(", ") || "-"}
       </td>
-      <td className="px-5 py-3">
-        <div className="flex items-center gap-2">
+      <td>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button
             onClick={() => setEditing(true)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+            className="btn"
+            style={{ padding: "4px 10px" }}
             title="수정"
           >
-            <Pencil className="w-3.5 h-3.5" />
+            수정
           </button>
           {!isSelf && (
             confirmDelete ? (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-red-600 dark:text-red-400">삭제?</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--bad)" }}>삭제?</span>
                 <button
                   onClick={handleDelete}
                   disabled={loading}
-                  className="p-1 rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                  className="btn danger"
+                  style={{ padding: "4px 10px" }}
                 >
-                  <Check className="w-3.5 h-3.5" />
+                  확인
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                  className="btn"
+                  style={{ padding: "4px 10px" }}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  취소
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                className="btn danger"
+                style={{ padding: "4px 10px" }}
                 title="삭제"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                삭제
               </button>
             )
           )}

@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { Image, Video, FileImage } from "lucide-react"
-import { STATUS_LABELS, STATUS_COLORS } from "@/types"
+import { STATUS_LABELS } from "@/types"
 import type { CalendarEventStatus } from "@/types"
-import { cn } from "@/lib/utils"
 
 const STATUS_ORDER: CalendarEventStatus[] = [
   "review_requested",
@@ -14,11 +12,20 @@ const STATUS_ORDER: CalendarEventStatus[] = [
   "completed",
 ]
 
-const ASSET_ICONS: Record<string, React.ReactNode> = {
-  image: <Image className="w-5 h-5 text-slate-400" />,
-  video: <Video className="w-5 h-5 text-slate-400" />,
-  banner: <FileImage className="w-5 h-5 text-slate-400" />,
-  other: <FileImage className="w-5 h-5 text-slate-400" />,
+const STATUS_TAG_STYLES: Record<CalendarEventStatus, { background: string; color: string }> = {
+  review_requested: { background: 'var(--amber-dim)', color: 'var(--amber)' },
+  feedback_pending: { background: 'rgba(var(--bad-rgb, 239,68,68), 0.12)', color: 'var(--bad)' },
+  in_revision: { background: 'rgba(var(--plum-rgb, 168,85,247), 0.12)', color: 'var(--plum)' },
+  upload_scheduled: { background: 'rgba(var(--steel-rgb, 100,116,139), 0.12)', color: 'var(--steel)' },
+  draft: { background: 'var(--bg-2)', color: 'var(--dim)' },
+  completed: { background: 'rgba(var(--good-rgb, 34,197,94), 0.12)', color: 'var(--good)' },
+}
+
+const ASSET_LABELS: Record<string, string> = {
+  image: "이미지",
+  video: "비디오",
+  banner: "배너",
+  other: "기타",
 }
 
 export default async function AdminViewerCreativesPage({
@@ -46,70 +53,106 @@ export default async function AdminViewerCreativesPage({
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">소재 관리</h1>
+    <div className="canvas" style={{ maxWidth: 960, margin: '0 auto' }}>
+      <h1 style={{
+        fontFamily: 'var(--c-serif)', fontSize: 20, fontWeight: 700,
+        color: 'var(--text)', margin: '0 0 24px',
+      }}>
+        소재 관리
+      </h1>
 
       {Object.keys(grouped).length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
+        <div className="empty">
           <p>등록된 소재가 없습니다.</p>
         </div>
       ) : (
-        Object.entries(grouped).map(([status, items]) => (
-          <div key={status}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className={cn("text-xs px-2.5 py-1 rounded-full font-medium", STATUS_COLORS[status as CalendarEventStatus])}>
-                {STATUS_LABELS[status as CalendarEventStatus]}
-              </span>
-              <span className="text-xs text-slate-400">{items?.length}건</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {items?.map((creative) => {
-                const versions = creative.creative_versions as { id: string; version_number: number; file_url: string }[] | null
-                const latestVersion = versions?.sort((a, b) => b.version_number - a.version_number)[0]
-                return (
-                  <Link
-                    key={creative.id}
-                    href={`/dashboard/creatives/${creative.id}`}
-                    className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition group"
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {Object.entries(grouped).map(([status, items]) => {
+            const tagStyle = STATUS_TAG_STYLES[status as CalendarEventStatus]
+            return (
+              <div key={status}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span
+                    className="tag"
+                    style={{ background: tagStyle.background, color: tagStyle.color }}
                   >
-                    <div className="aspect-video bg-slate-100 dark:bg-slate-700 flex items-center justify-center relative overflow-hidden">
-                      {latestVersion?.file_url ? (
-                        creative.asset_type === "image" || creative.asset_type === "banner" ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={latestVersion.file_url} alt={creative.title} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                        ) : (
-                          <div className="flex flex-col items-center gap-2">
-                            {ASSET_ICONS[creative.asset_type]}
-                            <span className="text-xs text-slate-400">미리보기 없음</span>
-                          </div>
-                        )
-                      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          {ASSET_ICONS[creative.asset_type]}
-                          <span className="text-xs text-slate-400">소재 없음</span>
+                    {STATUS_LABELS[status as CalendarEventStatus]}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--dim)' }}>{items?.length}건</span>
+                </div>
+                <div className="card-grid cols-4">
+                  {items?.map((creative) => {
+                    const versions = creative.creative_versions as { id: string; version_number: number; file_url: string }[] | null
+                    const latestVersion = versions?.sort((a, b) => b.version_number - a.version_number)[0]
+                    return (
+                      <Link
+                        key={creative.id}
+                        href={`/dashboard/creatives/${creative.id}`}
+                        style={{
+                          background: 'var(--bg-1)', border: '1px solid var(--line)',
+                          borderRadius: 8, overflow: 'hidden', display: 'block',
+                          textDecoration: 'none', color: 'inherit',
+                        }}
+                      >
+                        <div style={{
+                          aspectRatio: '16/9', background: 'var(--bg-2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          position: 'relative', overflow: 'hidden',
+                        }}>
+                          {latestVersion?.file_url ? (
+                            creative.asset_type === "image" || creative.asset_type === "banner" ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={latestVersion.file_url}
+                                alt={creative.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 12, color: 'var(--dim)' }}>
+                                  {ASSET_LABELS[creative.asset_type] ?? creative.asset_type}
+                                </span>
+                                <span style={{ fontSize: 11, color: 'var(--dimmer)' }}>미리보기 없음</span>
+                              </div>
+                            )
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 12, color: 'var(--dim)' }}>
+                                {ASSET_LABELS[creative.asset_type] ?? creative.asset_type}
+                              </span>
+                              <span style={{ fontSize: 11, color: 'var(--dimmer)' }}>소재 없음</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{creative.title}</p>
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        {creative.channel && (
-                          <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">{creative.channel}</span>
-                        )}
-                        {versions && versions.length > 0 && (
-                          <span className="text-xs text-slate-400">v{versions[0].version_number}</span>
-                        )}
-                      </div>
-                      {creative.scheduled_date && (
-                        <p className="text-xs text-slate-400 mt-1">{creative.scheduled_date}</p>
-                      )}
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        ))
+                        <div style={{ padding: 12 }}>
+                          <p style={{
+                            fontSize: 13, fontWeight: 500, color: 'var(--text)',
+                            margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {creative.title}
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                            {creative.channel && (
+                              <span className="tag neutral">{creative.channel}</span>
+                            )}
+                            {versions && versions.length > 0 && (
+                              <span style={{ fontSize: 11, color: 'var(--dim)' }}>v{versions[0].version_number}</span>
+                            )}
+                          </div>
+                          {creative.scheduled_date && (
+                            <p style={{ fontSize: 11, color: 'var(--dim)', margin: '4px 0 0' }}>
+                              {creative.scheduled_date}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   )

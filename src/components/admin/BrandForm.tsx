@@ -29,22 +29,37 @@ export default function BrandForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-3">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
         placeholder="브랜드명 입력"
-        className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        style={{
+          flex: 1,
+          padding: '8px 12px',
+          background: 'var(--bg-2)',
+          border: '1px solid var(--line)',
+          borderRadius: 7,
+          color: 'var(--text)',
+          font: 'inherit',
+          fontSize: 12,
+          outline: 'none',
+        }}
+        onFocus={(e) => e.currentTarget.style.borderColor = 'var(--amber)'}
+        onBlur={(e) => e.currentTarget.style.borderColor = 'var(--line)'}
       />
       <button
         type="submit"
         disabled={loading}
-        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition"
+        className="btn primary"
+        style={{ opacity: loading ? 0.5 : 1 }}
       >
         추가
       </button>
-      {message && <p className="text-sm text-emerald-600 self-center">{message}</p>}
+      {message && (
+        <span style={{ fontSize: 11, color: 'var(--good)', marginLeft: 4 }}>{message}</span>
+      )}
     </form>
   )
 }

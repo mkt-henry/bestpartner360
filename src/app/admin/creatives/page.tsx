@@ -1,10 +1,17 @@
 import { createClient } from "@/lib/supabase/server"
 import CreativeUploadForm from "@/components/admin/CreativeUploadForm"
 import Link from "next/link"
-import { Image, Plus } from "lucide-react"
-import { STATUS_LABELS, STATUS_COLORS } from "@/types"
+import { STATUS_LABELS } from "@/types"
 import type { CalendarEventStatus } from "@/types"
-import { cn } from "@/lib/utils"
+
+const STATUS_INLINE_COLORS: Record<CalendarEventStatus, { background: string; color: string }> = {
+  draft: { background: "var(--bg-2)", color: "var(--text-2)" },
+  review_requested: { background: "#1877F220", color: "#6FA8F5" },
+  feedback_pending: { background: "#e8b04b1f", color: "var(--amber)" },
+  in_revision: { background: "#e5553b1a", color: "var(--bad)" },
+  upload_scheduled: { background: "#c77dd620", color: "var(--plum)" },
+  completed: { background: "#5ec27a1a", color: "var(--good)" },
+}
 
 export default async function AdminCreativesPage() {
   const supabase = await createClient()
@@ -21,70 +28,74 @@ export default async function AdminCreativesPage() {
     .limit(30)
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Image className="w-5 h-5 text-slate-500" />
-        <h1 className="text-xl font-bold text-slate-900">소재 관리</h1>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-4">소재 등록</h2>
-        <CreativeUploadForm brands={brands ?? []} campaigns={campaigns ?? []} />
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">소재 목록</h2>
+    <div className="canvas">
+      <div className="page-head">
+        <div>
+          <h1>Creative <em>Assets</em></h1>
+          <p className="sub">소재 관리</p>
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px]">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">브랜드</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">소재명</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">채널</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">상태</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500">예정일</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {creatives?.map((c) => (
-              <tr key={c.id} className="hover:bg-slate-50 transition">
-                <td className="px-5 py-3 text-sm text-slate-500">
-                  {(c.brands as unknown as { name: string } | null)?.name}
-                </td>
-                <td className="px-5 py-3">
-                  <Link
-                    href={`/dashboard/creatives/${c.id}`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                  >
-                    {c.title}
-                  </Link>
-                </td>
-                <td className="px-5 py-3">
-                  {c.channel && (
-                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                      {c.channel}
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-3">
-                  <span
-                    className={cn(
-                      "text-xs px-2 py-0.5 rounded-full font-medium",
-                      STATUS_COLORS[c.status as CalendarEventStatus]
-                    )}
-                  >
-                    {STATUS_LABELS[c.status as CalendarEventStatus]}
-                  </span>
-                </td>
-                <td className="px-5 py-3 text-xs text-slate-500">
-                  {c.scheduled_date ?? "-"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      </div>
+
+      <div className="panel">
+        <div className="p-head">
+          <h3>소재 등록</h3>
+        </div>
+        <div className="p-body">
+          <CreativeUploadForm brands={brands ?? []} campaigns={campaigns ?? []} />
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="p-head">
+          <h3>소재 목록</h3>
+        </div>
+        <div className="p-body" style={{ padding: 0 }}>
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>브랜드</th>
+                  <th>소재명</th>
+                  <th>채널</th>
+                  <th>상태</th>
+                  <th>예정일</th>
+                </tr>
+              </thead>
+              <tbody>
+                {creatives?.map((c) => {
+                  const statusStyle = STATUS_INLINE_COLORS[c.status as CalendarEventStatus] ?? {}
+                  return (
+                    <tr key={c.id}>
+                      <td style={{ color: "var(--dim)" }}>
+                        {(c.brands as unknown as { name: string } | null)?.name}
+                      </td>
+                      <td>
+                        <Link
+                          href={`/dashboard/creatives/${c.id}`}
+                          style={{ color: "var(--amber)" }}
+                        >
+                          {c.title}
+                        </Link>
+                      </td>
+                      <td>
+                        {c.channel && (
+                          <span className={`tag ${c.channel.toLowerCase()}`}>{c.channel}</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="tag" style={statusStyle}>
+                          {STATUS_LABELS[c.status as CalendarEventStatus]}
+                        </span>
+                      </td>
+                      <td style={{ color: "var(--dim)" }}>
+                        {c.scheduled_date ?? "-"}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

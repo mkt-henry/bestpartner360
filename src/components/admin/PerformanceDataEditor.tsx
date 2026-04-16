@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Save } from "lucide-react"
+import { Save } from "lucide-react"
 
 interface KpiDef {
   metric_key: string
@@ -68,24 +68,24 @@ export default function PerformanceDataEditor({
   }
 
   return (
-    <div className="space-y-5">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Add Row */}
-      <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-        <p className="text-xs font-medium text-slate-600 mb-3">날짜별 수치 입력</p>
-        <div className="flex gap-3 flex-wrap items-end">
+      <div style={{ border: "1px solid var(--line)", borderRadius: 8, padding: 14, background: "var(--bg-2)" }}>
+        <p className="form-label" style={{ marginBottom: 10 }}>날짜별 수치 입력</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div>
-            <label className="block text-xs text-slate-500 mb-1">날짜</label>
+            <label className="form-label">날짜</label>
             <input
               type="date"
               value={newDate}
               onChange={(e) => setNewDate(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="form-input"
             />
           </div>
           {kpiDefs.map((k) => (
             <div key={k.metric_key}>
-              <label className="block text-xs text-slate-500 mb-1">
-                {k.label} {k.unit && <span className="text-slate-400">({k.unit})</span>}
+              <label className="form-label">
+                {k.label} {k.unit && <span style={{ color: "var(--dimmer)" }}>({k.unit})</span>}
               </label>
               <input
                 type="number"
@@ -93,7 +93,8 @@ export default function PerformanceDataEditor({
                 onChange={(e) =>
                   setNewValues((prev) => ({ ...prev, [k.metric_key]: e.target.value }))
                 }
-                className="w-32 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="form-input"
+                style={{ width: 110 }}
                 placeholder="0"
               />
             </div>
@@ -101,9 +102,10 @@ export default function PerformanceDataEditor({
           <button
             onClick={handleAddOrUpdate}
             disabled={saving === "new"}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition flex items-center gap-1.5"
+            className="btn primary"
+            style={{ opacity: saving === "new" ? 0.6 : 1 }}
           >
-            <Save className="w-3.5 h-3.5" />
+            <Save style={{ width: 13, height: 13 }} />
             {saving === "new" ? "저장 중..." : "저장"}
           </button>
         </div>
@@ -111,34 +113,34 @@ export default function PerformanceDataEditor({
 
       {/* Record List */}
       {records.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-slate-500">날짜</th>
-                {kpiDefs.map((k) => (
-                  <th key={k.metric_key} className="text-right px-4 py-2.5 text-xs font-medium text-slate-500">
-                    {k.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {records.map((r) => (
-                <tr key={r.record_date} className="hover:bg-slate-50 transition">
-                  <td className="px-4 py-2.5 text-slate-700">{r.record_date}</td>
+        <div className="panel">
+          <div className="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>날짜</th>
                   {kpiDefs.map((k) => (
-                    <td key={k.metric_key} className="px-4 py-2.5 text-right text-slate-700">
-                      {r.values[k.metric_key]?.toLocaleString("ko-KR") ?? "-"}
-                      {r.values[k.metric_key] !== undefined && k.unit ? (
-                        <span className="text-xs text-slate-400 ml-0.5">{k.unit}</span>
-                      ) : null}
-                    </td>
+                    <th key={k.metric_key} className="num">{k.label}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {records.map((r) => (
+                  <tr key={r.record_date}>
+                    <td style={{ color: "var(--text-2)" }}>{r.record_date}</td>
+                    {kpiDefs.map((k) => (
+                      <td key={k.metric_key} className="num" style={{ color: "var(--text-2)" }}>
+                        {r.values[k.metric_key]?.toLocaleString("ko-KR") ?? "-"}
+                        {r.values[k.metric_key] !== undefined && k.unit ? (
+                          <span style={{ fontSize: 10, color: "var(--dim)", marginLeft: 2 }}>{k.unit}</span>
+                        ) : null}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

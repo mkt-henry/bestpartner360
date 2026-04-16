@@ -83,18 +83,16 @@ export default function BrandBudgetEditor({
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-3">
-          매체별 기간 예산 추가
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        <p className="form-label" style={{ marginBottom: 10 }}>매체별 기간 예산 추가</p>
+        <div className="form-grid cols-4" style={{ marginBottom: 10 }}>
           <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">매체</label>
+            <label className="form-label">매체</label>
             <select
               value={form.campaign_id}
               onChange={(e) => setForm({ ...form, campaign_id: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-100"
+              className="form-select"
             >
               <option value="">매체 선택</option>
               {campaigns.map((c) => (
@@ -105,108 +103,100 @@ export default function BrandBudgetEditor({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">시작일</label>
+            <label className="form-label">시작일</label>
             <input
               type="date"
               value={form.period_start}
               onChange={(e) => setForm({ ...form, period_start: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+              className="form-input"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">종료일</label>
+            <label className="form-label">종료일</label>
             <input
               type="date"
               value={form.period_end}
               onChange={(e) => setForm({ ...form, period_end: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+              className="form-input"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-              예산 (원)
-            </label>
+            <label className="form-label">예산 (원)</label>
             <input
               type="number"
               value={form.total_budget}
               onChange={(e) => setForm({ ...form, total_budget: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+              className="form-input"
               placeholder="5000000"
             />
           </div>
         </div>
 
-        {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+        {error && <p className="form-error" style={{ marginBottom: 8 }}>{error}</p>}
 
         <button
           onClick={addBudget}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition"
+          className="btn primary"
+          style={{ opacity: saving ? 0.6 : 1 }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus style={{ width: 14, height: 14 }} />
           {saving ? "저장 중..." : "예산 추가"}
         </button>
       </div>
 
       {budgets.length > 0 ? (
         <div>
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
-            설정된 예산
-          </p>
-          <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                    매체
-                  </th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                    기간
-                  </th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                    예산
-                  </th>
-                  <th className="w-10 px-4 py-2.5"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {budgets.map((b, i) => (
-                  <tr
-                    key={b.id ?? i}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition"
-                  >
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded">
-                        {b.campaign?.channel ?? ""}
-                      </span>
-                      <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
-                        {b.campaign?.name ?? ""}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                      {b.period_start} ~ {b.period_end}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-slate-100">
-                      {formatCurrency(Number(b.total_budget))}
-                    </td>
-                    <td className="px-4 py-3">
-                      {b.id && (
-                        <button
-                          onClick={() => deleteBudget(b.id!)}
-                          className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </td>
+          <p className="form-label" style={{ marginBottom: 8 }}>설정된 예산</p>
+          <div className="panel">
+            <div className="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>매체</th>
+                    <th>기간</th>
+                    <th className="num">예산</th>
+                    <th style={{ width: 40 }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {budgets.map((b, i) => (
+                    <tr key={b.id ?? i}>
+                      <td>
+                        <span className="tag neutral" style={{ marginRight: 8 }}>
+                          {b.campaign?.channel ?? ""}
+                        </span>
+                        <span style={{ fontSize: 11, color: "var(--dim)" }}>
+                          {b.campaign?.name ?? ""}
+                        </span>
+                      </td>
+                      <td style={{ color: "var(--text-2)" }}>
+                        {b.period_start} ~ {b.period_end}
+                      </td>
+                      <td className="num" style={{ fontWeight: 600, color: "var(--text)" }}>
+                        {formatCurrency(Number(b.total_budget))}
+                      </td>
+                      <td>
+                        {b.id && (
+                          <button
+                            onClick={() => deleteBudget(b.id!)}
+                            style={{ padding: 4, borderRadius: 4, color: "var(--dimmer)", transition: "color .15s" }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = "var(--bad)"}
+                            onMouseLeave={(e) => e.currentTarget.style.color = "var(--dimmer)"}
+                          >
+                            <Trash2 style={{ width: 13, height: 13 }} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : (
-        <p className="text-sm text-slate-400 text-center py-4">설정된 예산이 없습니다.</p>
+        <p style={{ fontSize: 12, color: "var(--dim)", textAlign: "center", padding: "16px 0" }}>설정된 예산이 없습니다.</p>
       )}
     </div>
   )

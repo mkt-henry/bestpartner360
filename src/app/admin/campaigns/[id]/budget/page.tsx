@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import BudgetEditor from "@/components/admin/BudgetEditor"
 import Link from "next/link"
-import { ChevronLeft } from "lucide-react"
 
 export default async function BudgetPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -23,27 +22,23 @@ export default async function BudgetPage({ params }: { params: Promise<{ id: str
     .order("period_start", { ascending: false })
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <Link
-        href="/admin/campaigns"
-        className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        브랜드 KPI
-      </Link>
+    <div className="console-scope canvas">
+      <Link href="/admin/campaigns" className="back">브랜드 KPI</Link>
 
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">예산 설정</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+      <div className="page-head">
+        <h1>Budget <em>Settings</em></h1>
+        <p className="sub">
           {(campaign.brands as unknown as { name: string } | null)?.name} · {campaign.channel} · {campaign.name}
         </p>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-        <BudgetEditor
-          campaignId={id}
-          initialBudgets={budgets ?? []}
-        />
+      <div className="panel">
+        <div className="p-body">
+          <BudgetEditor
+            campaignId={id}
+            initialBudgets={budgets ?? []}
+          />
+        </div>
       </div>
     </div>
   )

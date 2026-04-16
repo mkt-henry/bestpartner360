@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import PerformanceDataEditor from "@/components/admin/PerformanceDataEditor"
 import Link from "next/link"
-import { ChevronLeft } from "lucide-react"
 
 export default async function CampaignDataPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,37 +35,42 @@ export default async function CampaignDataPage({ params }: { params: Promise<{ i
     .order("record_date", { ascending: false })
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Link
-        href="/admin/campaigns"
-        className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        브랜드 KPI
-      </Link>
+    <div className="console-scope canvas">
+      <Link href="/admin/campaigns" className="back">브랜드 KPI</Link>
 
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">성과 수치 입력</h1>
-        <p className="text-sm text-slate-500 mt-1">
+      <div className="page-head">
+        <h1>Performance <em>Data</em></h1>
+        <p className="sub">
           {(campaign.brands as unknown as { name: string } | null)?.name} · {campaign.channel} · {campaign.name}
         </p>
       </div>
 
       {kpiDefs && kpiDefs.length === 0 ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 text-sm text-yellow-700">
+        <div
+          style={{
+            background: "var(--amber-dim)",
+            color: "var(--amber)",
+            border: "1px solid var(--amber)",
+            borderRadius: "0.5rem",
+            padding: "1.25rem",
+            fontSize: "0.875rem",
+          }}
+        >
           먼저{" "}
-          <Link href={`/admin/campaigns/${id}/kpi`} className="font-semibold underline">
+          <Link href={`/admin/campaigns/${id}/kpi`} style={{ fontWeight: 600, textDecoration: "underline", color: "var(--amber)" }}>
             KPI 지표
           </Link>
           를 설정해주세요.
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <PerformanceDataEditor
-            campaignId={id}
-            kpiDefs={kpiDefs ?? []}
-            initialRecords={records ?? []}
-          />
+        <div className="panel">
+          <div className="p-body">
+            <PerformanceDataEditor
+              campaignId={id}
+              kpiDefs={kpiDefs ?? []}
+              initialRecords={records ?? []}
+            />
+          </div>
         </div>
       )}
     </div>

@@ -24,7 +24,6 @@ export default function NaverAccountMapper({ brands, initialMappings }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [selectedBrands, setSelectedBrands] = useState<Record<string, string>>({})
 
-  // 매핑 정보로 초기 선택 상태 설정
   useEffect(() => {
     const initial: Record<string, string> = {}
     for (const m of initialMappings) {
@@ -119,87 +118,91 @@ export default function NaverAccountMapper({ brands, initialMappings }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* 에러 */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm px-4 py-3 rounded-lg">
+        <div style={{ background: "#e5553b1a", color: "var(--bad)", fontSize: 12, padding: "10px 14px", borderRadius: 8, border: "1px solid #e5553b30" }}>
           {error}
         </div>
       )}
 
       {/* 새로고침 버튼 */}
-      <div className="flex justify-end">
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <button
           onClick={fetchAccounts}
           disabled={loading}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--dim)", transition: "color .15s" }}
+          onMouseEnter={(e) => e.currentTarget.style.color = "var(--text)"}
+          onMouseLeave={(e) => e.currentTarget.style.color = "var(--dim)"}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw style={{ width: 13, height: 13, animation: loading ? "spin 1s linear infinite" : "none" }} />
           새로고침
         </button>
       </div>
 
       {/* 로딩 */}
       {loading ? (
-        <div className="flex items-center justify-center py-12 text-slate-400">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 0", color: "var(--dim)" }}>
+          <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite", marginRight: 8 }} />
           네이버 계정을 불러오는 중...
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              네이버 광고 계정 ({accounts.length}개)
-            </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-              각 광고 계정을 브랜드에 연결하세요
-            </p>
+        <div className="panel">
+          <div className="p-head" style={{ flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
+            <h3>네이버 광고 계정 ({accounts.length}개)</h3>
+            <span style={{ fontSize: 10, color: "var(--dim)", textTransform: "none", letterSpacing: "normal" }}>각 광고 계정을 브랜드에 연결하세요</span>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-700">
+          <div>
             {accounts.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-slate-400 text-center">
-                연결된 네이버 계정이 없습니다
-              </p>
+              <p className="empty">연결된 네이버 계정이 없습니다</p>
             ) : (
-              accounts.map((account) => {
+              accounts.map((account, idx) => {
                 const mapping = getMappingForAccount(account.id)
                 const isSaving = saving === account.id
 
                 return (
                   <div
                     key={account.id}
-                    className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                    style={{
+                      padding: "12px 18px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      borderBottom: idx < accounts.length - 1 ? "1px solid var(--line)" : "none",
+                    }}
                   >
                     {/* 계정 정보 */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {account.name}
                       </p>
-                      <span className="text-xs text-slate-400 font-mono">{account.id}</span>
+                      <span style={{ fontSize: 10, color: "var(--dim)", fontFamily: "var(--c-mono)" }}>{account.id}</span>
                     </div>
 
                     {/* 매핑 UI */}
                     {mapping ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, color: "var(--good)", fontWeight: 500 }}>
                           {mapping.brand?.name ?? "브랜드"}
                         </span>
                         <button
                           onClick={() => handleUnlink(account.id)}
                           disabled={isSaving}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
+                          className="btn danger"
+                          style={{ padding: "4px 8px", fontSize: 10, opacity: isSaving ? 0.5 : 1 }}
                         >
                           {isSaving ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
                           ) : (
-                            <Unlink className="w-3 h-3" />
+                            <Unlink style={{ width: 12, height: 12 }} />
                           )}
                           해제
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <select
                           value={selectedBrands[account.id] ?? ""}
                           onChange={(e) =>
@@ -208,7 +211,8 @@ export default function NaverAccountMapper({ brands, initialMappings }: Props) {
                               [account.id]: e.target.value,
                             }))
                           }
-                          className="text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 min-w-[140px]"
+                          className="form-select"
+                          style={{ minWidth: 140, padding: "4px 8px", fontSize: 11 }}
                         >
                           <option value="">브랜드 선택</option>
                           {brands.map((b) => (
@@ -220,12 +224,13 @@ export default function NaverAccountMapper({ brands, initialMappings }: Props) {
                         <button
                           onClick={() => handleLink(account)}
                           disabled={isSaving || !selectedBrands[account.id]}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors disabled:opacity-50"
+                          className="btn primary"
+                          style={{ padding: "4px 8px", fontSize: 10, opacity: (isSaving || !selectedBrands[account.id]) ? 0.5 : 1 }}
                         >
                           {isSaving ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
                           ) : (
-                            <Link2 className="w-3 h-3" />
+                            <Link2 style={{ width: 12, height: 12 }} />
                           )}
                           연결
                         </button>

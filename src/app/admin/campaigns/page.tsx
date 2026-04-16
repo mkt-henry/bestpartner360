@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { BarChart2 } from "lucide-react"
 import BrandKpiManager from "@/components/admin/BrandKpiManager"
 
 interface PageProps {
@@ -51,31 +50,25 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
       })) ?? []
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <BarChart2 className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">브랜드 KPI</h1>
+    <div className="console-scope canvas">
+      <div className="page-head">
+        <h1>Brand <em>KPI</em></h1>
       </div>
 
       {/* Brand Tabs */}
       {brands && brands.length > 0 ? (
         <>
-          <div className="flex gap-1 flex-wrap">
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {brands.map((brand) => {
               const count = allCampaigns?.filter((c) => c.brand_id === brand.id).length ?? 0
               return (
                 <Link
                   key={brand.id}
                   href={`/admin/campaigns?brand=${brand.id}`}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    brand.id === activeBrandId
-                      ? "bg-blue-600 text-white"
-                      : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300"
-                  }`}
+                  className={brand.id === activeBrandId ? "chip on" : "chip"}
                 >
                   {brand.name}
-                  <span className={`ml-1.5 text-xs ${brand.id === activeBrandId ? "text-blue-200" : "text-slate-400"}`}>
+                  <span style={{ marginLeft: "0.375rem", fontSize: "0.75rem", opacity: 0.6 }}>
                     {count}
                   </span>
                 </Link>
@@ -91,11 +84,13 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
           />
         </>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
-          <p className="text-sm text-slate-400 mb-3">먼저 브랜드를 등록해주세요.</p>
-          <Link href="/admin/brands" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-            브랜드 관리 →
-          </Link>
+        <div className="panel">
+          <div className="empty">
+            <p>먼저 브랜드를 등록해주세요.</p>
+            <Link href="/admin/brands" style={{ color: "var(--amber)", fontWeight: 500 }}>
+              브랜드 관리 →
+            </Link>
+          </div>
         </div>
       )}
     </div>

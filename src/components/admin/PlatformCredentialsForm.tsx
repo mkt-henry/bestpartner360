@@ -150,17 +150,17 @@ export default function PlatformCredentialsForm() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-slate-400">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 0", color: "var(--dim)" }}>
+        <Loader2 style={{ width: 20, height: 20, marginRight: 8, animation: "spin 1s linear infinite" }} />
         불러오는 중...
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm px-4 py-3 rounded-lg">
+        <div style={{ background: "color-mix(in srgb, var(--bad) 15%, transparent)", color: "var(--bad)", fontSize: 14, padding: "12px 16px", borderRadius: 8 }}>
           {error}
         </div>
       )}
@@ -174,70 +174,60 @@ export default function PlatformCredentialsForm() {
         const isReplacing = showReplaceForm[platform] ?? false
 
         return (
-          <div
-            key={platform}
-            className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
-          >
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    {config.label}
-                  </h2>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                    {config.description}
-                  </p>
-                </div>
-                {info?.has_credentials && (
-                  <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
-                    <CheckCircle2 className="w-3 h-3" />
-                    연결됨
-                  </span>
-                )}
+          <div key={platform} className="panel">
+            <div className="p-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <h3>{config.label}</h3>
+                <p style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>
+                  {config.description}
+                </p>
               </div>
+              {info?.has_credentials && (
+                <span className="status-pill">연결됨</span>
+              )}
             </div>
 
-            <div className="px-5 py-4 space-y-4">
+            <div className="p-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {/* 기존 키 정보 */}
               {info?.has_credentials && (
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                <div style={{ background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--dim)" }}>
                       현재 저장된 키
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <button
                         onClick={() => setShowValues((prev) => ({ ...prev, [platform]: !isVisible }))}
-                        className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1"
+                        style={{ fontSize: 12, color: "var(--dim)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
                       >
-                        {isVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                        {isVisible ? <EyeOff style={{ width: 12, height: 12 }} /> : <Eye style={{ width: 12, height: 12 }} />}
                         {isVisible ? "숨기기" : "보기"}
                       </button>
                       <button
                         onClick={() => handleDelete(platform)}
                         disabled={isDeleting}
-                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
+                        style={{ fontSize: 12, color: "var(--bad)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
                       >
                         {isDeleting ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
                         ) : (
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 style={{ width: 12, height: 12 }} />
                         )}
                         삭제
                       </button>
                     </div>
                   </div>
                   {isVisible && info.fields && (
-                    <div className="space-y-1">
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       {Object.entries(info.fields).map(([key, maskedValue]) => (
-                        <div key={key} className="flex items-center gap-2 text-xs">
-                          <span className="text-slate-400 w-24">{key}:</span>
-                          <code className="text-slate-600 dark:text-slate-300 font-mono">{maskedValue}</code>
+                        <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                          <span style={{ color: "var(--dim)", width: 96 }}>{key}:</span>
+                          <code style={{ color: "var(--text-2)", fontFamily: "monospace" }}>{maskedValue}</code>
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="text-xs text-slate-400">
+                  <p style={{ fontSize: 12, color: "var(--dim)" }}>
                     마지막 수정: {new Date(info.updated_at).toLocaleString("ko-KR")}
                   </p>
                 </div>
@@ -247,20 +237,20 @@ export default function PlatformCredentialsForm() {
               {info?.has_credentials && !isReplacing ? (
                 <button
                   onClick={() => setShowReplaceForm((prev) => ({ ...prev, [platform]: true }))}
-                  className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  style={{ fontSize: 12, color: "var(--amber)", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
                 >
                   새 키로 교체하기
                 </button>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--dim)" }}>
                       {info?.has_credentials ? "새 키로 교체" : "API 키 입력"}
                     </p>
                     {info?.has_credentials && (
                       <button
                         onClick={() => setShowReplaceForm((prev) => ({ ...prev, [platform]: false }))}
-                        className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        style={{ fontSize: 12, color: "var(--dim)", background: "none", border: "none", cursor: "pointer" }}
                       >
                         취소
                       </button>
@@ -268,7 +258,7 @@ export default function PlatformCredentialsForm() {
                   </div>
                   {config.fields.map((field) => (
                     <div key={field.key}>
-                      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                      <label className="form-label">
                         {field.label}
                       </label>
                       <input
@@ -276,7 +266,7 @@ export default function PlatformCredentialsForm() {
                         value={formData[platform][field.key] ?? ""}
                         onChange={(e) => handleChange(platform, field.key, e.target.value)}
                         placeholder={field.placeholder}
-                        className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                        className="form-input"
                       />
                     </div>
                   ))}
@@ -284,14 +274,15 @@ export default function PlatformCredentialsForm() {
                   <button
                     onClick={() => handleSave(platform)}
                     disabled={isSaving}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    className="btn primary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start", opacity: isSaving ? 0.5 : 1 }}
                   >
                     {isSaving ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} />
                     ) : isSuccess ? (
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle2 style={{ width: 14, height: 14 }} />
                     ) : (
-                      <Save className="w-3.5 h-3.5" />
+                      <Save style={{ width: 14, height: 14 }} />
                     )}
                     {isSuccess ? "저장 완료" : "저장"}
                   </button>

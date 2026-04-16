@@ -45,32 +45,34 @@ export default function CreateUserForm({ brands }: { brands: Brand[] }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="form-grid cols-2">
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1.5">이름</label>
+        <label className="form-label">이름</label>
         <input
           value={form.full_name}
           onChange={(e) => setForm({ ...form, full_name: e.target.value })}
           required
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="form-input"
           placeholder="홍길동"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1.5">이메일</label>
+        <label className="form-label">이메일</label>
         <input
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           required
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="form-input"
           placeholder="client@example.com"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1.5">
+        <label className="form-label">
           비밀번호
-          <span className="ml-1.5 text-slate-400 font-normal">(디폴트: {DEFAULT_PASSWORD})</span>
+          <span style={{ marginLeft: 6, color: "var(--dim)", fontWeight: "normal", textTransform: "none", letterSpacing: "normal" }}>
+            (디폴트: {DEFAULT_PASSWORD})
+          </span>
         </label>
         <input
           type="text"
@@ -78,15 +80,15 @@ export default function CreateUserForm({ brands }: { brands: Brand[] }) {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           required
           minLength={8}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="form-input"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1.5">브랜드</label>
+        <label className="form-label">브랜드</label>
         <select
           value={form.brand_id}
           onChange={(e) => setForm({ ...form, brand_id: e.target.value })}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="form-select"
         >
           <option value="">브랜드 선택 (선택사항)</option>
           {brands.map((b) => (
@@ -94,16 +96,17 @@ export default function CreateUserForm({ brands }: { brands: Brand[] }) {
           ))}
         </select>
       </div>
-      <div className="col-span-1 sm:col-span-2 flex items-center gap-3">
+      <div className="form-actions" style={{ gridColumn: "1 / -1" }}>
         <button
           type="submit"
           disabled={status === "loading"}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition"
+          className="btn primary"
+          style={status === "loading" ? { opacity: 0.6 } : undefined}
         >
           {status === "loading" ? "생성 중..." : "계정 생성"}
         </button>
         {message && (
-          <p className={`text-sm ${status === "success" ? "text-emerald-600" : "text-red-600"}`}>
+          <p className={status === "success" ? "form-success" : "form-error"}>
             {message}
           </p>
         )}

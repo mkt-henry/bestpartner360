@@ -199,18 +199,19 @@ export default function BrandKpiManager({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div className="panel">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">{campaigns.length}개 매체</span>
-        </div>
+      <div className="p-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h3>
+          <span style={{ color: "var(--dim)", fontSize: "0.8em", fontWeight: 400 }}>{campaigns.length}개 매체</span>
+        </h3>
         <button
           onClick={() => {
             setShowNewCampaign(!showNewCampaign)
             setCampaignError("")
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition"
+          className={showNewCampaign ? "btn" : "btn primary"}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
         >
           {showNewCampaign ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
           {showNewCampaign ? "취소" : "매체 추가"}
@@ -219,15 +220,15 @@ export default function BrandKpiManager({
 
       {/* 매체 추가 인라인 폼 */}
       {showNewCampaign && (
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 bg-blue-50/50 dark:bg-blue-900/10">
-          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-3">새 매체 추가</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--line)", background: "var(--bg-2)" }}>
+          <p style={{ fontSize: "0.8rem", fontWeight: 500, color: "var(--text)", marginBottom: "0.75rem" }}>새 매체 추가</p>
+          <div className="form-grid cols-4">
             <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">매체 *</label>
+              <label className="form-label">매체 *</label>
               <select
                 value={campaignForm.channel}
                 onChange={(e) => setCampaignForm({ ...campaignForm, channel: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 dark:text-slate-100"
+                className="form-select"
               >
                 <option value="">매체 선택</option>
                 {CHANNELS.map((ch) => (
@@ -238,56 +239,62 @@ export default function BrandKpiManager({
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">매체명 *</label>
+              <label className="form-label">매체명 *</label>
               <input
                 value={campaignForm.name}
                 onChange={(e) => setCampaignForm({ ...campaignForm, name: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+                className="form-input"
                 placeholder="예: Instagram 브랜드광고"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">시작일 *</label>
+              <label className="form-label">시작일 *</label>
               <input
                 type="date"
                 value={campaignForm.start_date}
                 onChange={(e) => setCampaignForm({ ...campaignForm, start_date: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">종료일</label>
+              <label className="form-label">종료일</label>
               <input
                 type="date"
                 value={campaignForm.end_date}
                 onChange={(e) => setCampaignForm({ ...campaignForm, end_date: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+                className="form-input"
               />
             </div>
           </div>
-          {campaignError && <p className="text-xs text-red-600 mb-2">{campaignError}</p>}
-          <button
-            onClick={addCampaign}
-            disabled={campaignSaving}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition"
-          >
-            <Plus className="w-4 h-4" />
-            {campaignSaving ? "저장 중..." : "추가"}
-          </button>
+          {campaignError && <p className="form-error">{campaignError}</p>}
+          <div style={{ marginTop: "0.75rem" }}>
+            <button
+              onClick={addCampaign}
+              disabled={campaignSaving}
+              className="btn primary"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
+            >
+              <Plus className="w-4 h-4" />
+              {campaignSaving ? "저장 중..." : "추가"}
+            </button>
+          </div>
         </div>
       )}
 
       {/* 매체 목록 */}
       {campaigns.length === 0 && !showNewCampaign ? (
-        <div className="px-5 py-12 text-center">
-          <p className="text-sm text-slate-400 mb-3">등록된 매체가 없습니다.</p>
-          <button
-            onClick={() => setShowNewCampaign(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-lg transition"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            첫 번째 매체 추가
-          </button>
+        <div className="p-body">
+          <div className="empty">
+            <p>등록된 매체가 없습니다.</p>
+            <button
+              onClick={() => setShowNewCampaign(true)}
+              className="btn primary"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", marginTop: "0.75rem" }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              첫 번째 매체 추가
+            </button>
+          </div>
         </div>
       ) : (
         <div>
@@ -297,45 +304,61 @@ export default function BrandKpiManager({
             const currentBudget = getCurrentBudget(c.id)
 
             return (
-              <div key={c.id} className="border-b border-slate-100 dark:border-slate-700 last:border-b-0">
+              <div key={c.id} style={{ borderBottom: "1px solid var(--line)" }}>
                 {/* 매체 행 */}
                 <div
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition cursor-pointer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    padding: "0.75rem 1.25rem",
+                    cursor: "pointer",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   onClick={() => toggleExpand(c.id)}
                 >
-                  <div className="text-slate-400">
+                  <span style={{ color: "var(--dim)" }}>
                     {isExpanded ? (
                       <ChevronDown className="w-4 h-4" />
                     ) : (
                       <ChevronRight className="w-4 h-4" />
                     )}
-                  </div>
-                  <span className="text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-1 rounded">
-                    {c.channel}
                   </span>
-                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100 flex-1">
+                  <span className="tag neutral">{c.channel}</span>
+                  <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text)", flex: 1 }}>
                     {c.name}
                   </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                  <span style={{ fontSize: "0.75rem" }}>
                     {c.kpiCount > 0 ? (
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{c.kpiCount}개 KPI</span>
+                      <span style={{ color: "var(--amber)", fontWeight: 500 }}>{c.kpiCount}개 KPI</span>
                     ) : (
-                      "KPI 미설정"
+                      <span style={{ color: "var(--dim)" }}>KPI 미설정</span>
                     )}
                   </span>
-                  <span className="text-sm text-slate-600 dark:text-slate-400 min-w-[100px] text-right">
+                  <span style={{ fontSize: "0.875rem", fontFamily: "var(--c-mono)", minWidth: "100px", textAlign: "right" as const }}>
                     {currentBudget > 0 ? (
-                      formatCurrency(currentBudget)
+                      <span style={{ color: "var(--text)" }}>{formatCurrency(currentBudget)}</span>
                     ) : budget ? (
-                      <span className="text-xs text-slate-400">{formatCurrency(budget.total_budget)}</span>
+                      <span style={{ color: "var(--dim)", fontSize: "0.75rem" }}>{formatCurrency(budget.total_budget)}</span>
                     ) : (
-                      <span className="text-xs text-slate-400">예산 미설정</span>
+                      <span style={{ color: "var(--dim)", fontSize: "0.75rem" }}>예산 미설정</span>
                     )}
                   </span>
                   <Link
                     href={`/admin/campaigns/${c.id}/kpi`}
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium ml-2"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      fontSize: "0.75rem",
+                      color: "var(--amber)",
+                      fontWeight: 500,
+                      marginLeft: "0.5rem",
+                      textDecoration: "none",
+                    }}
                   >
                     <Settings className="w-3 h-3" />
                     KPI
@@ -344,60 +367,61 @@ export default function BrandKpiManager({
 
                 {/* 확장: 예산 설정 + 매체 삭제 */}
                 {isExpanded && (
-                  <div className="px-5 pb-4 pl-12 space-y-4">
+                  <div style={{ padding: "0 1.25rem 1rem 3rem", background: "var(--bg-2)" }}>
                     {/* 예산 설정 */}
                     <div>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+                      <p style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--text-2)", marginBottom: "0.5rem" }}>
                         예산 설정
                         {budget && (
-                          <span className="ml-2 text-slate-400 font-normal">
+                          <span style={{ marginLeft: "0.5rem", color: "var(--dim)", fontWeight: 400 }}>
                             ({budget.period_start} ~ {budget.period_end} · {formatCurrency(budget.total_budget)})
                           </span>
                         )}
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="form-grid cols-3">
                         <div>
-                          <label className="block text-xs text-slate-400 mb-1">시작일</label>
+                          <label className="form-label">시작일</label>
                           <input
                             type="date"
                             value={budgetForm.period_start}
                             onChange={(e) => setBudgetForm({ ...budgetForm, period_start: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+                            className="form-input"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-400 mb-1">종료일</label>
+                          <label className="form-label">종료일</label>
                           <input
                             type="date"
                             value={budgetForm.period_end}
                             onChange={(e) => setBudgetForm({ ...budgetForm, period_end: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+                            className="form-input"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-400 mb-1">예산 (원)</label>
+                          <label className="form-label">예산 (원)</label>
                           <input
                             type="number"
                             value={budgetForm.total_budget}
                             onChange={(e) => setBudgetForm({ ...budgetForm, total_budget: e.target.value })}
                             placeholder="5000000"
-                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+                            className="form-input"
                           />
                         </div>
                       </div>
-                      {budgetError && <p className="text-xs text-red-600 mt-1">{budgetError}</p>}
-                      <div className="flex gap-2 mt-2">
+                      {budgetError && <p className="form-error">{budgetError}</p>}
+                      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                         <button
                           onClick={() => saveBudget(c.id)}
                           disabled={budgetSaving}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition"
+                          className="btn primary"
                         >
                           {budgetSaving ? "저장 중..." : budget ? "예산 수정" : "예산 저장"}
                         </button>
                         {budget && (
                           <button
                             onClick={() => deleteBudget(c.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-red-600 hover:border-red-300 text-xs font-medium rounded-lg transition"
+                            className="btn"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
                           >
                             <Trash2 className="w-3 h-3" />
                             예산 삭제
@@ -407,10 +431,13 @@ export default function BrandKpiManager({
                     </div>
 
                     {/* 매체 삭제 */}
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <div style={{ paddingTop: "0.75rem", marginTop: "0.75rem", borderTop: "1px solid var(--line)" }}>
                       <button
                         onClick={() => deleteCampaign(c.id)}
-                        className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-600 transition"
+                        className="btn"
+                        style={{ color: "var(--dim)", fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bad)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--dim)")}
                       >
                         <Trash2 className="w-3 h-3" />
                         이 매체 삭제

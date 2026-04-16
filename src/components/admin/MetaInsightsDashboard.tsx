@@ -7,9 +7,8 @@ import {
 } from "recharts"
 import { formatNumber } from "@/lib/utils"
 import { RefreshCw, ImageIcon, Layers, Target, Megaphone } from "lucide-react"
-import { cn } from "@/lib/utils"
 
-/* ─── Types ─── */
+/* --- Types --- */
 interface MetaAccount {
   id: string
   brand_id: string
@@ -38,7 +37,7 @@ interface ParsedRow {
 
 interface Props { accounts: MetaAccount[] }
 
-/* ─── Constants ─── */
+/* --- Constants --- */
 const ACTION_LABELS: Record<string, string> = {
   link_click: "링크 클릭", post_engagement: "참여", page_engagement: "페이지 참여",
   like: "좋아요", comment: "댓글", landing_page_view: "랜딩페이지",
@@ -95,31 +94,27 @@ function getTopAction(actions?: MetaAction[]): { label: string; value: number } 
   return { label: ACTION_LABELS[found.action_type] ?? found.action_type, value: Number(found.value) }
 }
 
-/* ─── Main ─── */
+/* --- Main --- */
 export default function MetaInsightsDashboard({ accounts }: Props) {
   const [selectedAccount, setSelectedAccount] = useState("")
   const [datePreset, setDatePreset] = useState("7d")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 3 levels of data
   const [campaigns, setCampaigns] = useState<ParsedRow[]>([])
   const [adsets, setAdsets] = useState<ParsedRow[]>([])
   const [ads, setAds] = useState<ParsedRow[]>([])
   const [daily, setDaily] = useState<InsightRow[]>([])
 
-  // Selection state
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null)
   const [selectedAdset, setSelectedAdset] = useState<string | null>(null)
 
-  // Ad previews
   const [adPreviews, setAdPreviews] = useState<Record<string, { thumbnail_url: string | null; image_url: string | null }>>({})
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null)
 
   const [rawAdsets, setRawAdsets] = useState<InsightRow[]>([])
   const [rawAds, setRawAds] = useState<InsightRow[]>([])
 
-  // Safe JSON fetch helper — returns null if response is not JSON
   async function safeJson(res: Response): Promise<{ summary?: InsightRow[]; daily?: InsightRow[]; error?: string } | null> {
     const contentType = res.headers.get("content-type") ?? ""
     if (!contentType.includes("application/json")) return null
@@ -167,7 +162,6 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
       setRawAds(rawAdData)
       setDaily(dailyJson?.daily ?? [])
 
-      // Fetch ad thumbnails (fire and forget)
       const adIds = rawAdData.map((r: InsightRow) => r.ad_id).filter(Boolean).slice(0, 50)
       if (adIds.length > 0) {
         fetch(`/api/admin/meta/ad-previews?ad_ids=${adIds.join(",")}`)
@@ -189,7 +183,6 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
     }
   }, [selectedAccount, datePreset])
 
-  // Filtered data
   const filteredAdsets = selectedCampaign
     ? parseRows(rawAdsets.filter((r) => r.campaign_id === selectedCampaign), "adset")
     : adsets
@@ -200,18 +193,15 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
     ? parseRows(rawAds.filter((r) => r.campaign_id === selectedCampaign), "ad")
     : ads
 
-  // Account totals
   const accountTotals = sumRows(campaigns)
   const accountCtr = accountTotals.impressions > 0 ? (accountTotals.clicks / accountTotals.impressions) * 100 : 0
   const accountCpc = accountTotals.clicks > 0 ? accountTotals.spend / accountTotals.clicks : 0
 
-  // Daily chart
   const dailyChart = daily.map((d) => ({
     date: d.date_start?.slice(5) ?? "",
     spend: Number(d.spend ?? 0),
   }))
 
-  // Action totals
   const allActions: Record<string, number> = {}
   for (const row of campaigns) {
     for (const a of row.actions ?? []) {
@@ -221,69 +211,67 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
   const topActions = Object.entries(allActions).sort(([, a], [, b]) => b - a).slice(0, 6)
 
   const hasData = campaigns.length > 0
-  const selectedAccountObj = accounts.find((a) => a.meta_account_id === selectedAccount)
 
   return (
-    <div className="space-y-5">
-      {/* ── Controls ── */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <select
-            value={selectedAccount}
-            onChange={(e) => { setSelectedAccount(e.target.value); setCampaigns([]); setAdsets([]); setAds([]) }}
-            className="flex-1 text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-          >
-            <option value="">광고 계정 선택</option>
-            {accounts.map((acc) => (
-              <option key={acc.meta_account_id} value={acc.meta_account_id}>
-                {acc.brand?.name ? `[${acc.brand.name}] ` : ""}{acc.meta_account_name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={fetchAllData}
-            disabled={!selectedAccount || loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-            전체 조회
-          </button>
-        </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {DATE_PRESETS.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setDatePreset(p.key)}
-              className={cn(
-                "px-2.5 py-1 text-xs font-medium rounded-lg whitespace-nowrap transition-colors",
-                datePreset === p.key
-                  ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-              )}
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Controls */}
+      <div className="panel">
+        <div className="p-body" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <select
+              value={selectedAccount}
+              onChange={(e) => { setSelectedAccount(e.target.value); setCampaigns([]); setAdsets([]); setAds([]) }}
+              className="form-select"
+              style={{ flex: 1 }}
             >
-              {p.label}
+              <option value="">광고 계정 선택</option>
+              {accounts.map((acc) => (
+                <option key={acc.meta_account_id} value={acc.meta_account_id}>
+                  {acc.brand?.name ? `[${acc.brand.name}] ` : ""}{acc.meta_account_name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={fetchAllData}
+              disabled={!selectedAccount || loading}
+              className="btn primary"
+              style={{ opacity: (!selectedAccount || loading) ? 0.5 : 1 }}
+            >
+              <RefreshCw style={{ width: 14, height: 14, animation: loading ? "spin 1s linear infinite" : "none" }} />
+              전체 조회
             </button>
-          ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, overflowX: "auto" }}>
+            {DATE_PRESETS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setDatePreset(p.key)}
+                className={datePreset === p.key ? "chip on" : "chip"}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        <div style={{ background: "#e5553b1a", border: "1px solid #e5553b30", borderRadius: 8, padding: 14 }}>
+          <p style={{ fontSize: 12, color: "var(--bad)" }}>{error}</p>
         </div>
       )}
 
       {loading && (
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />
-          <span className="ml-2 text-sm text-slate-500">캠페인 · 세트 · 소재 데이터를 불러오는 중...</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0" }}>
+          <RefreshCw style={{ width: 20, height: 20, color: "var(--amber)", animation: "spin 1s linear infinite" }} />
+          <span style={{ marginLeft: 8, fontSize: 12, color: "var(--dim)" }}>캠페인 · 세트 · 소재 데이터를 불러오는 중...</span>
         </div>
       )}
 
       {!loading && hasData && (
         <>
-          {/* ── KPI Summary ── */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          {/* KPI Summary */}
+          <div className="kpi-row">
             <MiniKpi label="지출" value={`₩${Math.round(accountTotals.spend).toLocaleString()}`} />
             <MiniKpi label="노출" value={formatNumber(accountTotals.impressions)} />
             <MiniKpi label="도달" value={formatNumber(accountTotals.reach)} />
@@ -292,33 +280,35 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
             <MiniKpi label="CPC" value={`₩${Math.round(accountCpc).toLocaleString()}`} />
           </div>
 
-          {/* ── Daily Spend Mini Chart + Actions ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Daily Spend Mini Chart + Actions */}
+          <div style={{ display: "grid", gridTemplateColumns: dailyChart.length > 1 && topActions.length > 0 ? "2fr 1fr" : "1fr", gap: 14 }}>
             {dailyChart.length > 1 && (
-              <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">일별 지출</h3>
-                <ResponsiveContainer width="100%" height={140}>
-                  <BarChart data={dailyChart}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                    <Tooltip formatter={(v) => [`₩${Math.round(Number(v)).toLocaleString()}`, "지출"]} />
-                    <Bar dataKey="spend" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="panel">
+                <div className="p-head"><h3>일별 지출</h3></div>
+                <div className="p-body">
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={dailyChart}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--dim)" }} />
+                      <YAxis tick={{ fontSize: 10, fill: "var(--dim)" }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                      <Tooltip formatter={(v) => [`₩${Math.round(Number(v)).toLocaleString()}`, "지출"]} contentStyle={{ background: "var(--bg-1)", border: "1px solid var(--line)", borderRadius: 6, fontSize: 11 }} />
+                      <Bar dataKey="spend" fill="var(--amber)" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             )}
             {topActions.length > 0 && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">주요 액션</h3>
-                <div className="space-y-2">
+              <div className="panel">
+                <div className="p-head"><h3>주요 액션</h3></div>
+                <div className="p-body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {topActions.map(([type, count]) => (
-                    <div key={type} className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{ACTION_LABELS[type] ?? type}</span>
-                      <div className="text-right">
-                        <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{formatNumber(count)}</span>
+                    <div key={type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 11, color: "var(--dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ACTION_LABELS[type] ?? type}</span>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{formatNumber(count)}</span>
                         {accountTotals.spend > 0 && (
-                          <span className="text-[10px] text-slate-400 ml-1.5">
+                          <span style={{ fontSize: 10, color: "var(--dim)", marginLeft: 6 }}>
                             CPA ₩{Math.round(accountTotals.spend / count).toLocaleString()}
                           </span>
                         )}
@@ -330,11 +320,10 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
             )}
           </div>
 
-          {/* ── 3-Column Panel ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3" style={{ minHeight: 400 }}>
-            {/* Campaign Panel */}
+          {/* 3-Column Panel */}
+          <div className="three" style={{ minHeight: 400 }}>
             <PanelList
-              icon={<Megaphone className="w-3.5 h-3.5" />}
+              icon={<Megaphone style={{ width: 13, height: 13 }} />}
               title="캠페인"
               count={campaigns.length}
               rows={campaigns}
@@ -342,10 +331,8 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
               onSelect={(id) => { setSelectedCampaign(id === selectedCampaign ? null : id); setSelectedAdset(null) }}
               totalSpend={accountTotals.spend}
             />
-
-            {/* Adset Panel */}
             <PanelList
-              icon={<Layers className="w-3.5 h-3.5" />}
+              icon={<Layers style={{ width: 13, height: 13 }} />}
               title={selectedCampaign ? `광고세트` : "전체 광고세트"}
               subtitle={selectedCampaign ? campaigns.find((c) => c.id === selectedCampaign)?.name : undefined}
               count={filteredAdsets.length}
@@ -354,8 +341,6 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
               onSelect={(id) => setSelectedAdset(id === selectedAdset ? null : id)}
               totalSpend={sumRows(filteredAdsets).spend}
             />
-
-            {/* Ad Panel */}
             <AdPanelList
               title={selectedAdset ? "소재(광고)" : selectedCampaign ? "캠페인 소재" : "전체 소재"}
               subtitle={selectedAdset ? filteredAdsets.find((s) => s.id === selectedAdset)?.name : undefined}
@@ -370,22 +355,28 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
 
       {/* Empty */}
       {!loading && !hasData && selectedAccount && (
-        <div className="text-center py-16 text-slate-400"><p>조회 버튼을 눌러 데이터를 불러오세요.</p></div>
+        <div className="empty"><p>조회 버튼을 눌러 데이터를 불러오세요.</p></div>
       )}
       {!selectedAccount && (
-        <div className="text-center py-16 text-slate-400"><p>광고 계정을 선택하세요.</p></div>
+        <div className="empty"><p>광고 계정을 선택하세요.</p></div>
       )}
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
-          <div className="relative max-w-2xl max-h-[80vh] bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{previewImage.name}</p>
-              <button onClick={() => setPreviewImage(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">&times;</button>
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 50, background: "#000c", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            style={{ position: "relative", maxWidth: 640, maxHeight: "80vh", background: "var(--bg-1)", borderRadius: 14, overflow: "hidden", border: "1px solid var(--line)", boxShadow: "0 40px 120px #000c" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{previewImage.name}</p>
+              <button onClick={() => setPreviewImage(null)} style={{ color: "var(--dim)", fontSize: 18 }}>&times;</button>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={previewImage.url} alt={previewImage.name} className="w-full max-h-[70vh] object-contain" />
+            <img src={previewImage.url} alt={previewImage.name} style={{ width: "100%", maxHeight: "70vh", objectFit: "contain" }} />
           </div>
         </div>
       )}
@@ -393,13 +384,13 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
   )
 }
 
-/* ─── Sub-components ─── */
+/* --- Sub-components --- */
 
 function MiniKpi({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2.5">
-      <p className="text-[10px] text-slate-400 mb-0.5">{label}</p>
-      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{value}</p>
+    <div className="kpi">
+      <p className="top">{label}</p>
+      <p className="v">{value}</p>
     </div>
   )
 }
@@ -412,18 +403,16 @@ function PanelList({
   onSelect: (id: string) => void; totalSpend: number
 }) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400">{icon}</span>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
-          <span className="text-xs text-slate-400 ml-auto">{count}개</span>
-        </div>
-        {subtitle && <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 truncate">{subtitle}</p>}
+    <div className="panel">
+      <div className="p-head">
+        <span style={{ color: "var(--dim)" }}>{icon}</span>
+        <h3>{title}</h3>
+        <span style={{ fontSize: 10, color: "var(--dim)", marginLeft: "auto" }}>{count}개</span>
       </div>
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-700/50" style={{ maxHeight: 420 }}>
+      {subtitle && <p style={{ fontSize: 10, color: "var(--amber)", padding: "4px 18px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subtitle}</p>}
+      <div style={{ flex: 1, overflowY: "auto", maxHeight: 420 }}>
         {rows.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-8">데이터 없음</p>
+          <p className="empty">데이터 없음</p>
         ) : rows.map((row) => {
           const pct = totalSpend > 0 ? (row.spend / totalSpend) * 100 : 0
           const action = getTopAction(row.actions)
@@ -432,33 +421,38 @@ function PanelList({
             <button
               key={row.id}
               onClick={() => onSelect(row.id)}
-              className={cn(
-                "w-full text-left px-4 py-3 transition-colors",
-                active
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500"
-                  : "hover:bg-slate-50 dark:hover:bg-slate-700/30 border-l-2 border-transparent"
-              )}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                padding: "10px 14px",
+                borderBottom: "1px solid var(--line)",
+                transition: "background .15s",
+                background: active ? "var(--amber-dim)" : "transparent",
+                borderLeft: active ? "2px solid var(--amber)" : "2px solid transparent",
+              }}
+              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--bg-2)" }}
+              onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent" }}
             >
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate leading-tight">{row.name}</p>
-              <div className="flex items-center gap-3 mt-1.5">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.2 }}>{row.name}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
                   ₩{Math.round(row.spend).toLocaleString()}
                 </span>
-                <span className="text-[10px] text-slate-400">{pct.toFixed(1)}%</span>
-                <span className="text-[10px] text-slate-400">CTR {row.ctr.toFixed(2)}%</span>
+                <span style={{ fontSize: 10, color: "var(--dim)" }}>{pct.toFixed(1)}%</span>
+                <span style={{ fontSize: 10, color: "var(--dim)" }}>CTR {row.ctr.toFixed(2)}%</span>
               </div>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-[10px] text-slate-400">노출 {formatNumber(row.impressions)}</span>
-                <span className="text-[10px] text-slate-400">클릭 {formatNumber(row.clicks)}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                <span style={{ fontSize: 10, color: "var(--dim)" }}>노출 {formatNumber(row.impressions)}</span>
+                <span style={{ fontSize: 10, color: "var(--dim)" }}>클릭 {formatNumber(row.clicks)}</span>
                 {action && (
-                  <span className="text-[10px] text-blue-500 dark:text-blue-400">
+                  <span style={{ fontSize: 10, color: "var(--amber)" }}>
                     {action.label} {formatNumber(action.value)}
                   </span>
                 )}
               </div>
               {/* Spend bar */}
-              <div className="mt-1.5 w-full h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-400 dark:bg-blue-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} />
+              <div style={{ marginTop: 6, width: "100%", height: 3, background: "var(--line)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ height: "100%", background: "var(--amber)", borderRadius: 2, width: `${Math.min(100, pct)}%` }} />
               </div>
             </button>
           )
@@ -477,18 +471,16 @@ function AdPanelList({
   onImageClick: (url: string, name: string) => void
 }) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Target className="w-3.5 h-3.5 text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
-          <span className="text-xs text-slate-400 ml-auto">{rows.length}개</span>
-        </div>
-        {subtitle && <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 truncate">{subtitle}</p>}
+    <div className="panel">
+      <div className="p-head">
+        <Target style={{ width: 13, height: 13, color: "var(--dim)" }} />
+        <h3>{title}</h3>
+        <span style={{ fontSize: 10, color: "var(--dim)", marginLeft: "auto" }}>{rows.length}개</span>
       </div>
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-700/50" style={{ maxHeight: 420 }}>
+      {subtitle && <p style={{ fontSize: 10, color: "var(--amber)", padding: "4px 18px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subtitle}</p>}
+      <div style={{ flex: 1, overflowY: "auto", maxHeight: 420 }}>
         {rows.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-8">데이터 없음</p>
+          <p className="empty">데이터 없음</p>
         ) : rows.map((row) => {
           const preview = previews[row.id]
           const imgUrl = preview?.thumbnail_url ?? preview?.image_url
@@ -497,44 +489,44 @@ function AdPanelList({
           const action = getTopAction(row.actions)
 
           return (
-            <div key={row.id} className="px-4 py-3">
-              <div className="flex gap-3">
+            <div key={row.id} style={{ padding: "10px 14px", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ display: "flex", gap: 10 }}>
                 {/* Thumbnail */}
                 {imgUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={imgUrl}
                     alt={row.name}
-                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border border-slate-200 dark:border-slate-600 cursor-zoom-in hover:ring-2 hover:ring-blue-400 transition"
+                    style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover", flexShrink: 0, border: "1px solid var(--line)", cursor: "zoom-in" }}
                     onClick={() => onImageClick(fullUrl ?? imgUrl, row.name)}
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                    <ImageIcon className="w-5 h-5 text-slate-300 dark:text-slate-500" />
+                  <div style={{ width: 48, height: 48, borderRadius: 6, background: "var(--bg-2)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                    <ImageIcon style={{ width: 18, height: 18, color: "var(--dimmer)" }} />
                   </div>
                 )}
 
                 {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate leading-tight">{row.name}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.2 }}>{row.name}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
                       ₩{Math.round(row.spend).toLocaleString()}
                     </span>
-                    <span className="text-[10px] text-slate-400">{pct.toFixed(1)}%</span>
+                    <span style={{ fontSize: 10, color: "var(--dim)" }}>{pct.toFixed(1)}%</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-[10px] text-slate-400">노출 {formatNumber(row.impressions)}</span>
-                    <span className="text-[10px] text-slate-400">클릭 {formatNumber(row.clicks)}</span>
-                    <span className="text-[10px] text-slate-400">CTR {row.ctr.toFixed(2)}%</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 10, color: "var(--dim)" }}>노출 {formatNumber(row.impressions)}</span>
+                    <span style={{ fontSize: 10, color: "var(--dim)" }}>클릭 {formatNumber(row.clicks)}</span>
+                    <span style={{ fontSize: 10, color: "var(--dim)" }}>CTR {row.ctr.toFixed(2)}%</span>
                     {action && (
-                      <span className="text-[10px] text-blue-500 dark:text-blue-400">
+                      <span style={{ fontSize: 10, color: "var(--amber)" }}>
                         {action.label} {formatNumber(action.value)}
                       </span>
                     )}
                   </div>
-                  <div className="mt-1 w-full h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-purple-400 dark:bg-purple-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} />
+                  <div style={{ marginTop: 4, width: "100%", height: 3, background: "var(--line)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", background: "var(--plum)", borderRadius: 2, width: `${Math.min(100, pct)}%` }} />
                   </div>
                 </div>
               </div>

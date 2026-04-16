@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import ActivityForm from "@/components/admin/ActivityForm"
-import { FileText } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 
 export default async function AdminActivityPage() {
@@ -18,36 +17,50 @@ export default async function AdminActivityPage() {
     .limit(20)
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <FileText className="w-5 h-5 text-slate-500" />
-        <h1 className="text-xl font-bold text-slate-900">운영 현황 작성</h1>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-4">새 운영 현황 등록</h2>
-        <ActivityForm brands={brands ?? []} campaigns={campaigns ?? []} />
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">최근 운영 현황</h2>
+    <div className="canvas">
+      <div className="page-head">
+        <div>
+          <h1>Activity <em>Log</em></h1>
+          <p className="sub">운영 현황 작성</p>
         </div>
-        <div className="divide-y divide-slate-100">
+      </div>
+
+      <div className="panel">
+        <div className="p-head">
+          <h3>새 운영 현황 등록</h3>
+        </div>
+        <div className="p-body">
+          <ActivityForm brands={brands ?? []} campaigns={campaigns ?? []} />
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="p-head">
+          <h3>최근 운영 현황</h3>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           {activities?.map((a) => (
-            <div key={a.id} className="px-5 py-3.5 hover:bg-slate-50 transition">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-xs text-slate-400">{formatDate(a.activity_date)}</span>
+            <div
+              key={a.id}
+              style={{
+                padding: "12px 18px",
+                borderBottom: "1px solid var(--line)",
+                transition: "background .15s",
+                cursor: "default",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: "var(--dim)" }}>{formatDate(a.activity_date)}</span>
                 {a.channel && (
-                  <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                    {a.channel}
-                  </span>
+                  <span className="tag neutral">{a.channel}</span>
                 )}
-                <span className="text-xs text-slate-400 ml-auto">
+                <span style={{ fontSize: 11, color: "var(--dim)", marginLeft: "auto" }}>
                   {(a.brands as unknown as { name: string } | null)?.name}
                 </span>
               </div>
-              <p className="text-sm text-slate-800">{a.title}</p>
+              <p style={{ fontSize: 13, color: "var(--text)" }}>{a.title}</p>
             </div>
           ))}
         </div>

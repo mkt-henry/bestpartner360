@@ -64,26 +64,26 @@ export default function CalendarEventForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="form-grid cols-2">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">브랜드 *</label>
+          <label className="form-label">브랜드 *</label>
           <select
             value={form.brand_id}
             onChange={(e) => setForm({ ...form, brand_id: e.target.value, campaign_id: "" })}
             required
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="form-select"
           >
             <option value="">브랜드 선택</option>
             {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">캠페인 (선택)</label>
+          <label className="form-label">캠페인 (선택)</label>
           <select
             value={form.campaign_id}
             onChange={(e) => setForm({ ...form, campaign_id: e.target.value })}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="form-select"
           >
             <option value="">캠페인 선택</option>
             {filteredCampaigns.map((c) => (
@@ -94,55 +94,55 @@ export default function CalendarEventForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1.5">제목 *</label>
+        <label className="form-label">제목 *</label>
         <input
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           required
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="form-input"
           placeholder="예: 메타 봄 시즌 소재 업로드"
         />
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="form-grid cols-4">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">채널</label>
+          <label className="form-label">채널</label>
           <select
             value={form.channel}
             onChange={(e) => setForm({ ...form, channel: e.target.value })}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="form-select"
           >
             <option value="">선택</option>
             {CHANNELS.map((ch) => <option key={ch} value={ch}>{ch}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">소재 유형</label>
+          <label className="form-label">소재 유형</label>
           <select
             value={form.asset_type}
             onChange={(e) => setForm({ ...form, asset_type: e.target.value })}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="form-select"
           >
             <option value="">선택</option>
             {ASSET_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">날짜 *</label>
+          <label className="form-label">날짜 *</label>
           <input
             type="date"
             value={form.event_date}
             onChange={(e) => setForm({ ...form, event_date: e.target.value })}
             required
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="form-input"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">상태</label>
+          <label className="form-label">상태</label>
           <select
             value={form.status}
             onChange={(e) => setForm({ ...form, status: e.target.value as CalendarEventStatus })}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="form-select"
           >
             {STATUSES.map((s) => (
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -152,23 +152,21 @@ export default function CalendarEventForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1.5">설명</label>
+        <label className="form-label">설명</label>
         <textarea
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           rows={2}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="form-textarea"
           placeholder="일정에 대한 설명을 입력하세요."
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition"
-      >
-        {loading ? "저장 중..." : "일정 등록"}
-      </button>
+      <div className="form-actions">
+        <button type="submit" disabled={loading} className="btn primary">
+          {loading ? "저장 중..." : "일정 등록"}
+        </button>
+      </div>
     </form>
   )
 }

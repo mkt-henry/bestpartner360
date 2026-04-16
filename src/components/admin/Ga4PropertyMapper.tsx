@@ -16,7 +16,6 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  // 입력 폼 상태
   const [brandId, setBrandId] = useState("")
   const [propertyId, setPropertyId] = useState("")
   const [propertyName, setPropertyName] = useState("")
@@ -63,7 +62,6 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
           },
         ]
       })
-      // 폼 초기화
       setBrandId("")
       setPropertyId("")
       setPropertyName("")
@@ -95,34 +93,28 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm px-4 py-3 rounded-lg">
+        <div style={{ background: "#e5553b1a", color: "var(--bad)", fontSize: 12, padding: "10px 14px", borderRadius: 8, border: "1px solid #e5553b30" }}>
           {error}
         </div>
       )}
 
       {/* 추가 폼 */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            GA4 속성 추가
-          </h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-            GA4 관리 &gt; 속성 설정에서 속성 ID를 확인할 수 있습니다
-          </p>
+      <div className="panel">
+        <div className="p-head" style={{ flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
+          <h3>GA4 속성 추가</h3>
+          <span style={{ fontSize: 10, color: "var(--dim)", textTransform: "none", letterSpacing: "normal" }}>GA4 관리 &gt; 속성 설정에서 속성 ID를 확인할 수 있습니다</span>
         </div>
 
-        <div className="px-5 py-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="p-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="form-grid cols-2">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                브랜드
-              </label>
+              <label className="form-label">브랜드</label>
               <select
                 value={brandId}
                 onChange={(e) => setBrandId(e.target.value)}
-                className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                className="form-select"
               >
                 <option value="">브랜드 선택</option>
                 {brands.map((b) => (
@@ -132,91 +124,91 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Property ID
-              </label>
+              <label className="form-label">Property ID</label>
               <input
                 type="text"
                 value={propertyId}
                 onChange={(e) => setPropertyId(e.target.value)}
                 placeholder="123456789"
-                className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                className="form-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                속성 이름
-              </label>
+              <label className="form-label">속성 이름</label>
               <input
                 type="text"
                 value={propertyName}
                 onChange={(e) => setPropertyName(e.target.value)}
                 placeholder="예: GVB-KOREA 웹사이트"
-                className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                className="form-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                웹사이트 URL
-              </label>
+              <label className="form-label">웹사이트 URL</label>
               <input
                 type="url"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://example.com"
-                className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                className="form-input"
               />
             </div>
           </div>
 
-          <button
-            onClick={handleAdd}
-            disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Plus className="w-3.5 h-3.5" />
-            )}
-            추가
-          </button>
+          <div className="form-actions">
+            <button
+              onClick={handleAdd}
+              disabled={saving}
+              className="btn primary"
+              style={{ opacity: saving ? 0.5 : 1 }}
+            >
+              {saving ? (
+                <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} />
+              ) : (
+                <Plus style={{ width: 13, height: 13 }} />
+              )}
+              추가
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 현재 매핑 목록 */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            연결된 GA4 속성 ({mappings.length}개)
-          </h2>
+      <div className="panel">
+        <div className="p-head">
+          <h3>연결된 GA4 속성 ({mappings.length}개)</h3>
         </div>
 
-        <div className="divide-y divide-slate-100 dark:divide-slate-700">
+        <div>
           {mappings.length === 0 ? (
-            <p className="px-5 py-8 text-sm text-slate-400 text-center">
-              연결된 GA4 속성이 없습니다
-            </p>
+            <p className="empty">연결된 GA4 속성이 없습니다</p>
           ) : (
-            mappings.map((m) => (
+            mappings.map((m, idx) => (
               <div
                 key={m.property_id}
-                className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                style={{
+                  padding: "12px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  borderBottom: idx < mappings.length - 1 ? "1px solid var(--line)" : "none",
+                }}
               >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {m.property_name}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-xs text-slate-400 font-mono">{m.property_id}</span>
-                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 10, color: "var(--dim)", fontFamily: "var(--c-mono)" }}>{m.property_id}</span>
+                    <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 500 }}>
                       {m.brand?.name ?? "브랜드"}
                     </span>
                     {m.website_url && (
-                      <a href={m.website_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline">
-                        <ExternalLink className="w-3 h-3" />
+                      <a href={m.website_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10, color: "var(--good)", textDecoration: "none" }}>
+                        <ExternalLink style={{ width: 10, height: 10 }} />
                         {m.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
                       </a>
                     )}
@@ -226,12 +218,13 @@ export default function Ga4PropertyMapper({ brands, initialMappings }: Props) {
                 <button
                   onClick={() => handleDelete(m.property_id)}
                   disabled={deleting === m.property_id}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
+                  className="btn danger"
+                  style={{ padding: "4px 8px", fontSize: 10, opacity: deleting === m.property_id ? 0.5 : 1 }}
                 >
                   {deleting === m.property_id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} />
                   ) : (
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 style={{ width: 12, height: 12 }} />
                   )}
                   삭제
                 </button>

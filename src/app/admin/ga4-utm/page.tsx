@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { TrendingUp } from "lucide-react"
 import Ga4UtmManager from "@/components/admin/Ga4UtmManager"
 import type { Brand } from "@/types"
 
@@ -38,24 +37,22 @@ export default async function AdminGa4UtmPage({ searchParams }: PageProps) {
   }))
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <TrendingUp className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">GA4 UTM 관리</h1>
+    <div className="canvas">
+      <div className="page-head">
+        <div>
+          <h1>GA4 <em>UTM</em></h1>
+          <p className="sub">UTM 파라미터 관리 및 성과 추적</p>
+        </div>
       </div>
 
       {brands && brands.length > 0 ? (
         <>
-          <div className="flex gap-1 flex-wrap">
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {brands.map((brand) => (
               <Link
                 key={brand.id}
                 href={`/admin/ga4-utm?brand=${brand.id}`}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  brand.id === activeBrandId
-                    ? "bg-blue-600 text-white"
-                    : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300"
-                }`}
+                className={brand.id === activeBrandId ? "chip on" : "chip"}
               >
                 {brand.name}
               </Link>
@@ -70,9 +67,11 @@ export default async function AdminGa4UtmPage({ searchParams }: PageProps) {
           />
         </>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
-          <p className="text-sm text-slate-400 mb-3">먼저 브랜드를 등록해주세요.</p>
-          <Link href="/admin/brands" className="text-sm text-blue-600 hover:text-blue-700 font-medium">브랜드 관리 →</Link>
+        <div className="panel">
+          <div className="empty">
+            <p>먼저 브랜드를 등록해주세요.</p>
+            <Link href="/admin/brands" className="btn" style={{ display: "inline-flex", marginTop: 12 }}>브랜드 관리 →</Link>
+          </div>
         </div>
       )}
     </div>

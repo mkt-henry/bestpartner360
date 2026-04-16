@@ -92,21 +92,27 @@ export default function KpiEditor({
   const addedKeys = new Set(kpis.map((k) => k.metric_key))
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Preset */}
       <div>
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">프리셋 지표</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="form-label" style={{ marginBottom: 8 }}>프리셋 지표</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {PRESET_METRICS.map((p) => (
             <button
               key={p.key}
               onClick={() => addPreset(p)}
               disabled={addedKeys.has(p.key)}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                addedKeys.has(p.key)
-                  ? "border-blue-200 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 cursor-default"
-                  : "border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-              }`}
+              style={{
+                fontSize: 11,
+                padding: "5px 10px",
+                borderRadius: 5,
+                border: "1px solid",
+                borderColor: addedKeys.has(p.key) ? "var(--amber)" : "var(--line)",
+                background: addedKeys.has(p.key) ? "var(--amber-dim)" : "var(--bg-2)",
+                color: addedKeys.has(p.key) ? "var(--amber)" : "var(--text-2)",
+                cursor: addedKeys.has(p.key) ? "default" : "pointer",
+                transition: "all .15s",
+              }}
             >
               {addedKeys.has(p.key) ? "✓ " : "+ "}{p.label} ({p.unit})
             </button>
@@ -116,31 +122,35 @@ export default function KpiEditor({
 
       {/* Custom */}
       <div>
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">커스텀 지표 추가</p>
-        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+        <p className="form-label" style={{ marginBottom: 8 }}>커스텀 지표 추가</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
           <input
             value={customKey}
             onChange={(e) => setCustomKey(e.target.value)}
             placeholder="키 (영문, 예: avg_order)"
-            className="flex-1 min-w-0 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+            className="form-input"
+            style={{ flex: 1, minWidth: 0 }}
           />
           <input
             value={customLabel}
             onChange={(e) => setCustomLabel(e.target.value)}
             placeholder="이름 (예: 평균 주문금액)"
-            className="flex-1 min-w-0 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+            className="form-input"
+            style={{ flex: 1, minWidth: 0 }}
           />
           <input
             value={customUnit}
             onChange={(e) => setCustomUnit(e.target.value)}
             placeholder="단위"
-            className="w-20 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-100"
+            className="form-input"
+            style={{ width: 80 }}
           />
           <button
             onClick={addCustom}
-            className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+            className="btn"
+            style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus style={{ width: 13, height: 13 }} />
             추가
           </button>
         </div>
@@ -149,51 +159,72 @@ export default function KpiEditor({
       {/* KPI List */}
       {kpis.length > 0 ? (
         <div>
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">설정된 KPI ({kpis.length}개)</p>
-          <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+          <p className="form-label" style={{ marginBottom: 8 }}>설정된 KPI ({kpis.length}개)</p>
+          <div className="panel" style={{ overflow: "hidden" }}>
             {kpis.map((k, i) => (
-              <div key={k.metric_key} className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800">
-                <GripVertical className="w-4 h-4 text-slate-300 cursor-grab flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{k.label}</span>
-                  <span className="text-xs text-slate-400 ml-2 hidden sm:inline">({k.metric_key})</span>
+              <div
+                key={k.metric_key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "10px 14px",
+                  borderBottom: i < kpis.length - 1 ? "1px solid var(--line)" : "none",
+                  background: "var(--bg-1)",
+                }}
+              >
+                <GripVertical style={{ width: 14, height: 14, color: "var(--dimmer)", cursor: "grab", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text)" }}>{k.label}</span>
+                  <span style={{ fontSize: 10, color: "var(--dim)", marginLeft: 8 }}>({k.metric_key})</span>
                   {k.unit && (
-                    <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded ml-2">
-                      {k.unit}
-                    </span>
+                    <span className="tag neutral" style={{ marginLeft: 8 }}>{k.unit}</span>
                   )}
                 </div>
                 <button
                   onClick={() => toggleVisible(i)}
-                  className={`p-1.5 rounded transition flex-shrink-0 ${
-                    k.is_visible ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30" : "text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                  }`}
+                  style={{
+                    padding: 4,
+                    borderRadius: 4,
+                    color: k.is_visible ? "var(--amber)" : "var(--dimmer)",
+                    flexShrink: 0,
+                    transition: "color .15s",
+                  }}
                   title={k.is_visible ? "숨기기" : "보이기"}
                 >
-                  {k.is_visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {k.is_visible ? <Eye style={{ width: 14, height: 14 }} /> : <EyeOff style={{ width: 14, height: 14 }} />}
                 </button>
                 <button
                   onClick={() => removeKpi(i)}
-                  className="p-1.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition flex-shrink-0"
+                  style={{
+                    padding: 4,
+                    borderRadius: 4,
+                    color: "var(--dimmer)",
+                    flexShrink: 0,
+                    transition: "color .15s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "var(--bad)"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "var(--dimmer)"}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 style={{ width: 14, height: 14 }} />
                 </button>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <p className="text-sm text-slate-400 text-center py-4">
+        <p style={{ fontSize: 12, color: "var(--dim)", textAlign: "center", padding: "16px 0" }}>
           KPI를 추가하지 않으면 Viewer 화면에서 성과 섹션이 숨겨집니다.
         </p>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="form-error">{error}</p>}
 
       <button
         onClick={handleSave}
         disabled={loading}
-        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition"
+        className="btn primary"
+        style={{ width: "100%", justifyContent: "center", opacity: loading ? 0.6 : 1 }}
       >
         {loading ? "저장 중..." : "저장하고 돌아가기"}
       </button>

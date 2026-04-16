@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Plus, Trash2, ChevronDown, ChevronUp, Save, ExternalLink, Link2 } from "lucide-react"
+import { Loader2, Plus, Trash2, ChevronDown, ChevronUp, Save, Link2 } from "lucide-react"
 import type { Brand, Ga4UtmEntry, Ga4UtmPerformance } from "@/types"
 
 interface Props {
@@ -47,9 +47,8 @@ export default function Ga4UtmManager({ brandId, brands, entries: initialEntries
       const campaign = p.get("utm_campaign") ?? ""
       const term = p.get("utm_term") ?? ""
       const content = p.get("utm_content") ?? ""
-      if (!source && !medium) return // UTM 파라미터가 없으면 무시
+      if (!source && !medium) return
 
-      // UTM 파라미터 제거한 깨끗한 랜딩 URL
       p.delete("utm_source"); p.delete("utm_medium"); p.delete("utm_campaign")
       p.delete("utm_term"); p.delete("utm_content")
       const remaining = p.toString()
@@ -164,103 +163,109 @@ export default function Ga4UtmManager({ brandId, brands, entries: initialEntries
   }
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm px-4 py-3 rounded-lg">{error}</div>
+        <div style={{ background: "#e5553b1a", color: "var(--bad)", fontSize: 12, padding: "10px 14px", borderRadius: 8, border: "1px solid #e5553b30" }}>{error}</div>
       )}
 
       {/* 추가 버튼 */}
-      <div className="flex justify-end">
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <button
           onClick={() => { setShowAdd(!showAdd); setError(null) }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition"
+          className={showAdd ? "btn" : "btn primary"}
         >
-          {showAdd ? "취소" : <><Plus className="w-3.5 h-3.5" /> UTM 추가</>}
+          {showAdd ? "취소" : <><Plus style={{ width: 13, height: 13 }} /> UTM 추가</>}
         </button>
       </div>
 
       {/* 추가 폼 */}
       {showAdd && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-3">
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">새 UTM 추가</p>
+        <div className="panel">
+          <div className="p-head">
+            <h3>새 UTM 추가</h3>
+          </div>
+          <div className="p-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* URL 붙여넣기로 자동 파싱 */}
+            <div>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <Link2 style={{ width: 10, height: 10 }} />
+                UTM 링크 붙여넣기 (자동 파싱)
+              </label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://example.com/?utm_source=naver&utm_medium=blog&utm_campaign=..."
+                  className="form-input"
+                  style={{ flex: 1, fontFamily: "var(--c-mono)", fontSize: 11 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => parseUtmUrl(urlInput)}
+                  className="btn"
+                >
+                  파싱
+                </button>
+              </div>
+            </div>
 
-          {/* URL 붙여넣기로 자동 파싱 */}
-          <div>
-            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
-              <Link2 className="w-3 h-3 inline mr-1" />
-              UTM 링크 붙여넣기 (자동 파싱)
-            </label>
-            <div className="flex gap-2">
-              <input
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/?utm_source=naver&utm_medium=blog&utm_campaign=..."
-                className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100 font-mono text-xs"
-              />
-              <button
-                type="button"
-                onClick={() => parseUtmUrl(urlInput)}
-                className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition"
-              >
-                파싱
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+              <span style={{ fontSize: 10, color: "var(--dim)" }}>또는 직접 입력</span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            </div>
+
+            <div className="form-grid cols-2">
+              <div>
+                <label className="form-label">이름 *</label>
+                <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="예: 4월 프로모션 블로그" className="form-input" />
+              </div>
+              <div>
+                <label className="form-label">랜딩 URL</label>
+                <input value={form.landing_url} onChange={(e) => setForm({ ...form, landing_url: e.target.value })} placeholder="https://example.com/promo" className="form-input" />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+              <div>
+                <label className="form-label">source *</label>
+                <input value={form.utm_source} onChange={(e) => setForm({ ...form, utm_source: e.target.value })} placeholder="naver" className="form-input" />
+              </div>
+              <div>
+                <label className="form-label">medium *</label>
+                <input value={form.utm_medium} onChange={(e) => setForm({ ...form, utm_medium: e.target.value })} placeholder="cpc" className="form-input" />
+              </div>
+              <div>
+                <label className="form-label">campaign</label>
+                <input value={form.utm_campaign} onChange={(e) => setForm({ ...form, utm_campaign: e.target.value })} placeholder="spring_sale" className="form-input" />
+              </div>
+              <div>
+                <label className="form-label">term</label>
+                <input value={form.utm_term} onChange={(e) => setForm({ ...form, utm_term: e.target.value })} className="form-input" />
+              </div>
+              <div>
+                <label className="form-label">content</label>
+                <input value={form.utm_content} onChange={(e) => setForm({ ...form, utm_content: e.target.value })} className="form-input" />
+              </div>
+            </div>
+            <div className="form-actions">
+              <button onClick={addEntry} disabled={saving} className="btn primary" style={{ opacity: saving ? 0.6 : 1 }}>
+                {saving ? <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} /> : <Plus style={{ width: 13, height: 13 }} />} 추가
               </button>
             </div>
           </div>
-
-          <div className="relative flex items-center">
-            <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
-            <span className="px-3 text-[10px] text-slate-400">또는 직접 입력</span>
-            <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">이름 *</label>
-              <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="예: 4월 프로모션 블로그" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">랜딩 URL</label>
-              <input value={form.landing_url} onChange={(e) => setForm({ ...form, landing_url: e.target.value })} placeholder="https://example.com/promo" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">source *</label>
-              <input value={form.utm_source} onChange={(e) => setForm({ ...form, utm_source: e.target.value })} placeholder="naver" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">medium *</label>
-              <input value={form.utm_medium} onChange={(e) => setForm({ ...form, utm_medium: e.target.value })} placeholder="cpc" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">campaign</label>
-              <input value={form.utm_campaign} onChange={(e) => setForm({ ...form, utm_campaign: e.target.value })} placeholder="spring_sale" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">term</label>
-              <input value={form.utm_term} onChange={(e) => setForm({ ...form, utm_term: e.target.value })} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">content</label>
-              <input value={form.utm_content} onChange={(e) => setForm({ ...form, utm_content: e.target.value })} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-slate-100" />
-            </div>
-          </div>
-          <button onClick={addEntry} disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition">
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} 추가
-          </button>
         </div>
       )}
 
       {/* UTM 목록 */}
       {entries.length === 0 && !showAdd ? (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-12 text-center">
-          <p className="text-sm text-slate-400 mb-3">등록된 UTM이 없습니다.</p>
-          <button onClick={() => setShowAdd(true)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+        <div className="empty">
+          <p style={{ marginBottom: 10 }}>등록된 UTM이 없습니다.</p>
+          <button onClick={() => setShowAdd(true)} style={{ fontSize: 12, color: "var(--amber)" }}>
             첫 번째 UTM 추가 →
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {entries.map((entry) => {
             const isExpanded = expandedId === entry.id
             const totalSessions = entry.performance.reduce((s, p) => s + p.sessions, 0)
@@ -268,91 +273,102 @@ export default function Ga4UtmManager({ brandId, brands, entries: initialEntries
             const totalConversions = entry.performance.reduce((s, p) => s + p.conversions, 0)
 
             return (
-              <div key={entry.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div key={entry.id} className="panel">
                 {/* 헤더 */}
                 <button
                   onClick={() => {
                     setExpandedId(isExpanded ? null : entry.id)
                     setPerfForm({ record_date: new Date().toISOString().slice(0, 10), sessions: "", users: "", pageviews: "", bounce_rate: "", avg_session_duration: "", conversions: "", revenue: "" })
                   }}
-                  className="w-full px-5 py-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition text-left"
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    textAlign: "left",
+                    transition: "background .15s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-2)"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                 >
-                  {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{entry.label}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-mono">{entry.utm_source}/{entry.utm_medium}</span>
-                      {entry.utm_campaign && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">{entry.utm_campaign}</span>}
+                  {isExpanded ? <ChevronUp style={{ width: 14, height: 14, color: "var(--dim)" }} /> : <ChevronDown style={{ width: 14, height: 14, color: "var(--dim)" }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+                      <span className="tag" style={{ fontFamily: "var(--c-mono)", background: "#1877F220", color: "#6FA8F5" }}>{entry.utm_source}/{entry.utm_medium}</span>
+                      {entry.utm_campaign && <span className="tag neutral" style={{ fontFamily: "var(--c-mono)" }}>{entry.utm_campaign}</span>}
                     </div>
                   </div>
-                  <div className="hidden sm:flex items-center gap-4 text-xs text-slate-500">
-                    <span>세션 <strong className="text-slate-700 dark:text-slate-300">{totalSessions.toLocaleString()}</strong></span>
-                    <span>사용자 <strong className="text-slate-700 dark:text-slate-300">{totalUsers.toLocaleString()}</strong></span>
-                    <span>전환 <strong className="text-slate-700 dark:text-slate-300">{totalConversions.toLocaleString()}</strong></span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 10, color: "var(--dim)" }}>
+                    <span>세션 <strong style={{ color: "var(--text-2)" }}>{totalSessions.toLocaleString()}</strong></span>
+                    <span>사용자 <strong style={{ color: "var(--text-2)" }}>{totalUsers.toLocaleString()}</strong></span>
+                    <span>전환 <strong style={{ color: "var(--text-2)" }}>{totalConversions.toLocaleString()}</strong></span>
                   </div>
                 </button>
 
                 {/* 확장 패널 */}
                 {isExpanded && (
-                  <div className="border-t border-slate-100 dark:border-slate-700 px-5 py-4 space-y-4">
+                  <div style={{ borderTop: "1px solid var(--line)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
                     {/* UTM URL */}
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2">
-                      <code className="text-[10px] text-slate-600 dark:text-slate-400 flex-1 truncate">{buildUtmUrl(entry)}</code>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-2)", borderRadius: 6, padding: "8px 12px" }}>
+                      <code style={{ fontSize: 10, color: "var(--dim)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--c-mono)" }}>{buildUtmUrl(entry)}</code>
                       <button
                         onClick={() => navigator.clipboard.writeText(buildUtmUrl(entry))}
-                        className="text-[10px] text-blue-600 hover:text-blue-700 font-medium flex-shrink-0"
+                        style={{ fontSize: 10, color: "var(--amber)", fontWeight: 500, flexShrink: 0 }}
                       >
                         복사
                       </button>
                     </div>
 
                     {/* 데이터 입력 */}
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 space-y-3">
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">성과 데이터 입력</p>
-                      <div className="flex gap-2 flex-wrap items-end">
+                    <div style={{ background: "var(--bg-2)", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                      <p className="form-label">성과 데이터 입력</p>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end" }}>
                         <div>
-                          <label className="block text-[10px] text-slate-400 mb-0.5">날짜</label>
-                          <input type="date" value={perfForm.record_date} onChange={(e) => setPerfForm({ ...perfForm, record_date: e.target.value })} className="px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 dark:text-slate-100" />
+                          <label className="form-label">날짜</label>
+                          <input type="date" value={perfForm.record_date} onChange={(e) => setPerfForm({ ...perfForm, record_date: e.target.value })} className="form-input" style={{ fontSize: 11, padding: "6px 8px" }} />
                         </div>
                         {METRICS.map((m) => (
                           <div key={m.key}>
-                            <label className="block text-[10px] text-slate-400 mb-0.5">{m.label}</label>
+                            <label className="form-label">{m.label}</label>
                             <input
                               type="number"
                               value={perfForm[m.key as keyof typeof perfForm]}
                               onChange={(e) => setPerfForm({ ...perfForm, [m.key]: e.target.value })}
                               placeholder="0"
-                              className="w-20 px-2 py-1.5 border border-slate-200 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 dark:text-slate-100"
+                              className="form-input"
+                              style={{ width: 72, fontSize: 11, padding: "6px 8px" }}
                             />
                           </div>
                         ))}
-                        <button onClick={() => savePerformance(entry.id)} disabled={perfSaving} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium rounded transition">
-                          {perfSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} 저장
+                        <button onClick={() => savePerformance(entry.id)} disabled={perfSaving} className="btn primary" style={{ padding: "6px 10px", fontSize: 10, opacity: perfSaving ? 0.6 : 1 }}>
+                          {perfSaving ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <Save style={{ width: 12, height: 12 }} />} 저장
                         </button>
                       </div>
                     </div>
 
                     {/* 성과 테이블 */}
                     {entry.performance.length > 0 && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
+                      <div className="tbl-wrap">
+                        <table>
                           <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-600">
-                              <th className="text-left px-2 py-2 text-slate-500 font-medium">날짜</th>
-                              {METRICS.map((m) => <th key={m.key} className="text-right px-2 py-2 text-slate-500 font-medium">{m.label}</th>)}
+                            <tr>
+                              <th>날짜</th>
+                              {METRICS.map((m) => <th key={m.key} className="num">{m.label}</th>)}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                          <tbody>
                             {entry.performance.map((p) => (
-                              <tr key={p.record_date} className="hover:bg-slate-50 dark:hover:bg-slate-800">
-                                <td className="px-2 py-2 text-slate-700 dark:text-slate-300">{p.record_date}</td>
-                                <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">{p.sessions.toLocaleString()}</td>
-                                <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">{p.users.toLocaleString()}</td>
-                                <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">{p.pageviews.toLocaleString()}</td>
-                                <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">{p.bounce_rate != null ? `${p.bounce_rate}%` : "-"}</td>
-                                <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">{p.avg_session_duration != null ? `${p.avg_session_duration}초` : "-"}</td>
-                                <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">{p.conversions.toLocaleString()}</td>
-                                <td className="px-2 py-2 text-right text-slate-700 dark:text-slate-300">{Number(p.revenue).toLocaleString()}원</td>
+                              <tr key={p.record_date}>
+                                <td style={{ color: "var(--text-2)" }}>{p.record_date}</td>
+                                <td className="num" style={{ color: "var(--text-2)" }}>{p.sessions.toLocaleString()}</td>
+                                <td className="num" style={{ color: "var(--text-2)" }}>{p.users.toLocaleString()}</td>
+                                <td className="num" style={{ color: "var(--text-2)" }}>{p.pageviews.toLocaleString()}</td>
+                                <td className="num" style={{ color: "var(--text-2)" }}>{p.bounce_rate != null ? `${p.bounce_rate}%` : "-"}</td>
+                                <td className="num" style={{ color: "var(--text-2)" }}>{p.avg_session_duration != null ? `${p.avg_session_duration}초` : "-"}</td>
+                                <td className="num" style={{ color: "var(--text-2)" }}>{p.conversions.toLocaleString()}</td>
+                                <td className="num" style={{ color: "var(--text-2)" }}>{Number(p.revenue).toLocaleString()}원</td>
                               </tr>
                             ))}
                           </tbody>
@@ -361,9 +377,14 @@ export default function Ga4UtmManager({ brandId, brands, entries: initialEntries
                     )}
 
                     {/* 삭제 */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-                      <button onClick={() => deleteEntry(entry.id)} className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1 transition">
-                        <Trash2 className="w-3 h-3" /> 이 UTM 삭제
+                    <div style={{ paddingTop: 8, borderTop: "1px solid var(--line)" }}>
+                      <button
+                        onClick={() => deleteEntry(entry.id)}
+                        style={{ fontSize: 11, color: "var(--dim)", display: "flex", alignItems: "center", gap: 4, transition: "color .15s" }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = "var(--bad)"}
+                        onMouseLeave={(e) => e.currentTarget.style.color = "var(--dim)"}
+                      >
+                        <Trash2 style={{ width: 12, height: 12 }} /> 이 UTM 삭제
                       </button>
                     </div>
                   </div>

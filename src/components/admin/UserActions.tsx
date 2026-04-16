@@ -78,70 +78,79 @@ export default function UserActions({ user, brands, currentBrandIds, isSelf }: U
 
   if (editing) {
     return (
-      <td colSpan={5} className="px-5 py-4 bg-blue-50 dark:bg-blue-900/20">
-        <div className="grid grid-cols-2 gap-3 max-w-2xl">
+      <td colSpan={5} style={{ padding: "14px 18px", background: "var(--amber-dim)" }}>
+        <div className="form-grid cols-2" style={{ maxWidth: 640 }}>
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">이름</label>
+            <label className="form-label">이름</label>
             <input
               value={form.full_name}
               onChange={e => setForm({ ...form, full_name: e.target.value })}
-              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+              className="form-input"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">이메일</label>
+            <label className="form-label">이메일</label>
             <input
               type="email"
               value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
-              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100"
+              className="form-input"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">새 비밀번호 <span className="text-slate-400">(변경 시만 입력)</span></label>
+            <label className="form-label">
+              새 비밀번호 <span style={{ color: "var(--dim)", fontWeight: "normal", textTransform: "none", letterSpacing: "normal" }}>(변경 시만 입력)</span>
+            </label>
             <input
               type="text"
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               placeholder="변경 없으면 비워두세요"
-              className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100 placeholder-slate-400"
+              className="form-input"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">브랜드 접근</label>
-            <div className="flex flex-wrap gap-1.5">
+            <label className="form-label">브랜드 접근</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {brands.map(b => (
                 <button
                   key={b.id}
                   type="button"
                   onClick={() => toggleBrand(b.id)}
-                  className={`text-xs px-2 py-1 rounded-full border transition ${
-                    form.brand_ids.includes(b.id)
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-blue-400"
-                  }`}
+                  style={{
+                    fontSize: 10,
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    border: "1px solid",
+                    borderColor: form.brand_ids.includes(b.id) ? "var(--amber)" : "var(--line)",
+                    background: form.brand_ids.includes(b.id) ? "var(--amber)" : "var(--bg-2)",
+                    color: form.brand_ids.includes(b.id) ? "var(--bg)" : "var(--text-2)",
+                    transition: "all .15s",
+                    cursor: "pointer",
+                  }}
                 >
                   {b.name}
                 </button>
               ))}
-              {brands.length === 0 && <span className="text-xs text-slate-400">등록된 브랜드 없음</span>}
+              {brands.length === 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>등록된 브랜드 없음</span>}
             </div>
           </div>
         </div>
-        <div className="flex gap-2 mt-3">
+        <div className="form-actions" style={{ marginTop: 10 }}>
           <button
             onClick={handleUpdate}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition"
+            className="btn primary"
+            style={{ opacity: loading ? 0.6 : 1 }}
           >
-            <Check className="w-3.5 h-3.5" />
+            <Check style={{ width: 13, height: 13 }} />
             {loading ? "저장 중..." : "저장"}
           </button>
           <button
             onClick={() => setEditing(false)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 text-xs font-medium rounded-lg transition"
+            className="btn"
           >
-            <X className="w-3.5 h-3.5" />
+            <X style={{ width: 13, height: 13 }} />
             취소
           </button>
         </div>
@@ -150,40 +159,48 @@ export default function UserActions({ user, brands, currentBrandIds, isSelf }: U
   }
 
   return (
-    <td className="px-5 py-3">
-      <div className="flex items-center gap-2">
+    <td style={{ padding: "10px 18px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <button
           onClick={() => setEditing(true)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition"
+          style={{ padding: 4, borderRadius: 4, color: "var(--dim)", transition: "color .15s" }}
+          onMouseEnter={(e) => e.currentTarget.style.color = "var(--amber)"}
+          onMouseLeave={(e) => e.currentTarget.style.color = "var(--dim)"}
           title="수정"
         >
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil style={{ width: 13, height: 13 }} />
         </button>
         {!isSelf && (
           confirmDelete ? (
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-red-600 dark:text-red-400">삭제?</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 10, color: "var(--bad)" }}>삭제?</span>
               <button
                 onClick={handleDelete}
                 disabled={loading}
-                className="p-1 rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+                style={{ padding: 3, borderRadius: 4, color: "var(--bad)", transition: "background .15s" }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#e5553b1a"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
               >
-                <Check className="w-3.5 h-3.5" />
+                <Check style={{ width: 13, height: 13 }} />
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                style={{ padding: 3, borderRadius: 4, color: "var(--dim)", transition: "background .15s" }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-2)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
               >
-                <X className="w-3.5 h-3.5" />
+                <X style={{ width: 13, height: 13 }} />
               </button>
             </div>
           ) : (
             <button
               onClick={() => setConfirmDelete(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition"
+              style={{ padding: 4, borderRadius: 4, color: "var(--dim)", transition: "color .15s" }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "var(--bad)"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "var(--dim)"}
               title="삭제"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 style={{ width: 13, height: 13 }} />
             </button>
           )
         )}

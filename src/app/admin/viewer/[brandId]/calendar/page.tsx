@@ -23,8 +23,13 @@ export default async function AdminViewerCalendarPage({
     .order("event_date")
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">운영 캘린더</h1>
+    <div className="canvas" style={{ maxWidth: 960, margin: '0 auto' }}>
+      <h1 style={{
+        fontFamily: 'var(--c-serif)', fontSize: 20, fontWeight: 700,
+        color: 'var(--text)', margin: '0 0 24px',
+      }}>
+        운영 캘린더
+      </h1>
       <CalendarView events={events ?? []} />
     </div>
   )

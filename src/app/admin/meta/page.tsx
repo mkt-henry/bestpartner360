@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import MetaInsightsDashboard from "@/components/admin/MetaInsightsDashboard"
-import { BarChart2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
 export default async function AdminMetaPage() {
@@ -18,30 +17,23 @@ export default async function AdminMetaPage() {
   }))
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BarChart2 className="w-5 h-5 text-slate-500" />
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Meta 인사이트</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Facebook · Instagram 광고 성과를 확인합니다</p>
-          </div>
+    <div className="canvas">
+      <div className="page-head">
+        <div>
+          <h1>Meta <em>Insights</em></h1>
+          <p className="sub">Facebook · Instagram 광고 성과</p>
         </div>
-        <Link
-          href="/admin/brands"
-          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
-        >
-          계정 관리 →
-        </Link>
+        <Link href="/admin/brands" className="btn">계정 관리 →</Link>
       </div>
 
       {accounts.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-12 text-center">
-          <AlertCircle className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-400 mb-2">연결된 Meta 광고 계정이 없습니다.</p>
-          <Link href="/admin/brands" className="text-sm text-blue-600 hover:text-blue-700">
-            브랜드 관리에서 Meta 계정을 연결하세요 →
-          </Link>
+        <div className="panel">
+          <div className="empty">
+            <p style={{ marginBottom: 8 }}>연결된 Meta 광고 계정이 없습니다.</p>
+            <Link href="/admin/brands" className="btn" style={{ display: "inline-flex" }}>
+              브랜드 관리에서 Meta 계정을 연결하세요 →
+            </Link>
+          </div>
         </div>
       ) : (
         <MetaInsightsDashboard accounts={accounts} />

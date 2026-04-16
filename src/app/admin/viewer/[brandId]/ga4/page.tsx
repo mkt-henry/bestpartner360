@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getGa4Credentials } from "@/lib/credentials"
 import { formatNumber, formatCurrency } from "@/lib/utils"
-import { TrendingUp, ExternalLink } from "lucide-react"
 import Ga4UtmDashboard from "@/components/viewer/Ga4UtmDashboard"
 import Ga4Analytics from "@/components/viewer/Ga4Analytics"
 
@@ -96,43 +95,52 @@ export default async function AdminViewerGa4Page({
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex items-center gap-3">
-        <TrendingUp className="w-5 h-5 text-slate-500" />
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">GA4 분석</h1>
-      </div>
+    <div className="canvas" style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <h1 style={{
+        fontFamily: 'var(--c-serif)', fontSize: 20, fontWeight: 700,
+        color: 'var(--text)', margin: '0 0 24px',
+      }}>
+        GA4 분석
+      </h1>
 
       {properties.length > 0 ? (
-        <div>
-          <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">사이트 분석</h2>
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>사이트 분석</h2>
             {properties.map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
               <a
                 key={p.property_id}
                 href={p.website_url ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 12, color: 'var(--amber)', textDecoration: 'none',
+                }}
               >
-                <ExternalLink className="w-3 h-3" />
                 {p.website_url
                   ? p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "")
                   : p.property_name}
+                <span style={{ fontSize: 10 }}>&#8599;</span>
               </a>
             ))}
           </div>
           <Ga4Analytics properties={properties} />
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-12 text-center">
-          <p className="text-sm text-slate-400">연결된 GA4 속성이 없습니다.</p>
+        <div className="panel" style={{
+          background: 'var(--bg-1)', border: '1px solid var(--line)',
+          borderRadius: 8, padding: '48px 20px', textAlign: 'center',
+          marginBottom: 32,
+        }}>
+          <p className="empty">연결된 GA4 속성이 없습니다.</p>
         </div>
       )}
 
       {entryIds.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">UTM 성과</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: '0 0 12px' }}>UTM 성과</h2>
+          <div className="card-grid cols-5" style={{ marginBottom: 16 }}>
             {[
               { label: "세션", value: formatNumber(totals.sessions) },
               { label: "사용자", value: formatNumber(totals.users) },
@@ -140,9 +148,16 @@ export default async function AdminViewerGa4Page({
               { label: "전환수", value: formatNumber(totals.conversions) },
               { label: "수익", value: formatCurrency(totals.revenue) },
             ].map((card) => (
-              <div key={card.label} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                <p className="text-xs text-slate-400 mb-1">{card.label}</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{card.value}</p>
+              <div
+                key={card.label}
+                className="panel"
+                style={{
+                  background: 'var(--bg-1)', border: '1px solid var(--line)',
+                  borderRadius: 8, padding: 16,
+                }}
+              >
+                <p style={{ fontSize: 11, color: 'var(--dim)', margin: '0 0 4px' }}>{card.label}</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{card.value}</p>
               </div>
             ))}
           </div>

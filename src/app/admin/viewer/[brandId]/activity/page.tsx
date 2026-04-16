@@ -26,39 +26,66 @@ export default async function AdminViewerActivityPage({
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">운영 현황</h1>
+    <div className="canvas" style={{ maxWidth: 720, margin: '0 auto' }}>
+      <h1 style={{
+        fontFamily: 'var(--c-serif)', fontSize: 20, fontWeight: 700,
+        color: 'var(--text)', margin: '0 0 24px',
+      }}>
+        운영 현황
+      </h1>
 
       {sortedDates.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
+        <div className="empty">
           <p>등록된 운영 현황이 없습니다.</p>
         </div>
       ) : (
-        <div className="relative">
+        <div style={{ position: 'relative' }}>
           {sortedDates.map((date) => (
-            <div key={date} className="mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0" />
-                <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{formatDate(date)}</h2>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <div key={date} style={{ marginBottom: 32 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: 'var(--amber)', flexShrink: 0,
+                }} />
+                <h2 style={{
+                  fontSize: 13, fontWeight: 600,
+                  color: 'var(--dim)', margin: 0,
+                }}>
+                  {formatDate(date)}
+                </h2>
+                <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
               </div>
-              <div className="ml-6 space-y-3">
+              <div style={{ marginLeft: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {grouped[date]?.map((act) => (
-                  <div key={act.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-sm transition">
-                    <div className="flex items-center gap-2 mb-2">
+                  <div
+                    key={act.id}
+                    style={{
+                      background: 'var(--bg-1)', border: '1px solid var(--line)',
+                      borderRadius: 8, padding: 20,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       {act.channel && (
-                        <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded font-medium">
-                          {act.channel}
-                        </span>
+                        <span className="tag">{act.channel}</span>
                       )}
                       {(act.campaigns as unknown as { name: string } | null) && (
-                        <span className="text-xs text-slate-400">
+                        <span style={{ fontSize: 12, color: 'var(--dim)' }}>
                           {(act.campaigns as unknown as { name: string }).name}
                         </span>
                       )}
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1.5">{act.title}</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">{act.content}</p>
+                    <h3 style={{
+                      fontSize: 14, fontWeight: 600,
+                      color: 'var(--text)', margin: '0 0 6px',
+                    }}>
+                      {act.title}
+                    </h3>
+                    <p style={{
+                      fontSize: 13, color: 'var(--text-2)',
+                      lineHeight: 1.6, whiteSpace: 'pre-line', margin: 0,
+                    }}>
+                      {act.content}
+                    </p>
                   </div>
                 ))}
               </div>
