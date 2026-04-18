@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { LogoutButton } from "@/components/auth/LogoutButton"
 import type { UserRole } from "@/types"
 
 type NavItem = {
@@ -11,6 +12,7 @@ type NavItem = {
   icon: React.ReactNode
   badge?: string
   trailing?: React.ReactNode
+  requiresGa4?: boolean
 }
 
 // ── Icon primitives (inline SVG so bundle stays light) ────────────────
@@ -93,7 +95,7 @@ const Icon = {
 const viewerMonitor: NavItem[] = [
   { href: "/dashboard", label: "개요", exact: true, icon: Icon.grid },
   { href: "/dashboard/performance", label: "성과", icon: Icon.chart },
-  { href: "/dashboard/ga4", label: "GA4 UTM", icon: Icon.trending },
+  { href: "/dashboard/ga4", label: "GA4", icon: Icon.trending, requiresGa4: true },
 ]
 const viewerWorkspace: NavItem[] = [
   { href: "/dashboard/activity", label: "운영현황", icon: Icon.doc },
@@ -140,12 +142,17 @@ interface SidebarProps {
   userName?: string
   brandName?: string
   propertyCount?: number
+  availableMedia?: {
+    hasGa4: boolean
+  }
 }
 
-export function Sidebar({ role, userName, brandName, propertyCount }: SidebarProps) {
+export function Sidebar({ role, userName, brandName, propertyCount, availableMedia }: SidebarProps) {
   const pathname = usePathname() ?? "/dashboard"
   const isAdmin = role === "admin"
-  const monitor = isAdmin ? adminMonitor : viewerMonitor
+  const monitor = isAdmin
+    ? adminMonitor
+    : viewerMonitor.filter((item) => !item.requiresGa4 || availableMedia?.hasGa4)
   const workspace = isAdmin ? adminWorkspace : viewerWorkspace
 
   const isActive = (item: NavItem) =>
@@ -207,6 +214,7 @@ export function Sidebar({ role, userName, brandName, propertyCount }: SidebarPro
           </div>
           <div className="st" />
         </div>
+        <LogoutButton className="logout-btn" />
       </div>
     </aside>
   )

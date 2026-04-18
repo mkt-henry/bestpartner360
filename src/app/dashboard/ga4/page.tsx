@@ -5,11 +5,10 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getGa4Credentials } from "@/lib/credentials"
-import { formatNumber, formatCurrency } from "@/lib/utils"
+
 import Ga4UtmDashboard from "@/components/viewer/Ga4UtmDashboard"
 import Ga4Analytics from "@/components/viewer/Ga4Analytics"
 import { Topbar, FooterBar } from "@/components/console/Topbar"
-import { Filters } from "@/components/console/Filters"
 
 export default async function DashboardGa4Page() {
   const h = await headers()
@@ -50,6 +49,9 @@ export default async function DashboardGa4Page() {
   ])
 
   const properties = ga4Properties ?? []
+  if (properties.length === 0 && (utmEntries?.length ?? 0) === 0) {
+    redirect("/dashboard")
+  }
 
   const missingUrl = properties.filter((p) => !p.website_url)
   if (missingUrl.length > 0) {
@@ -116,82 +118,45 @@ export default async function DashboardGa4Page() {
   return (
     <>
       <Topbar crumbs={[{ label: "워크스페이스" }, { label: "GA4", strong: true }]} />
-      <Filters />
 
       <div className="canvas">
         <div className="page-head">
           <div>
-            <h1>
-              GA4 <em>분석</em>
-            </h1>
+            <h1>GA4 분석</h1>
             <div className="sub">
-              {properties.length}개 속성 &nbsp; · &nbsp; {entryIds.length} UTM &nbsp; · &nbsp; {monthStart} — {today}
+              {properties.length}개 속성 &nbsp; · &nbsp; {entryIds.length} UTM
             </div>
+          </div>
+          <div className="pg-actions" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {properties.map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
+              <a
+                key={p.property_id}
+                href={p.website_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="chip"
+                style={{ color: "var(--amber)" }}
+              >
+                ↗ {p.website_url ? p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "") : p.property_name}
+              </a>
+            ))}
           </div>
         </div>
 
-        {/* UTM totals KPI row */}
-        {entryIds.length > 0 && (
-          <div className="kpi-row">
-            {[
-              { label: "세션", value: formatNumber(totals.sessions) },
-              { label: "사용자", value: formatNumber(totals.users) },
-              { label: "페이지뷰", value: formatNumber(totals.pageviews) },
-              { label: "전환수", value: formatNumber(totals.conversions) },
-              { label: "수익", value: formatCurrency(totals.revenue) },
-            ].map((card) => (
-              <div key={card.label} className="kpi">
-                <div className="top"><span>{card.label}</span></div>
-                <div className="v">{card.value}</div>
-              </div>
-            ))}
+        {/* GA4 사이트 분석 */}
+        {properties.length > 0 ? (
+          <Ga4Analytics properties={properties} />
+        ) : (
+          <div className="panel">
+            <div className="p-body" style={{ color: "var(--dim)", padding: 24, textAlign: "center" }}>
+              연결된 GA4 속성이 없습니다. 관리자에게 문의하세요.
+            </div>
           </div>
         )}
 
-        {/* GA4 properties */}
-        <div className="panel">
-          <div className="p-head">
-            <h3>사이트 분석</h3>
-            <div className="sub">{properties.length}개 속성</div>
-          </div>
-          <div className="p-body">
-            {properties.length > 0 ? (
-              <>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-                  {properties.map((p: { property_id: string; property_name: string; website_url?: string | null }) => (
-                    <a
-                      key={p.property_id}
-                      href={p.website_url ?? "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="chip"
-                      style={{ color: "var(--amber)" }}
-                    >
-                      ↗ {p.website_url ? p.website_url.replace(/^https?:\/\//, "").replace(/\/$/, "") : p.property_name}
-                    </a>
-                  ))}
-                </div>
-                <Ga4Analytics properties={properties} />
-              </>
-            ) : (
-              <div style={{ color: "var(--dim)", padding: 12 }}>
-                연결된 GA4 속성이 없습니다. 관리자에게 문의하세요.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* UTM performance */}
+        {/* UTM 성과 */}
         {entryIds.length > 0 && (
-          <div className="panel">
-            <div className="p-head">
-              <h3>UTM 성과</h3>
-              <div className="sub">{entryIds.length}건</div>
-            </div>
-            <div className="p-body">
-              <Ga4UtmDashboard entries={entriesWithPerf} />
-            </div>
-          </div>
+          <Ga4UtmDashboard entries={entriesWithPerf} monthStart={monthStart} today={today} />
         )}
       </div>
 

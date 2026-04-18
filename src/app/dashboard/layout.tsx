@@ -1,23 +1,12 @@
 import "@/styles/console.css"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { Fraunces, Instrument_Serif, JetBrains_Mono } from "next/font/google"
+import { JetBrains_Mono } from "next/font/google"
 import { Sidebar } from "@/components/console/Sidebar"
+import { getBrandMediaAvailability, parseBrandIds } from "@/lib/brand-media"
+import { createClient } from "@/lib/supabase/server"
 import type { UserRole } from "@/types"
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-fraunces",
-  display: "swap",
-})
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-instrument-serif",
-  display: "swap",
-})
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
@@ -37,21 +26,26 @@ export default async function DashboardLayout({
   const brandName = h.get("x-user-brand-name")
     ? decodeURIComponent(h.get("x-user-brand-name")!)
     : undefined
-  const brandIdsHeader = h.get("x-user-brand-ids")
-  const propertyCount = brandIdsHeader ? brandIdsHeader.split(",").length : 0
+  const brandIds = parseBrandIds(h.get("x-user-brand-ids"))
+  const propertyCount = brandIds.length
 
   if (!userId || !role) redirect("/login")
 
+  const supabase = await createClient()
+  const availableMedia = await getBrandMediaAvailability(
+    supabase as unknown as Parameters<typeof getBrandMediaAvailability>[0],
+    brandIds
+  )
+
   return (
-    <div
-      className={`console-scope ${fraunces.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
-    >
+    <div className={`console-scope ${jetbrainsMono.variable}`}>
       <div className="app">
         <Sidebar
           role={role}
           userName={userName}
           brandName={brandName}
           propertyCount={propertyCount}
+          availableMedia={{ hasGa4: availableMedia.hasGa4 }}
         />
         <main>{children}</main>
       </div>

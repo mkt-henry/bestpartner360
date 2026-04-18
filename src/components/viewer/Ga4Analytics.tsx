@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { Loader2, TrendingUp, Users, Eye, Clock, ArrowUpDown, Search, X } from "lucide-react"
 import { KpiLineChart } from "@/components/viewer/SpendChart"
 
 interface Ga4Property {
@@ -49,6 +48,17 @@ function formatDuration(seconds: number) {
   return m > 0 ? `${m}분 ${s}초` : `${s}초`
 }
 
+const PRESETS = [
+  { label: "7일", key: "7d" },
+  { label: "14일", key: "14d" },
+  { label: "30일", key: "30d" },
+  { label: "이번 달", key: "this_month" },
+  { label: "전월", key: "last_month" },
+  { label: "이번 분기", key: "this_quarter" },
+  { label: "전분기", key: "last_quarter" },
+  { label: "올해", key: "this_year" },
+]
+
 function Ga4AnalyticsInner({ properties }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -59,7 +69,6 @@ function Ga4AnalyticsInner({ properties }: Props) {
   const [selectedProperty, setSelectedProperty] = useState(searchParams.get("property") ?? properties[0]?.property_id ?? "")
   const [startDate, setStartDate] = useState(searchParams.get("from") ?? defaultStart)
   const [endDate, setEndDate] = useState(searchParams.get("to") ?? new Date().toISOString().slice(0, 10))
-
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pages, setPages] = useState<PageRow[]>([])
@@ -68,9 +77,30 @@ function Ga4AnalyticsInner({ properties }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("pageviews")
   const [sortDesc, setSortDesc] = useState(true)
   const [pathFilter, setPathFilter] = useState(searchParams.get("filter") ?? "")
-  const [activePreset, setActivePreset] = useState<string | null>(null)
+  const [activePreset, setActivePreset] = useState<string | null>("30d")
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
 
-  // URL 동기화
+  const favStorageKey = `ga4_favorites_${selectedProperty}`
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(favStorageKey)
+      if (stored) setFavorites(new Set(JSON.parse(stored)))
+      else setFavorites(new Set())
+    } catch { setFavorites(new Set()) }
+  }, [favStorageKey])
+
+  function toggleFavorite(path: string) {
+    setFavorites((prev) => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      localStorage.setItem(favStorageKey, JSON.stringify([...next]))
+      return next
+    })
+  }
+
   const syncUrl = useCallback((prop: string, from: string, to: string, filter: string) => {
     const params = new URLSearchParams()
     if (prop && prop !== properties[0]?.property_id) params.set("property", prop)
@@ -107,295 +137,232 @@ function Ga4AnalyticsInner({ properties }: Props) {
     }
   }
 
-  useEffect(() => {
-    fetchReport()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchReport() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 필터 변경 시 URL 동기화
   useEffect(() => {
     const t = setTimeout(() => syncUrl(selectedProperty, startDate, endDate, pathFilter), 300)
     return () => clearTimeout(t)
   }, [pathFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDesc(!sortDesc)
-    } else {
-      setSortKey(key)
-      setSortDesc(true)
-    }
-  }
-
-  const filteredPages = pathFilter.trim()
-    ? pages.filter((p) => {
-        const q = pathFilter.trim().toLowerCase()
-        return p.path.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)
-      })
-    : pages
-
-  const sortedPages = [...filteredPages].sort((a, b) => {
-    const diff = a[sortKey] - b[sortKey]
-    return sortDesc ? -diff : diff
-  })
-
-  const filteredSummary = pathFilter.trim() && filteredPages.length !== pages.length
-    ? {
-        pageviews: filteredPages.reduce((s, p) => s + p.pageviews, 0),
-        users: filteredPages.reduce((s, p) => s + p.users, 0),
-        sessions: filteredPages.reduce((s, p) => s + p.sessions, 0),
-      }
-    : null
-
-  const SortHeader = ({ label, k, className }: { label: string; k: SortKey; className?: string }) => (
-    <th
-      className={`px-3 py-2.5 font-medium text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none ${className ?? ""}`}
-      onClick={() => handleSort(k)}
-    >
-      <span className="inline-flex items-center gap-0.5">
-        {label}
-        {sortKey === k && <ArrowUpDown className="w-3 h-3" />}
-      </span>
-    </th>
-  )
-
-  // 빠른 기간 선택
-  function setRange(days: number) {
-    const end = new Date()
-    const start = new Date()
-    start.setDate(end.getDate() - days)
-    setStartDate(start.toISOString().slice(0, 10))
-    setEndDate(end.toISOString().slice(0, 10))
-    setActivePreset(`${days}d`)
-  }
-
-  function setPreset(key: string) {
+  function applyPreset(key: string) {
     const now = new Date()
     const y = now.getFullYear()
-    const m = now.getMonth() // 0-based
+    const m = now.getMonth()
     const today = now.toISOString().slice(0, 10)
+    let from = startDate, to = endDate
 
-    setActivePreset(key)
-    switch (key) {
-      case "this_month":
-        setStartDate(`${y}-${String(m + 1).padStart(2, "0")}-01`)
-        setEndDate(today)
-        break
-      case "last_month": {
-        const pm = m === 0 ? 11 : m - 1
-        const py = m === 0 ? y - 1 : y
-        const lastDay = new Date(py, pm + 1, 0).getDate()
-        setStartDate(`${py}-${String(pm + 1).padStart(2, "0")}-01`)
-        setEndDate(`${py}-${String(pm + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`)
-        break
+    if (key.endsWith("d")) {
+      const days = parseInt(key)
+      const d = new Date(); d.setDate(d.getDate() - days)
+      from = d.toISOString().slice(0, 10); to = today
+    } else {
+      switch (key) {
+        case "this_month": from = `${y}-${String(m + 1).padStart(2, "0")}-01`; to = today; break
+        case "last_month": { const pm = m === 0 ? 11 : m - 1; const py = m === 0 ? y - 1 : y; const ld = new Date(py, pm + 1, 0).getDate(); from = `${py}-${String(pm + 1).padStart(2, "0")}-01`; to = `${py}-${String(pm + 1).padStart(2, "0")}-${String(ld).padStart(2, "0")}`; break }
+        case "this_quarter": { const qs = Math.floor(m / 3) * 3; from = `${y}-${String(qs + 1).padStart(2, "0")}-01`; to = today; break }
+        case "last_quarter": { const cqs = Math.floor(m / 3) * 3; const lqs = cqs - 3; const ly = lqs < 0 ? y - 1 : y; const lm = lqs < 0 ? lqs + 12 : lqs; const le = new Date(ly, lm + 3, 0); from = `${ly}-${String(lm + 1).padStart(2, "0")}-01`; to = le.toISOString().slice(0, 10); break }
+        case "this_year": from = `${y}-01-01`; to = today; break
       }
-      case "this_quarter": {
-        const qStart = Math.floor(m / 3) * 3
-        setStartDate(`${y}-${String(qStart + 1).padStart(2, "0")}-01`)
-        setEndDate(today)
-        break
-      }
-      case "last_quarter": {
-        const cqStart = Math.floor(m / 3) * 3
-        const lqStart = cqStart - 3
-        const lqy = lqStart < 0 ? y - 1 : y
-        const lqm = lqStart < 0 ? lqStart + 12 : lqStart
-        const lqEnd = new Date(lqy, lqm + 3, 0)
-        setStartDate(`${lqy}-${String(lqm + 1).padStart(2, "0")}-01`)
-        setEndDate(lqEnd.toISOString().slice(0, 10))
-        break
-      }
-      case "this_year":
-        setStartDate(`${y}-01-01`)
-        setEndDate(today)
-        break
     }
+    setStartDate(from); setEndDate(to); setActivePreset(key)
+    fetchReport(undefined, from, to)
   }
 
-  return (
-    <div className="space-y-5">
-      {/* 컨트롤 바 */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3">
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          {/* 속성 선택 */}
-          {properties.length > 1 && (
-            <select
-              value={selectedProperty}
-              onChange={(e) => { setSelectedProperty(e.target.value); fetchReport(e.target.value) }}
-              className="text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-            >
-              {properties.map((p) => (
-                <option key={p.property_id} value={p.property_id}>{p.property_name}</option>
-              ))}
-            </select>
-          )}
+  function handleSort(key: SortKey) {
+    if (sortKey === key) setSortDesc(!sortDesc)
+    else { setSortKey(key); setSortDesc(true) }
+  }
 
-          {/* 기간 선택 */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex gap-1 flex-wrap">
-              {[
-                { label: "7일", key: "7d", action: () => setRange(7) },
-                { label: "14일", key: "14d", action: () => setRange(14) },
-                { label: "30일", key: "30d", action: () => setRange(30) },
-                { label: "이번 달", key: "this_month", action: () => setPreset("this_month") },
-                { label: "전월", key: "last_month", action: () => setPreset("last_month") },
-                { label: "이번 분기", key: "this_quarter", action: () => setPreset("this_quarter") },
-                { label: "전분기", key: "last_quarter", action: () => setPreset("last_quarter") },
-                { label: "올해", key: "this_year", action: () => setPreset("this_year") },
-              ].map((r) => (
-                <button
-                  key={r.key}
-                  onClick={r.action}
-                  className={`px-2.5 py-1 text-xs rounded-lg border transition ${
-                    activePreset === r.key
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
-                      : "border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); setActivePreset(null) }}
-              className="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-            />
-            <span className="text-xs text-slate-400">~</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => { setEndDate(e.target.value); setActivePreset(null) }}
-              className="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-            />
-            <button
-              onClick={() => fetchReport()}
-              disabled={loading}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg transition"
-            >
-              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : "조회"}
-            </button>
-          </div>
-        </div>
+  const filteredPages = pages.filter((p) => {
+    if (showFavoritesOnly && !favorites.has(p.path)) return false
+    if (pathFilter.trim()) {
+      const q = pathFilter.trim().toLowerCase()
+      return p.path.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)
+    }
+    return true
+  })
+  const sortedPages = [...filteredPages].sort((a, b) => sortDesc ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey])
+
+  const sortIcon = (k: SortKey) => sortKey === k ? (sortDesc ? " ↓" : " ↑") : ""
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* 컨트롤 바 */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        {properties.length > 1 && (
+          <select
+            value={selectedProperty}
+            onChange={(e) => { setSelectedProperty(e.target.value); fetchReport(e.target.value) }}
+            className="form-input"
+            style={{ width: "auto", fontSize: 11, padding: "6px 10px" }}
+          >
+            {properties.map((p) => (
+              <option key={p.property_id} value={p.property_id}>{p.property_name}</option>
+            ))}
+          </select>
+        )}
+
+        {PRESETS.map((r) => (
+          <button
+            key={r.key}
+            onClick={() => applyPreset(r.key)}
+            className={`chip ${activePreset === r.key ? "on" : ""}`}
+          >
+            {r.label}
+          </button>
+        ))}
+
+        <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setActivePreset(null) }} className="form-input" style={{ width: "auto", fontSize: 11, padding: "5px 8px" }} />
+        <span style={{ fontSize: 11, color: "var(--dim)" }}>~</span>
+        <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setActivePreset(null) }} className="form-input" style={{ width: "auto", fontSize: 11, padding: "5px 8px" }} />
+        <button onClick={() => fetchReport()} disabled={loading} className="btn primary" style={{ fontSize: 11, padding: "6px 12px" }}>
+          {loading ? "조회 중..." : "조회"}
+        </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm px-4 py-3 rounded-lg">{error}</div>
+        <div style={{ background: "color-mix(in srgb, var(--bad) 15%, transparent)", color: "var(--bad)", fontSize: 12, padding: "10px 14px", borderRadius: 8 }}>
+          {error}
+        </div>
       )}
 
       {loading && (
-        <div className="flex items-center justify-center py-16 text-slate-400">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> 데이터 불러오는 중...
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0", color: "var(--dim)", fontSize: 12, gap: 8 }}>
+          데이터 불러오는 중...
         </div>
       )}
 
       {!loading && summary && (
         <>
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* KPI 카드 */}
+          <div className="kpi-row">
             {[
-              { icon: Eye, label: "페이지뷰", value: summary.pageviews.toLocaleString(), color: "text-blue-600" },
-              { icon: Users, label: "사용자", value: summary.users.toLocaleString(), color: "text-emerald-600" },
-              { icon: TrendingUp, label: "세션", value: summary.sessions.toLocaleString(), color: "text-purple-600" },
-              { icon: Users, label: "신규 사용자", value: summary.newUsers.toLocaleString(), color: "text-orange-600" },
-              { icon: Clock, label: "평균 체류시간", value: formatDuration(summary.avgDuration), color: "text-slate-600" },
-              { icon: TrendingUp, label: "이탈률", value: `${(summary.bounceRate * 100).toFixed(1)}%`, color: "text-red-500" },
+              { label: "페이지뷰", value: summary.pageviews.toLocaleString() },
+              { label: "사용자", value: summary.users.toLocaleString() },
+              { label: "세션", value: summary.sessions.toLocaleString() },
+              { label: "신규 사용자", value: summary.newUsers.toLocaleString() },
+              { label: "평균 체류시간", value: formatDuration(summary.avgDuration) },
+              { label: "이탈률", value: `${(summary.bounceRate * 100).toFixed(1)}%` },
             ].map((card) => (
-              <div key={card.label} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <card.icon className={`w-3.5 h-3.5 ${card.color}`} />
-                  <span className="text-[10px] text-slate-400 font-medium">{card.label}</span>
-                </div>
-                <p className={`text-lg font-bold ${card.color} dark:text-slate-100`}>{card.value}</p>
+              <div key={card.label} className="kpi">
+                <div className="top"><span>{card.label}</span></div>
+                <div className="v">{card.value}</div>
               </div>
             ))}
           </div>
 
           {/* 일별 추이 차트 */}
           {daily.length > 1 && (
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">일별 추이</h3>
-              <KpiLineChart
-                data={daily}
-                metrics={[
-                  { key: "pageviews", label: "페이지뷰", color: "#2563eb" },
-                  { key: "users", label: "사용자", color: "#10b981" },
-                  { key: "sessions", label: "세션", color: "#8b5cf6" },
-                ]}
-              />
+            <div className="panel">
+              <div className="p-head">
+                <h3>일별 추이</h3>
+                <div className="sub">{startDate} — {endDate}</div>
+              </div>
+              <div className="p-body" style={{ padding: 16 }}>
+                <KpiLineChart
+                  data={daily}
+                  metrics={[
+                    { key: "pageviews", label: "페이지뷰", color: "#7DB8D6" },
+                    { key: "users", label: "사용자", color: "#5EC27A" },
+                    { key: "sessions", label: "세션", color: "#8b5cf6" },
+                  ]}
+                />
+              </div>
             </div>
           )}
 
-          {/* 페이지별 테이블 */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  페이지별 성과
-                  <span className="text-xs text-slate-400 font-normal ml-1">
-                    {pathFilter.trim() ? `${filteredPages.length} / ${pages.length}개` : `상위 ${pages.length}개`}
-                  </span>
-                </h3>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          {/* 페이지별 성과 테이블 */}
+          <div className="panel">
+            <div className="p-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <h3>페이지별 성과</h3>
+                <div className="sub">
+                  {pathFilter.trim() ? `${filteredPages.length} / ${pages.length}개` : `상위 ${pages.length}개`}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  className={`chip ${showFavoritesOnly ? "on" : ""}`}
+                  style={{ fontSize: 11, whiteSpace: "nowrap" }}
+                  title="즐겨찾기한 페이지만 보기"
+                >
+                  ★ 즐겨찾기{showFavoritesOnly ? ` (${favorites.size})` : ""}
+                </button>
+                <div style={{ position: "relative" }}>
                   <input
                     type="text"
                     value={pathFilter}
                     onChange={(e) => setPathFilter(e.target.value)}
                     placeholder="경로 또는 제목 필터 (예: /entry/)"
-                    className="pl-8 pr-8 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 w-full sm:w-64"
+                    className="form-input"
+                    style={{ fontSize: 11, padding: "6px 10px", paddingLeft: 28, width: 260 }}
                   />
+                  <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--dim)", fontSize: 12 }}>🔍</span>
                   {pathFilter && (
                     <button
                       onClick={() => setPathFilter("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--dim)", cursor: "pointer", fontSize: 14 }}
                     >
-                      <X className="w-3.5 h-3.5" />
+                      ×
                     </button>
                   )}
                 </div>
               </div>
-              {filteredSummary && (
-                <div className="flex gap-4 mt-2 text-xs text-slate-500">
-                  <span>필터 결과: 페이지뷰 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.pageviews.toLocaleString()}</strong></span>
-                  <span>사용자 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.users.toLocaleString()}</strong></span>
-                  <span>세션 <strong className="text-slate-700 dark:text-slate-300">{filteredSummary.sessions.toLocaleString()}</strong></span>
-                </div>
-              )}
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+            <div className="tbl-wrap">
+              <table>
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800">
-                    <th className="text-left px-4 py-2.5 font-medium text-slate-500 dark:text-slate-400">페이지</th>
-                    <SortHeader label="페이지뷰" k="pageviews" className="text-right" />
-                    <SortHeader label="사용자" k="users" className="text-right" />
-                    <SortHeader label="세션" k="sessions" className="text-right" />
-                    <SortHeader label="평균 체류" k="avgDuration" className="text-right" />
-                    <SortHeader label="이탈률" k="bounceRate" className="text-right" />
+                  <tr>
+                    <th style={{ width: 32, textAlign: "center" }}>★</th>
+                    <th style={{ width: "36%" }}>페이지</th>
+                    <th className="num" style={{ cursor: "pointer" }} onClick={() => handleSort("pageviews")}>페이지뷰{sortIcon("pageviews")}</th>
+                    <th className="num" style={{ cursor: "pointer" }} onClick={() => handleSort("users")}>사용자{sortIcon("users")}</th>
+                    <th className="num" style={{ cursor: "pointer" }} onClick={() => handleSort("sessions")}>세션{sortIcon("sessions")}</th>
+                    <th className="num" style={{ cursor: "pointer" }} onClick={() => handleSort("avgDuration")}>평균 체류{sortIcon("avgDuration")}</th>
+                    <th className="num" style={{ cursor: "pointer" }} onClick={() => handleSort("bounceRate")}>이탈률{sortIcon("bounceRate")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {sortedPages.map((row, i) => (
-                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-                      <td className="px-4 py-3 max-w-[300px]">
-                        <p className="text-sm text-slate-900 dark:text-slate-100 truncate font-medium">
-                          {row.title || row.path}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-mono truncate">{row.path}</p>
+                <tbody>
+                  {sortedPages.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
+                        {showFavoritesOnly ? "즐겨찾기한 페이지가 없습니다." : pathFilter.trim() ? "필터 결과 없음" : "해당 기간 데이터가 없습니다."}
                       </td>
-                      <td className="px-3 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">{row.pageviews.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{row.users.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{row.sessions.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{formatDuration(row.avgDuration)}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-300">{(row.bounceRate * 100).toFixed(1)}%</td>
+                    </tr>
+                  )}
+                  {sortedPages.map((row, i) => (
+                    <tr key={i}>
+                      <td style={{ textAlign: "center", padding: "0 4px" }}>
+                        <button
+                          onClick={() => toggleFavorite(row.path)}
+                          style={{
+                            background: "none", border: "none", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 2,
+                            color: favorites.has(row.path) ? "var(--amber)" : "var(--dim)",
+                            opacity: favorites.has(row.path) ? 1 : 0.4,
+                          }}
+                          title={favorites.has(row.path) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                        >
+                          {favorites.has(row.path) ? "★" : "☆"}
+                        </button>
+                      </td>
+                      <td>
+                        <div className="cell-main">
+                          <div>
+                            <div>{row.title || row.path}</div>
+                            <div className="cell-sub" style={{ fontFamily: "var(--c-mono)" }}>{row.path}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="num" style={{ fontWeight: 600 }}>{row.pageviews.toLocaleString()}</td>
+                      <td className="num">{row.users.toLocaleString()}</td>
+                      <td className="num">{row.sessions.toLocaleString()}</td>
+                      <td className="num">{formatDuration(row.avgDuration)}</td>
+                      <td className="num">{(row.bounceRate * 100).toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {sortedPages.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-8">해당 기간 데이터가 없습니다.</p>
-              )}
             </div>
           </div>
         </>
@@ -406,7 +373,7 @@ function Ga4AnalyticsInner({ properties }: Props) {
 
 export default function Ga4Analytics(props: Props) {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-16 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> 로딩 중...</div>}>
+    <Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0", color: "var(--dim)", fontSize: 12 }}>로딩 중...</div>}>
       <Ga4AnalyticsInner {...props} />
     </Suspense>
   )

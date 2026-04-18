@@ -28,6 +28,25 @@ export default async function AdminBrandsPage() {
   const naverList = (naverMappings ?? []) as NaverAdAccount[]
   const ga4List = (ga4Mappings ?? []) as Ga4Property[]
   const ga4Connected = !!ga4Cred?.credentials?.refresh_token
+  const brandSummaries = brandList.map((brand) => {
+    const metaCount = metaList.filter((mapping) => mapping.brand_id === brand.id).length
+    const naverCount = naverList.filter((mapping) => mapping.brand_id === brand.id).length
+    const ga4Count = ga4List.filter((mapping) => mapping.brand_id === brand.id).length
+    const connectedMediaCount =
+      Number(metaCount > 0) + Number(naverCount > 0) + Number(ga4Count > 0)
+
+    return {
+      brandId: brand.id,
+      connectedMediaCount,
+      totalConnections: metaCount + naverCount + ga4Count,
+    }
+  })
+  const connectedBrands = brandSummaries.filter((item) => item.connectedMediaCount > 0).length
+  const partiallyConnectedBrands = brandSummaries.filter(
+    (item) => item.connectedMediaCount > 0 && item.connectedMediaCount < 3
+  ).length
+  const unconnectedBrands = brandSummaries.filter((item) => item.connectedMediaCount === 0).length
+  const totalConnections = brandSummaries.reduce((sum, item) => sum + item.totalConnections, 0)
 
   return (
     <div className="canvas">
@@ -58,11 +77,71 @@ export default async function AdminBrandsPage() {
       {/* GA4 계정 연결 (전체 공통) */}
       <Ga4ConnectButton connected={ga4Connected} />
 
+      <div className="kpi-row">
+        <div className="kpi">
+          <div className="top">
+            <span>브랜드</span>
+          </div>
+          <div className="v">{brandList.length}</div>
+          <div className="d">
+            <span>관리 대상 전체 브랜드</span>
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="top">
+            <span>연결 완료</span>
+          </div>
+          <div className="v">{connectedBrands}</div>
+          <div className="d">
+            <span>하나 이상 매체 연결됨</span>
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="top">
+            <span>부분 연결</span>
+          </div>
+          <div className="v">{partiallyConnectedBrands}</div>
+          <div className="d">
+            <span>추가 설정이 필요한 브랜드</span>
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="top">
+            <span>미연결</span>
+          </div>
+          <div className="v">{unconnectedBrands}</div>
+          <div className="d">
+            <span>아직 매체가 없는 브랜드</span>
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="top">
+            <span>총 연결 수</span>
+          </div>
+          <div className="v">{totalConnections}</div>
+          <div className="d">
+            <span>계정 및 속성 매핑 합계</span>
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="top">
+            <span>GA4 공통 인증</span>
+          </div>
+          <div className="v">{ga4Connected ? "ON" : "OFF"}</div>
+          <div className="d">
+            <span>{ga4Connected ? "속성 목록 조회 가능" : "Google 연결 필요"}</span>
+          </div>
+        </div>
+      </div>
+
       {/* 브랜드 목록 */}
       <div className="panel">
         <div className="p-head">
           <h3>브랜드 목록</h3>
           <span className="sub" style={{ marginLeft: 8 }}>{brandList.length}개</span>
+          <span className="sub" style={{ marginLeft: "auto" }}>
+            브랜드를 열면 매체별 연결 상태와 오류를 한 번에 확인할 수 있습니다
+          </span>
         </div>
         <div style={{ padding: 0 }}>
           {brandList.length === 0 ? (
