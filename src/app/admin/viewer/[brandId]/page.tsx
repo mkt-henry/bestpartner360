@@ -56,7 +56,7 @@ export default async function AdminViewerDashboardPage({
 
   const basePath = `/admin/viewer/${brandId}`
 
-  const [campaignsResult, activitiesResult, eventsResult, creativesResult, utmEntriesResult] = await Promise.all([
+  const [campaignsResult, activitiesResult, eventsResult, creativesResult, utmEntriesResult, ga4PropertiesResult] = await Promise.all([
     supabase.from("campaigns").select("id, channel").in("brand_id", brandIds),
     supabase
       .from("activities")
@@ -74,6 +74,7 @@ export default async function AdminViewerDashboardPage({
       .limit(5),
     supabase.from("creatives").select("status").in("brand_id", brandIds),
     supabase.from("ga4_utm_entries").select("id").in("brand_id", brandIds),
+    supabase.from("ga4_properties").select("id").in("brand_id", brandIds).limit(1),
   ])
 
   const campaigns = campaignsResult.data ?? []
@@ -127,7 +128,7 @@ export default async function AdminViewerDashboardPage({
     conversions: utmPerfRecords.reduce((s, p) => s + p.conversions, 0),
     revenue: utmPerfRecords.reduce((s, p) => s + Number(p.revenue), 0),
   }
-  const hasGa4Data = utmEntryIds.length > 0
+  const hasGa4 = (ga4PropertiesResult.data?.length ?? 0) > 0 || utmEntryIds.length > 0
 
   const creativeStats = creativesResult.data ?? []
   const creativeCounts = {
@@ -237,7 +238,7 @@ export default async function AdminViewerDashboardPage({
       </div>
 
       {/* Channel Performance */}
-      {(channelSummaries.length > 0 || hasGa4Data) && (
+      {(channelSummaries.length > 0 || hasGa4) && (
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".14em", color: "var(--text)", fontWeight: 500 }}>매체별 성과</span>
@@ -293,7 +294,7 @@ export default async function AdminViewerDashboardPage({
               )
             })}
 
-            {hasGa4Data && (
+            {hasGa4 && (
               <Link href={`${basePath}/ga4`} className="card">
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FBBC05", flexShrink: 0 }} />

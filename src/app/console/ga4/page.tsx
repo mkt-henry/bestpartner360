@@ -21,7 +21,11 @@ function formatWon(n: number): string {
   return `₩${Math.round(n).toLocaleString("ko-KR")}`
 }
 
-export default async function ConsoleGa4Page() {
+export default async function ConsoleGa4Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>
+}) {
   const h = await headers()
   const userId = h.get("x-user-id")
   const brandIdsHeader = h.get("x-user-brand-ids")
@@ -31,6 +35,8 @@ export default async function ConsoleGa4Page() {
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+  const sp = await searchParams
+  const rangeDays = Math.min(90, Math.max(1, Number(sp.range) || 14))
 
   if (brandIds.length === 0) {
     return (
@@ -54,10 +60,10 @@ export default async function ConsoleGa4Page() {
     )
   }
 
-  const since = daysAgoISO(13)
+  const since = daysAgoISO(rangeDays - 1)
   const until = daysAgoISO(0)
-  const prevSince = daysAgoISO(27)
-  const prevUntil = daysAgoISO(14)
+  const prevSince = daysAgoISO(rangeDays * 2 - 1)
+  const prevUntil = daysAgoISO(rangeDays)
 
   const supabase = await createClient()
   const { data: utmEntries } = await supabase
@@ -111,6 +117,10 @@ export default async function ConsoleGa4Page() {
     revenue: number
   }[]
   const prop = ga4PropResult.data?.[0] ?? null
+
+  if (!prop && entryIds.length === 0) {
+    redirect("/console")
+  }
 
   type Ga4Panel = { label: string; metrics: Record<string, number> }[]
   let acquisition: Ga4Panel = []
@@ -315,11 +325,11 @@ export default async function ConsoleGa4Page() {
               UTM <em>성과</em>
             </h1>
             <div className="dh-meta">
-              <span className="live-pill">최근 14일</span>
+              <span className="live-pill">최근 {rangeDays}일</span>
               <span>{rangeLabel}</span>
               <span>·</span>
               <span>
-                <b>이전 14일</b> 대비
+                <b>이전 {rangeDays}일</b> 대비
               </span>
               <span>·</span>
               <span>

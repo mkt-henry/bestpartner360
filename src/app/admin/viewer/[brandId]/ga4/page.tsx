@@ -6,6 +6,7 @@ import { getGa4Credentials } from "@/lib/credentials"
 import { formatNumber, formatCurrency } from "@/lib/utils"
 import Ga4UtmDashboard from "@/components/viewer/Ga4UtmDashboard"
 import Ga4Analytics from "@/components/viewer/Ga4Analytics"
+import { redirect } from "next/navigation"
 
 export default async function AdminViewerGa4Page({
   params,
@@ -30,6 +31,9 @@ export default async function AdminViewerGa4Page({
   ])
 
   const properties = ga4Properties ?? []
+  if (properties.length === 0 && (utmEntries?.length ?? 0) === 0) {
+    redirect(`/admin/viewer/${brandId}`)
+  }
 
   const missingUrl = properties.filter((p) => !p.website_url)
   if (missingUrl.length > 0) {

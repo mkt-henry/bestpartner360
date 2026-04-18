@@ -51,7 +51,17 @@ export async function getGa4Credentials(): Promise<Ga4Credentials | null> {
   }
 
   // 토큰 만료 확인 및 자동 갱신
-  if (creds.refresh_token && creds.expires_at && Date.now() > creds.expires_at - 60_000) {
+  const isExpired = creds.expires_at && Date.now() > creds.expires_at - 60_000
+
+  if (isExpired && creds.refresh_token) {
+    const refreshed = await refreshGa4Token(creds.refresh_token)
+    if (refreshed) return refreshed
+    // 갱신 실패 시 만료된 토큰 반환하지 않음
+    return null
+  }
+
+  // 만료 정보 없이 refresh_token만 있으면 갱신 시도 (최초 1시간 이후)
+  if (!creds.expires_at && creds.refresh_token) {
     const refreshed = await refreshGa4Token(creds.refresh_token)
     if (refreshed) return refreshed
   }

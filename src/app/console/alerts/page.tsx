@@ -94,7 +94,6 @@ export default async function ConsoleAlertsPage() {
           { label: brandName },
           { label: "알림", strong: true },
         ]}
-        alerts={openEvents.length}
       />
       <div className="detail-head">
         <div className="dh-row">

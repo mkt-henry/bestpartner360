@@ -18,8 +18,8 @@ export async function GET() {
   const creds = await getGa4Credentials()
   if (!creds) {
     return NextResponse.json(
-      { error: "GA4 액세스 토큰이 설정되지 않았습니다. API 설정에서 먼저 등록하세요." },
-      { status: 400 }
+      { error: "GA4 인증이 만료되었거나 연결되지 않았습니다. Google 계정을 다시 연결해주세요." },
+      { status: 401 }
     )
   }
 

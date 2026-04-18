@@ -50,7 +50,11 @@ function Empty({ brandName, message }: { brandName: string; message: string }) {
   )
 }
 
-export default async function ConsoleSearchPage() {
+export default async function ConsoleSearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>
+}) {
   const h = await headers()
   const userId = h.get("x-user-id")
   const brandIdsHeader = h.get("x-user-brand-ids")
@@ -60,6 +64,8 @@ export default async function ConsoleSearchPage() {
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+  const sp = await searchParams
+  const rangeDays = Math.min(90, Math.max(1, Number(sp.range) || 28))
 
   if (brandIds.length === 0) {
     return <Empty brandName={brandName} message="연결된 브랜드가 없습니다." />
@@ -74,6 +80,15 @@ export default async function ConsoleSearchPage() {
 
   const brandUrl = props?.[0]?.website_url ?? null
   const brandHost = hostFromUrl(brandUrl)
+
+  if (!brandUrl || !brandHost) {
+    return (
+      <Empty
+        brandName={brandName}
+        message="브랜드에 연결된 웹사이트 주소가 없어 Search Console 데이터를 표시할 수 없습니다."
+      />
+    )
+  }
 
   const sitesRes = await fetchGscSites()
   if ("error" in sitesRes) {
@@ -94,15 +109,22 @@ export default async function ConsoleSearchPage() {
     )
   }
 
-  const matchedSite =
-    (brandHost && sitesRes.sites.find((s) => hostFromSite(s.siteUrl) === brandHost)) ||
-    sitesRes.sites[0]
+  const matchedSite = sitesRes.sites.find((s) => hostFromSite(s.siteUrl) === brandHost)
+  if (!matchedSite) {
+    return (
+      <Empty
+        brandName={brandName}
+        message="브랜드에 연결된 Search Console 사이트가 없습니다. 관리자에게 문의하세요."
+      />
+    )
+  }
+
   const siteUrl = matchedSite.siteUrl
 
-  const since = daysAgoISO(28)
+  const since = daysAgoISO(rangeDays)
   const until = daysAgoISO(2)
-  const prevSince = daysAgoISO(56)
-  const prevUntil = daysAgoISO(29)
+  const prevSince = daysAgoISO(rangeDays * 2)
+  const prevUntil = daysAgoISO(rangeDays + 1)
 
   const [totalsCur, totalsPrev, queryRes, pageRes] = await Promise.all([
     fetchGscPerformance({ siteUrl, startDate: since, endDate: until, dimensions: [] }),
@@ -172,11 +194,11 @@ export default async function ConsoleSearchPage() {
               검색 <em>성과</em>
             </h1>
             <div className="dh-meta">
-              <span className="live-pill">최근 28일</span>
+              <span className="live-pill">최근 {rangeDays}일</span>
               <span>{rangeLabel}</span>
               <span>·</span>
               <span>
-                <b>이전 28일</b> 대비
+                <b>이전 {rangeDays}일</b> 대비
               </span>
               <span>·</span>
               <span>인증된 사이트 {sitesRes.sites.length}개</span>
