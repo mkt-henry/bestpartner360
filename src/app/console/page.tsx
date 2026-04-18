@@ -39,7 +39,11 @@ function formatWon(n: number): string {
   return `₩${Math.round(n).toLocaleString("ko-KR")}`
 }
 
-export default async function ConsoleOverviewPage() {
+export default async function ConsoleOverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>
+}) {
   const h = await headers()
   const userId = h.get("x-user-id")
   const brandIdsHeader = h.get("x-user-brand-ids")
@@ -50,6 +54,8 @@ export default async function ConsoleOverviewPage() {
   if (!userId) redirect("/login")
 
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+  const sp = await searchParams
+  const rangeDays = Math.min(90, Math.max(1, Number(sp.range) || 14))
 
   if (brandIds.length === 0) {
     return (
@@ -67,9 +73,9 @@ export default async function ConsoleOverviewPage() {
   }
 
   const end = daysAgoISO(0)
-  const start = daysAgoISO(13)
-  const prevEnd = daysAgoISO(14)
-  const prevStart = daysAgoISO(27)
+  const start = daysAgoISO(rangeDays - 1)
+  const prevEnd = daysAgoISO(rangeDays)
+  const prevStart = daysAgoISO(rangeDays * 2 - 1)
 
   const supabase = await createClient()
 
@@ -112,6 +118,7 @@ export default async function ConsoleOverviewPage() {
     utm_medium: string | null
   }[]
   const utmEntryIds = utmEntries.map((e) => e.id)
+  const hasGa4 = Boolean(ga4Prop || utmEntryIds.length > 0)
 
   const [spendCurResult, spendPrevResult, perfCurResult, utmPerfCurResult, utmPerfPrevResult, budgetResult] = await Promise.all([
     campaignIds.length > 0
@@ -205,9 +212,9 @@ export default async function ConsoleOverviewPage() {
   }
   const fmtDelta = (d: number, suffix = "%") => `${d >= 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(1)}${suffix}`
 
-  // Daily series for chart — 14 days
+  // Daily series for chart
   const days: string[] = []
-  for (let i = 13; i >= 0; i--) days.push(daysAgoISO(i))
+  for (let i = rangeDays - 1; i >= 0; i--) days.push(daysAgoISO(i))
   const spendByDay = new Map<string, number>(days.map((d) => [d, 0]))
   const revByDay = new Map<string, number>(days.map((d) => [d, 0]))
   for (const r of spendCur) {
@@ -454,9 +461,11 @@ export default async function ConsoleOverviewPage() {
             <Link href="/dashboard/performance" className="btn">
               성과 보기 →
             </Link>
-            <Link href="/console/ga4" className="btn">
-              GA4 보기 →
-            </Link>
+            {hasGa4 && (
+              <Link href="/console/ga4" className="btn">
+                GA4 보기 →
+              </Link>
+            )}
           </div>
         </div>
 
@@ -607,95 +616,80 @@ export default async function ConsoleOverviewPage() {
           </div>
         </div>
 
-        <div className="trio">
-          <div className="panel">
-            <div className="p-head">
-              <h3>전환 퍼널</h3>
-              <div className="sub">GA4 이벤트 수 · {rangeLabel}</div>
-            </div>
-            <div className="p-body">
-              {!ga4Prop && (
-                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  GA4 속성 미연결
-                </div>
-              )}
-              {ga4Prop && ga4Funnel.every((s) => s.count === 0) && (
-                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  이벤트 데이터 없음
-                </div>
-              )}
-              {ga4Prop && ga4Funnel.some((s) => s.count > 0) && (() => {
-                const maxCount = Math.max(1, ...ga4Funnel.map((s) => s.count))
-                const firstCount = ga4Funnel[0]?.count ?? 0
-                return (
-                  <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-                    {ga4Funnel.map((s, i) => {
-                      const prev = i > 0 ? ga4Funnel[i - 1].count : firstCount
-                      const step = prev > 0 ? (s.count / prev) * 100 : 0
-                      const total = firstCount > 0 ? (s.count / firstCount) * 100 : 0
-                      return (
-                        <div key={s.label}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
-                            <span>{s.label}</span>
-                            <span>
-                              <b>{formatNumber(s.count)}</b>
-                              <span className="pct"> {total.toFixed(0)}%</span>
-                              {i > 0 && <span className="pct"> · 단계 전환 {step.toFixed(0)}%</span>}
+        {hasGa4 && (
+          <div className="trio">
+            <div className="panel">
+              <div className="p-head">
+                <h3>전환 퍼널</h3>
+                <div className="sub">GA4 이벤트 수 · {rangeLabel}</div>
+              </div>
+              <div className="p-body">
+                {ga4Funnel.every((s) => s.count === 0) && (
+                  <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                    이벤트 데이터 없음
+                  </div>
+                )}
+                {ga4Funnel.some((s) => s.count > 0) && (() => {
+                  const maxCount = Math.max(1, ...ga4Funnel.map((s) => s.count))
+                  const firstCount = ga4Funnel[0]?.count ?? 0
+                  return (
+                    <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {ga4Funnel.map((s, i) => {
+                        const prev = i > 0 ? ga4Funnel[i - 1].count : firstCount
+                        const step = prev > 0 ? (s.count / prev) * 100 : 0
+                        const total = firstCount > 0 ? (s.count / firstCount) * 100 : 0
+                        return (
+                          <div key={s.label}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
+                              <span>{s.label}</span>
+                              <span>
+                                <b>{formatNumber(s.count)}</b>
+                                <span className="pct"> {total.toFixed(0)}%</span>
+                                {i > 0 && <span className="pct"> · 단계 전환 {step.toFixed(0)}%</span>}
+                              </span>
+                            </div>
+                            <span className="hbar">
+                              <b style={{ width: `${(s.count / maxCount) * 100}%` }} />
                             </span>
                           </div>
-                          <span className="hbar">
-                            <b style={{ width: `${(s.count / maxCount) * 100}%` }} />
-                          </span>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="p-head">
+                <h3>상위 지역</h3>
+                <div className="sub">GA4 도시 · 세션 기준 상위</div>
+              </div>
+              <div className="p-body">
+                {ga4Regions.length === 0 && (
+                  <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
+                    데이터 없음
                   </div>
-                )
-              })()}
+                )}
+                {ga4Regions.map((r) => (
+                  <div key={r.label} className="geo-row">
+                    <span>{r.label}</span>
+                    <span />
+                    <span>
+                      <b className="v">{formatNumber(r.sessions)}</b>
+                      <span className="pct">{r.revenue > 0 ? formatWon(r.revenue) : "—"}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="panel">
-            <div className="p-head">
-              <h3>상위 지역</h3>
-              <div className="sub">GA4 도시 · 세션 기준 상위</div>
-            </div>
-            <div className="p-body">
-              {!ga4Prop && (
-                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  GA4 속성 미연결
-                </div>
-              )}
-              {ga4Prop && ga4Regions.length === 0 && (
-                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  데이터 없음
-                </div>
-              )}
-              {ga4Regions.map((r) => (
-                <div key={r.label} className="geo-row">
-                  <span>{r.label}</span>
-                  <span />
-                  <span>
-                    <b className="v">{formatNumber(r.sessions)}</b>
-                    <span className="pct">{r.revenue > 0 ? formatWon(r.revenue) : "—"}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="p-head">
-              <h3>기기 및 채널</h3>
-              <div className="sub">GA4 기기 카테고리 · 채널 그룹</div>
-            </div>
-            <div className="p-body">
-              {!ga4Prop && (
-                <div style={{ padding: 16, color: "var(--dim)", fontSize: 11 }}>
-                  GA4 속성 미연결
-                </div>
-              )}
-              {ga4Prop && (
+            <div className="panel">
+              <div className="p-head">
+                <h3>기기 및 채널</h3>
+                <div className="sub">GA4 기기 카테고리 · 채널 그룹</div>
+              </div>
+              <div className="p-body">
                 <>
                   <div style={{ padding: "8px 12px 4px", fontSize: 10, color: "var(--dim)" }}>
                     기기
@@ -728,10 +722,10 @@ export default async function ConsoleOverviewPage() {
                     </div>
                   ))}
                 </>
-              )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <FooterBar />

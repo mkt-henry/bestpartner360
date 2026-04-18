@@ -2,8 +2,19 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { LogoutButton } from "@/components/auth/LogoutButton"
 
-const monitor = [
+type NavItem = {
+  href: string
+  label: string
+  exact?: boolean
+  icon: React.ReactNode
+  badge?: string
+  trailing?: React.ReactNode
+  requiresMedia?: "meta" | "ga4" | "searchConsole"
+}
+
+const monitor: NavItem[] = [
   {
     href: "/console",
     label: "개요",
@@ -28,6 +39,7 @@ const monitor = [
   {
     href: "/console/meta-ads",
     label: "Meta Ads",
+    requiresMedia: "meta",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
         <rect x="3" y="3" width="14" height="14" rx="2" />
@@ -38,6 +50,7 @@ const monitor = [
   {
     href: "/console/ga4",
     label: "GA4 분석",
+    requiresMedia: "ga4",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
         <path d="M3 16l5-8 4 5 5-9" />
@@ -47,6 +60,7 @@ const monitor = [
   {
     href: "/console/search",
     label: "Search Console",
+    requiresMedia: "searchConsole",
     icon: (
       <svg className="ico" viewBox="0 0 20 20">
         <circle cx="10" cy="10" r="7" />
@@ -56,7 +70,7 @@ const monitor = [
   },
 ]
 
-const workspace = [
+const workspace: NavItem[] = [
   {
     href: "/console/reports",
     label: "리포트",
@@ -99,15 +113,6 @@ const workspace = [
   },
 ]
 
-type NavItem = {
-  href: string
-  label: string
-  exact?: boolean
-  icon: React.ReactNode
-  badge?: string
-  trailing?: React.ReactNode
-}
-
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link href={item.href} className={active ? "active" : undefined}>
@@ -119,10 +124,28 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   )
 }
 
-export function Sidebar() {
+type SidebarProps = {
+  brandName?: string
+  userName?: string
+  userRole?: string
+  mediaAvailability?: {
+    hasMeta: boolean
+    hasGa4: boolean
+    hasSearchConsole: boolean
+  }
+}
+
+export function Sidebar({ brandName, userName, userRole, mediaAvailability }: SidebarProps) {
   const pathname = usePathname() ?? "/console"
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/")
+  const availableMonitorItems = monitor.filter((item) => {
+    if (!item.requiresMedia) return true
+    if (item.requiresMedia === "meta") return mediaAvailability?.hasMeta
+    if (item.requiresMedia === "ga4") return mediaAvailability?.hasGa4
+    if (item.requiresMedia === "searchConsole") return mediaAvailability?.hasSearchConsole
+    return true
+  })
 
   return (
     <aside>
@@ -135,10 +158,10 @@ export function Sidebar() {
       </div>
 
       <div className="client-switch">
-        <div className="av">H</div>
+        <div className="av">{(brandName ?? "B").charAt(0).toUpperCase()}</div>
         <div className="meta">
-          <div className="n">Haeundae Kombucha</div>
-          <div className="s">속성 3개 · KRW</div>
+          <div className="n">{brandName ?? "브랜드 미연결"}</div>
+          <div className="s">KRW</div>
         </div>
         <div className="chev">▾</div>
       </div>
@@ -146,7 +169,7 @@ export function Sidebar() {
       <div className="nav-group">
         <div className="title">모니터링</div>
         <div className="nav">
-          {monitor.map((item) => (
+          {availableMonitorItems.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(item)} />
           ))}
         </div>
@@ -163,13 +186,14 @@ export function Sidebar() {
 
       <div className="side-foot">
         <div className="user">
-          <div className="av">HP</div>
+          <div className="av">{(userName ?? "U").slice(0, 2).toUpperCase()}</div>
           <div className="meta">
-            <div className="n">Henry Park</div>
-            <div className="r">관리자</div>
+            <div className="n">{userName ?? "사용자"}</div>
+            <div className="r">{userRole === "admin" ? "관리자" : "뷰어"}</div>
           </div>
           <div className="st" />
         </div>
+        <LogoutButton className="logout-btn" />
       </div>
     </aside>
   )

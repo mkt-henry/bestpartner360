@@ -6,10 +6,11 @@
   --amber:#8AA6A1;--amber-dim:#8aa6a11f;
   --steel:#7DB8D6;--lime:#B7E24A;--good:#5EC27A;--bad:#E5553B;--plum:#C77DD6;
   --grad:linear-gradient(180deg,#8AA6A1,#5F7D78);
+  --c-sans:var(--font-noto-sans-kr),"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --c-mono:var(--font-jetbrains-mono),ui-monospace,monospace;
-  --c-serif:var(--font-fraunces),serif;--c-italic:var(--font-instrument-serif),serif;
+  --c-serif:var(--c-sans);--c-italic:var(--c-sans);
 
-  background:var(--bg);color:var(--text);font-family:var(--c-mono);font-size:13px;line-height:1.4;
+  background:var(--bg);color:var(--text);font-family:var(--c-sans);font-size:13px;line-height:1.4;
   -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;
   min-height:100vh;
   background-image:radial-gradient(1000px 700px at 90% -10%,#8aa6a10a,transparent 60%),radial-gradient(700px 500px at -5% 110%,#7db8d608,transparent 60%);
@@ -55,6 +56,10 @@
 .console-scope .user .meta .n{font-size:11px;color:var(--text)}
 .console-scope .user .meta .r{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
 .console-scope .user .st{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px #5ec27a20;margin-left:auto}
+.console-scope .logout-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg-2);color:var(--text-2);transition:all .15s}
+.console-scope .logout-btn:hover:not(:disabled){border-color:var(--line-2);color:var(--text)}
+.console-scope .logout-btn:disabled{opacity:.7;cursor:wait}
+.console-scope .logout-btn .ico{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;fill:none;flex-shrink:0}
 
 /* Main */
 .console-scope main{min-width:0;display:flex;flex-direction:column}
@@ -570,5 +575,73 @@
   .console-scope .kpi-row{grid-template-columns:repeat(2,1fr)}
   .console-scope .form-grid.cols-2,.console-scope .form-grid.cols-3,.console-scope .form-grid.cols-4{grid-template-columns:1fr}
   .console-scope .card-grid.cols-2,.console-scope .card-grid.cols-3{grid-template-columns:1fr}
+}
+
+/* ── Mobile ────────────────────────────────────────────────────── */
+@media(max-width:640px){
+  /* Topbar */
+  .console-scope header.topbar{padding:10px 14px;gap:8px;flex-wrap:wrap}
+  .console-scope .crumbs{flex-shrink:1;gap:4px;font-size:10px;white-space:nowrap;overflow:hidden;min-width:0}
+  .console-scope .search{margin-left:0;flex:1;min-width:0;max-width:none;padding:6px 10px;order:0}
+  .console-scope .search kbd{display:none}
+  .console-scope .search input{font-size:12px}
+  .console-scope .tbar-actions{margin-left:auto}
+
+  /* Filters bar */
+  .console-scope .filters{padding:10px 14px;gap:8px;flex-wrap:wrap}
+  .console-scope .filter-group{padding-right:8px}
+  .console-scope .fg-label{display:none}
+
+  /* Canvas */
+  .console-scope .canvas{padding:14px}
+
+  /* Page head */
+  .console-scope .page-head{flex-direction:column;align-items:flex-start;gap:12px}
+  .console-scope .page-head h1{font-size:24px}
+  .console-scope .page-head .sub{font-size:10px}
+  .console-scope .pg-actions{width:100%;display:flex;flex-wrap:wrap;gap:6px}
+  .console-scope .pg-actions .btn{flex:1;min-width:0;justify-content:center;font-size:11px;padding:8px 10px}
+
+  /* KPI row */
+  .console-scope .kpi-row{grid-template-columns:1fr 1fr}
+  .console-scope .kpi{padding:12px 14px}
+  .console-scope .kpi .v{font-size:22px}
+
+  /* Panels */
+  .console-scope .panel{border-radius:8px}
+  .console-scope .p-head{padding:12px 14px;flex-wrap:wrap}
+  .console-scope .p-body{padding:14px}
+
+  /* Tables */
+  .console-scope thead th{padding:8px 10px;font-size:9px}
+  .console-scope tbody td{padding:9px 10px;font-size:11px}
+
+  /* Grid layouts → single column */
+  .console-scope .grid,.console-scope .two-70,.console-scope .two,.console-scope .three,.console-scope .trio{grid-template-columns:1fr;gap:12px}
+
+  /* Footer */
+  .console-scope .footer-bar{padding:10px 14px;font-size:9px}
+
+  /* Buttons / Chips */
+  .console-scope .btn{padding:7px 10px;font-size:11px}
+  .console-scope .chip{padding:4px 8px;font-size:10px}
+
+  /* Detail head */
+  .console-scope .detail-head{padding:16px 14px 0}
+  .console-scope .dh-row{grid-template-columns:1fr;gap:12px}
+  .console-scope .dh-main h1{font-size:28px}
+  .console-scope .dh-actions{width:100%}
+  .console-scope .drill-tabs{padding:0 14px;overflow-x:auto}
+  .console-scope .drill-tabs a{padding:12px 12px;font-size:10px}
+
+  /* Creatives grid */
+  .console-scope .creatives{grid-template-columns:1fr 1fr;gap:10px}
+
+  /* Heatmap */
+  .console-scope .heat{grid-template-columns:24px repeat(24,1fr);gap:1px}
+
+  /* Modal → full screen */
+  .console-scope .modal{inset:0;border-radius:0;grid-template-columns:1fr}
+  .console-scope .modal-left{display:none}
 }
 

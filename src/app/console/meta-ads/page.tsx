@@ -145,7 +145,11 @@ function EmptyShell({ brandName, message }: { brandName: string; message: string
   )
 }
 
-export default async function ConsoleMetaAdsPage() {
+export default async function ConsoleMetaAdsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>
+}) {
   const h = await headers()
   const userId = h.get("x-user-id")
   const brandIdsHeader = h.get("x-user-brand-ids")
@@ -155,6 +159,8 @@ export default async function ConsoleMetaAdsPage() {
 
   if (!userId) redirect("/login")
   const brandIds = brandIdsHeader ? brandIdsHeader.split(",") : []
+  const sp = await searchParams
+  const rangeDays = Math.min(90, Math.max(1, Number(sp.range) || 14))
 
   if (brandIds.length === 0) {
     return <EmptyShell brandName={brandName} message="연결된 브랜드가 없습니다." />
@@ -169,15 +175,10 @@ export default async function ConsoleMetaAdsPage() {
 
   const account = accounts?.[0]
   if (!account) {
-    return (
-      <EmptyShell
-        brandName={brandName}
-        message="브랜드에 연결된 Meta 광고 계정이 없습니다. 관리자에게 문의하세요."
-      />
-    )
+    redirect("/console")
   }
 
-  const since = daysAgoISO(13)
+  const since = daysAgoISO(rangeDays - 1)
   const until = daysAgoISO(0)
 
   const [accountRes, adsetRes, adRes, hourlyRes, audienceRes, placementRes] = await Promise.all([
