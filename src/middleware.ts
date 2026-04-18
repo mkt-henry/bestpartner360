@@ -4,6 +4,12 @@ import { createServerClient } from "@supabase/ssr"
 export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   let cookiesToSet: { name: string; value: string; options: Record<string, unknown> }[] = []
+  const finalizeResponse = (response: NextResponse) => {
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
+    })
+    return response
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,15 +29,27 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
+  const isApiRoute = pathname.startsWith("/api")
+  const isPublicApiRoute =
+    pathname.startsWith("/api/admin/alerts/evaluate") ||
+    pathname.startsWith("/api/admin/ga4/auth") ||
+    pathname.startsWith("/api/admin/ga4/callback")
 
   // OAuth 콜백은 미들웨어 인증 체크 건너뛰기
-  if (pathname.startsWith("/api/admin/ga4/auth") || pathname.startsWith("/api/admin/ga4/callback")) {
-    return NextResponse.next()
+  if (isPublicApiRoute) {
+    return finalizeResponse(NextResponse.next())
   }
 
   // 미인증 → 로그인 페이지로
-  if (!user && !pathname.startsWith("/login")) {
-    return NextResponse.redirect(new URL("/login", request.url))
+  if (!user) {
+    if (isApiRoute) {
+      return finalizeResponse(
+        NextResponse.json({ error: "unauthorized" }, { status: 401 })
+      )
+    }
+    if (!pathname.startsWith("/login")) {
+      return finalizeResponse(NextResponse.redirect(new URL("/login", request.url)))
+    }
   }
 
   // 인증된 경우: user_profiles + 대시보드면 brand_access 병렬 조회
@@ -64,13 +82,13 @@ export async function middleware(request: NextRequest) {
   // 로그인 페이지 또는 루트 → role에 따라 분기
   if (user && (pathname === "/login" || pathname === "/")) {
     const dest = profile?.role === "admin" ? "/admin" : "/dashboard"
-    return NextResponse.redirect(new URL(dest, request.url))
+    return finalizeResponse(NextResponse.redirect(new URL(dest, request.url)))
   }
 
   // /admin/* 접근 시 role 확인
   if (user && pathname.startsWith("/admin")) {
     if (profile?.role !== "admin") {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
+      return finalizeResponse(NextResponse.redirect(new URL("/dashboard", request.url)))
     }
   }
 
@@ -89,12 +107,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } })
-
-  cookiesToSet.forEach(({ name, value, options }) => {
-    response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
-  })
-
-  return response
+  return finalizeResponse(response)
 }
 
 export const config = {

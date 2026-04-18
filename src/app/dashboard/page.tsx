@@ -43,7 +43,7 @@ export default async function DashboardPage() {
 
   const supabase = await createClient()
 
-  const [campaignsResult, activitiesResult, eventsResult, creativesResult, utmEntriesResult] = await Promise.all([
+  const [campaignsResult, activitiesResult, eventsResult, creativesResult, utmEntriesResult, ga4PropertiesResult] = await Promise.all([
     supabase.from("campaigns").select("id, channel, name").in("brand_id", brandIds),
     supabase
       .from("activities")
@@ -61,11 +61,13 @@ export default async function DashboardPage() {
       .limit(6),
     supabase.from("creatives").select("status").in("brand_id", brandIds),
     supabase.from("ga4_utm_entries").select("id").in("brand_id", brandIds),
+    supabase.from("ga4_properties").select("id").in("brand_id", brandIds).limit(1),
   ])
 
   const campaigns = campaignsResult.data ?? []
   const campaignIds = campaigns.map((c) => c.id)
   const utmEntryIds = utmEntriesResult.data?.map((e) => e.id) ?? []
+  const hasGa4 = (ga4PropertiesResult.data?.length ?? 0) > 0 || utmEntryIds.length > 0
 
   const [spendResult, budgetResult, perfResult, utmPerfResult] = await Promise.all([
     campaignIds.length > 0
@@ -156,18 +158,22 @@ export default async function DashboardPage() {
       unit: totalBudget > 0 ? "%" : "",
       hint: totalBudget > 0 ? `잔여 ₩${formatNumber(totalBudget - totalSpend)}` : "예산 없음",
     },
-    {
-      label: "GA4 세션",
-      value: formatNumber(ga4Totals.sessions),
-      unit: "",
-      hint: `${formatNumber(ga4Totals.users)} 사용자`,
-    },
-    {
-      label: "전환수",
-      value: formatNumber(ga4Totals.conversions),
-      unit: "",
-      hint: ga4Totals.revenue > 0 ? formatCurrency(ga4Totals.revenue) : "—",
-    },
+    ...(hasGa4
+      ? [
+          {
+            label: "GA4 세션",
+            value: formatNumber(ga4Totals.sessions),
+            unit: "",
+            hint: `${formatNumber(ga4Totals.users)} 사용자`,
+          },
+          {
+            label: "전환수",
+            value: formatNumber(ga4Totals.conversions),
+            unit: "",
+            hint: ga4Totals.revenue > 0 ? formatCurrency(ga4Totals.revenue) : "—",
+          },
+        ]
+      : []),
     {
       label: "소재",
       value: String(creativeStats.length),
@@ -191,9 +197,7 @@ export default async function DashboardPage() {
       <div className="canvas">
         <div className="page-head">
           <div>
-            <h1>
-              성과 <em>개요</em>
-            </h1>
+            <h1>성과 개요</h1>
             <div className="sub">
               {greeting} · {monthLabel} &nbsp; · &nbsp; {campaignIds.length}개 캠페인 &nbsp;
               <span className="live">운영중</span>
@@ -203,9 +207,11 @@ export default async function DashboardPage() {
             <Link href="/dashboard/performance" className="btn">
               성과 보기 →
             </Link>
-            <Link href="/dashboard/ga4" className="btn">
-              GA4 UTM →
-            </Link>
+            {hasGa4 && (
+              <Link href="/dashboard/ga4" className="btn">
+                GA4 →
+              </Link>
+            )}
           </div>
         </div>
 
@@ -314,7 +320,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Trio: Creatives · Upcoming · GA4 totals */}
-        <div className="trio">
+        <div className={hasGa4 ? "trio" : "two"}>
           <div className="panel">
             <div className="p-head">
               <h3>소재 현황</h3>
@@ -360,26 +366,28 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="panel">
-            <div className="p-head">
-              <h3>GA4 합계</h3>
-              <div className="sub">{utmEntryIds.length} UTM · 이번 달</div>
-            </div>
-            <div className="p-body">
-              <StatRow label="세션" value={formatNumber(ga4Totals.sessions)} />
-              <StatRow label="사용자" value={formatNumber(ga4Totals.users)} />
-              <StatRow label="페이지뷰" value={formatNumber(ga4Totals.pageviews)} />
-              <StatRow label="전환수" value={formatNumber(ga4Totals.conversions)} />
-              {ga4Totals.revenue > 0 && (
-                <StatRow label="수익" value={formatCurrency(ga4Totals.revenue)} />
-              )}
-              <div style={{ marginTop: 12 }}>
-                <Link href="/dashboard/ga4" style={{ color: "var(--amber)", fontSize: 11 }}>
-                  GA4 보기 →
-                </Link>
+          {hasGa4 && (
+            <div className="panel">
+              <div className="p-head">
+                <h3>GA4 합계</h3>
+                <div className="sub">{utmEntryIds.length} UTM · 이번 달</div>
+              </div>
+              <div className="p-body">
+                <StatRow label="세션" value={formatNumber(ga4Totals.sessions)} />
+                <StatRow label="사용자" value={formatNumber(ga4Totals.users)} />
+                <StatRow label="페이지뷰" value={formatNumber(ga4Totals.pageviews)} />
+                <StatRow label="전환수" value={formatNumber(ga4Totals.conversions)} />
+                {ga4Totals.revenue > 0 && (
+                  <StatRow label="수익" value={formatCurrency(ga4Totals.revenue)} />
+                )}
+                <div style={{ marginTop: 12 }}>
+                  <Link href="/dashboard/ga4" style={{ color: "var(--amber)", fontSize: 11 }}>
+                    GA4 보기 →
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
