@@ -36,6 +36,11 @@ export function useCalendarFilters(today: Date): UseCalendarFiltersReturn {
   const [filters, setFiltersState] = useState<CalendarFilters>(initial.filters)
   const [queryInput, setQueryInputState] = useState<string>(initial.filters.query)
 
+  const stateRef = useRef<CalendarUrlState>({ view, date, filters })
+  useEffect(() => {
+    stateRef.current = { view, date, filters }
+  }, [view, date, filters])
+
   const pushUrl = useCallback(
     (next: CalendarUrlState) => {
       const sp = buildSearchParams(next)
@@ -47,23 +52,23 @@ export function useCalendarFilters(today: Date): UseCalendarFiltersReturn {
 
   const setView = useCallback((v: ViewMode) => {
     setViewState(v)
-    pushUrl({ view: v, date, filters })
-  }, [date, filters, pushUrl])
+    pushUrl({ ...stateRef.current, view: v })
+  }, [pushUrl])
 
   const setDate = useCallback((d: Date) => {
     setDateState(d)
-    pushUrl({ view, date: d, filters })
-  }, [view, filters, pushUrl])
+    pushUrl({ ...stateRef.current, date: d })
+  }, [pushUrl])
 
   const setFilters = useCallback(
     (updater: (prev: CalendarFilters) => CalendarFilters) => {
       setFiltersState((prev) => {
         const next = updater(prev)
-        pushUrl({ view, date, filters: next })
+        pushUrl({ ...stateRef.current, filters: next })
         return next
       })
     },
-    [view, date, pushUrl]
+    [pushUrl]
   )
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -73,11 +78,11 @@ export function useCalendarFilters(today: Date): UseCalendarFiltersReturn {
     debounceRef.current = setTimeout(() => {
       setFiltersState((prev) => {
         const next = { ...prev, query: q }
-        pushUrl({ view, date, filters: next })
+        pushUrl({ ...stateRef.current, filters: next })
         return next
       })
     }, 200)
-  }, [view, date, pushUrl])
+  }, [pushUrl])
 
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -89,8 +94,8 @@ export function useCalendarFilters(today: Date): UseCalendarFiltersReturn {
     }
     setFiltersState(empty)
     setQueryInputState("")
-    pushUrl({ view, date, filters: empty })
-  }, [view, date, pushUrl])
+    pushUrl({ ...stateRef.current, filters: empty })
+  }, [pushUrl])
 
   return { view, date, filters, setView, setDate, setFilters, setQueryInput, queryInput, reset }
 }
