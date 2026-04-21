@@ -1,8 +1,9 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import CalendarView from "@/components/viewer/CalendarView"
+import CalendarView from "@/components/viewer/calendar/CalendarView"
 import { Topbar, FooterBar } from "@/components/console/Topbar"
+import type { CalendarEvent } from "@/types"
 
 export default async function CalendarPage() {
   const h = await headers()
@@ -19,7 +20,17 @@ export default async function CalendarPage() {
 
   const { data: events } = await supabase
     .from("calendar_events")
-    .select("id, title, channel, asset_type, event_date, status, description")
+    .select(`
+      id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
+      creatives(
+        id, title, asset_type, status, description,
+        creative_versions(id, version_number, file_path, file_url, uploaded_at),
+        creative_comments(
+          id, content, created_at, user_id,
+          user_profiles(full_name, role)
+        )
+      )
+    `)
     .in("brand_id", brandIds)
     .gte("event_date", from)
     .lte("event_date", to)
@@ -41,7 +52,7 @@ export default async function CalendarPage() {
         </div>
         <div className="panel">
           <div className="p-body">
-            <CalendarView events={events ?? []} />
+            <CalendarView events={(events ?? []) as unknown as CalendarEvent[]} currentUserId={userId} />
           </div>
         </div>
       </div>

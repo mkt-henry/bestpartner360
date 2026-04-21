@@ -43,14 +43,8 @@ export default async function DashboardPage() {
 
   const supabase = await createClient()
 
-  const [campaignsResult, activitiesResult, eventsResult, creativesResult, utmEntriesResult, ga4PropertiesResult] = await Promise.all([
+  const [campaignsResult, eventsResult, creativesResult, utmEntriesResult, ga4PropertiesResult] = await Promise.all([
     supabase.from("campaigns").select("id, channel, name").in("brand_id", brandIds),
-    supabase
-      .from("activities")
-      .select("id, title, content, channel, activity_date")
-      .in("brand_id", brandIds)
-      .order("activity_date", { ascending: false })
-      .limit(6),
     supabase
       .from("calendar_events")
       .select("id, title, channel, event_date, status")
@@ -132,7 +126,6 @@ export default async function DashboardPage() {
     completed: creativeStats.filter((c) => c.status === "completed").length,
   }
 
-  const activities = activitiesResult.data ?? []
   const upcomingEvents = eventsResult.data ?? []
 
   const monthLabel = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01 — ${monthEnd}`
@@ -233,89 +226,60 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        {/* Channel performance + Activity */}
-        <div className="grid">
-          <div className="panel">
-            <div className="p-head">
-              <h3>채널 성과</h3>
-              <div className="sub">이번 달 · 지출 vs 예산</div>
-            </div>
-            <div className="tbl-wrap">
-              <table>
-                <thead>
+        {/* Channel performance */}
+        <div className="panel">
+          <div className="p-head">
+            <h3>채널 성과</h3>
+            <div className="sub">이번 달 · 지출 vs 예산</div>
+          </div>
+          <div className="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "24%" }}>채널</th>
+                  <th className="num">캠페인</th>
+                  <th className="num">지출</th>
+                  <th className="num">예산</th>
+                  <th className="num">사용률</th>
+                </tr>
+              </thead>
+              <tbody>
+                {channelSummaries.length === 0 && (
                   <tr>
-                    <th style={{ width: "24%" }}>채널</th>
-                    <th className="num">캠페인</th>
-                    <th className="num">지출</th>
-                    <th className="num">예산</th>
-                    <th className="num">사용률</th>
+                    <td colSpan={5} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
+                      등록된 캠페인이 없습니다.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {channelSummaries.length === 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding: 24, textAlign: "center", color: "var(--dim)" }}>
-                        등록된 캠페인이 없습니다.
+                )}
+                {channelSummaries.map((cs) => {
+                  const pct = cs.budget > 0 ? Math.min(100, (cs.spend / cs.budget) * 100) : 0
+                  return (
+                    <tr key={cs.channel}>
+                      <td>
+                        <Link
+                          href={`/dashboard/performance?channel=${cs.channel}`}
+                          style={{ color: "inherit" }}
+                        >
+                          {cs.channel}
+                        </Link>
+                      </td>
+                      <td className="num">{cs.campaignCount}</td>
+                      <td className="num">{formatCurrency(cs.spend)}</td>
+                      <td className="num">{cs.budget > 0 ? formatCurrency(cs.budget) : "—"}</td>
+                      <td className="num">
+                        {cs.budget > 0 ? (
+                          <span className="hbar">
+                            <b style={{ width: `${pct}%`, background: pct > 90 ? "var(--bad)" : undefined }} />
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
-                  )}
-                  {channelSummaries.map((cs) => {
-                    const pct = cs.budget > 0 ? Math.min(100, (cs.spend / cs.budget) * 100) : 0
-                    return (
-                      <tr key={cs.channel}>
-                        <td>
-                          <Link
-                            href={`/dashboard/performance?channel=${cs.channel}`}
-                            style={{ color: "inherit" }}
-                          >
-                            {cs.channel}
-                          </Link>
-                        </td>
-                        <td className="num">{cs.campaignCount}</td>
-                        <td className="num">{formatCurrency(cs.spend)}</td>
-                        <td className="num">{cs.budget > 0 ? formatCurrency(cs.budget) : "—"}</td>
-                        <td className="num">
-                          {cs.budget > 0 ? (
-                            <span className="hbar">
-                              <b style={{ width: `${pct}%`, background: pct > 90 ? "var(--bad)" : undefined }} />
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="panel alerts">
-            <div className="p-head">
-              <h3>최근 운영현황</h3>
-              <div className="sub">최근 6건</div>
-            </div>
-            <div className="p-body">
-              {activities.length === 0 && (
-                <div style={{ padding: 12, color: "var(--dim)", fontSize: 11 }}>
-                  등록된 운영 현황이 없습니다.
-                </div>
-              )}
-              {activities.map((a) => (
-                <div key={a.id} className="alert info">
-                  <div className="bullet" />
-                  <div className="body">
-                    <div className="top">
-                      <span className="tag">{a.channel ?? "일반"}</span>
-                      <span className="time">{formatDate(a.activity_date)}</span>
-                    </div>
-                    <div className="msg">{a.title}</div>
-                    {a.content && <div className="meta">{a.content}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -331,8 +295,8 @@ export default async function DashboardPage() {
               <StatRow label="피드백 대기" value={creativeCounts.feedback_pending} />
               <StatRow label="완료" value={creativeCounts.completed} />
               <div style={{ marginTop: 12 }}>
-                <Link href="/dashboard/creatives" style={{ color: "var(--amber)", fontSize: 11 }}>
-                  소재 보기 →
+                <Link href="/dashboard/calendar" style={{ color: "var(--amber)", fontSize: 11 }}>
+                  캘린더에서 보기 →
                 </Link>
               </div>
             </div>

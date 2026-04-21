@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/utils"
 import { ChevronDown, ChevronRight, Plus, Settings, Trash2, X } from "lucide-react"
 import Link from "next/link"
 
-const CHANNELS = ["Instagram", "Facebook", "Google", "Kakao", "Naver", "TikTok", "YouTube", "기타"]
+const CHANNELS = ["Instagram", "Facebook", "Google", "Kakao", "Naver", "Tistory", "TikTok", "YouTube", "기타"]
 
 interface Campaign {
   id: string
