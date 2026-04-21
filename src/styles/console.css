@@ -645,3 +645,15 @@
   .console-scope .modal-left{display:none}
 }
 
+/* ── Calendar (viewer/calendar) ───────────────────────────────── */
+.console-scope .cal-pill:hover{background:var(--bg-2)}
+.console-scope .cal-pill:focus-visible{outline:1px solid var(--amber);outline-offset:1px}
+
+@media(max-width:1279px){
+  .console-scope .cal-drawer{width:320px !important}
+}
+@media(max-width:899px){
+  .console-scope .cal-drawer{width:100% !important}
+  .console-scope .cal-filters .fg-label{display:none}
+}
+
