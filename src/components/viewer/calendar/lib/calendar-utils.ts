@@ -114,17 +114,6 @@ export function distinctValues(events: CalendarEvent[], key: "channel" | "asset_
   })
 }
 
-export function getVisibleRange(date: Date, view: ViewMode): { from: Date; to: Date } {
-  if (view === "month") {
-    return { from: startOfMonth(date), to: endOfMonth(date) }
-  }
-  if (view === "week") {
-    return { from: startOfWeek(date, { weekStartsOn: 0 }), to: endOfWeek(date, { weekStartsOn: 0 }) }
-  }
-  // list: 전체 로드된 범위. 호출자가 events 기준으로 판단.
-  return { from: date, to: date }
-}
-
 export function getMonthCells(date: Date): (Date | null)[] {
   const first = startOfMonth(date)
   const daysInMonth = getDaysInMonth(date)
