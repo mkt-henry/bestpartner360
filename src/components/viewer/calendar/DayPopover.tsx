@@ -35,6 +35,9 @@ export default function DayPopover({
     if (top + maxHeight > window.innerHeight - margin) {
       top = Math.max(margin, r.top - maxHeight - 4)
     }
+    // measure-then-position pattern: layout must be read from the DOM,
+    // then applied as state. Standard for floating popovers.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPos({ top: top + window.scrollY, left: left + window.scrollX })
   }, [anchor])
 

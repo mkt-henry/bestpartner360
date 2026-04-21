@@ -1,7 +1,7 @@
 // src/components/viewer/calendar/views/MonthView.tsx
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { isSameMonth, isToday as dfIsToday } from "date-fns"
 import type { CalendarEvent } from "@/types"
 import EventPill from "../EventPill"
@@ -35,8 +35,7 @@ export default function MonthView({
   const cells = useMemo(() => getMonthCells(currentDate), [currentDate])
   const byDate = useMemo(() => groupEventsByDate(events), [events])
 
-  const cellRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const [overflowKey, setOverflowKey] = useState<string | null>(null)
+  const [popoverFor, setPopoverFor] = useState<{ key: string; anchor: HTMLElement } | null>(null)
 
   const weeks: (Date | null)[][] = []
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
@@ -86,7 +85,7 @@ export default function MonthView({
             return (
               <div
                 key={key}
-                ref={(el) => { cellRefs.current[key] = el }}
+                data-day-key={key}
                 style={{
                   minHeight: 110,
                   padding: "6px 6px 8px",
@@ -130,7 +129,10 @@ export default function MonthView({
                       {overflow > 0 && (
                         <button
                           type="button"
-                          onClick={() => setOverflowKey(key)}
+                          onClick={(e) => {
+                            const cell = (e.currentTarget as HTMLElement).closest<HTMLElement>(`[data-day-key="${key}"]`)
+                            if (cell) setPopoverFor({ key, anchor: cell })
+                          }}
                           style={{
                             fontSize: 10,
                             color: "var(--dim)",
@@ -150,20 +152,18 @@ export default function MonthView({
         </div>
       ))}
 
-      {overflowKey && byDate[overflowKey] && (() => {
-        const popDate = new Date(overflowKey)
+      {popoverFor && byDate[popoverFor.key] && (() => {
+        const popDate = new Date(popoverFor.key)
         const wd = ["일","월","화","수","목","금","토"][popDate.getDay()]
         const pretty = `${popDate.getFullYear()}년 ${popDate.getMonth() + 1}월 ${popDate.getDate()}일 ${wd}`
         return (
           <DayPopover
-            anchor={cellRefs.current[overflowKey]}
+            anchor={popoverFor.anchor}
             dayLabel={pretty}
-            events={byDate[overflowKey]}
+            events={byDate[popoverFor.key]}
             selectedEventId={selectedEventId}
-            onClose={() => setOverflowKey(null)}
-            onEventClick={(ev) => {
-              onEventClick(ev)
-            }}
+            onClose={() => setPopoverFor(null)}
+            onEventClick={onEventClick}
           />
         )
       })()}
