@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import CalendarView from "@/components/viewer/CalendarView"
+import CalendarView from "@/components/viewer/calendar/CalendarView"
 
 export default async function AdminViewerCalendarPage({
   params,
@@ -23,13 +23,15 @@ export default async function AdminViewerCalendarPage({
     .order("event_date")
 
   return (
-    <div className="canvas" style={{ maxWidth: 960, margin: '0 auto' }}>
-      <h1 style={{
-        fontFamily: 'var(--c-serif)', fontSize: 20, fontWeight: 700,
-        color: 'var(--text)', margin: '0 0 24px',
-      }}>
-        운영 캘린더
-      </h1>
+    <div className="canvas">
+      <div className="page-head">
+        <div>
+          <h1>운영 <em>캘린더</em></h1>
+          <div className="sub">
+            {(events ?? []).length}건 &nbsp; · &nbsp; {from} — {to}
+          </div>
+        </div>
+      </div>
       <CalendarView events={events ?? []} />
     </div>
   )

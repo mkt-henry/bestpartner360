@@ -1,7 +1,7 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import CalendarView from "@/components/viewer/CalendarView"
+import CalendarView from "@/components/viewer/calendar/CalendarView"
 import { Topbar, FooterBar } from "@/components/console/Topbar"
 
 export default async function CalendarPage() {
