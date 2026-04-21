@@ -133,7 +133,7 @@ function MetaGrid({ event, today }: { event: CalendarEvent; today: Date }) {
 
   const rows: Array<[string, React.ReactNode]> = [
     ["상태", (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <span key="status" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
         <span aria-hidden style={{
           width: 8, height: 8, borderRadius: "50%", background: statusColor,
         }} />
@@ -141,15 +141,15 @@ function MetaGrid({ event, today }: { event: CalendarEvent; today: Date }) {
       </span>
     )],
     ["날짜", (
-      <span>
+      <span key="date">
         {event.event_date}
         {rel && (
           <span style={{ color: "var(--amber)", marginLeft: 8, fontSize: 11 }}>· {rel}</span>
         )}
       </span>
     )],
-    ["채널", event.channel ?? <span style={{ color: "var(--dimmer)" }}>미지정</span>],
-    ["소재 유형", event.asset_type ?? <span style={{ color: "var(--dimmer)" }}>미지정</span>],
+    ["채널", event.channel ?? <span key="channel" style={{ color: "var(--dimmer)" }}>미지정</span>],
+    ["소재 유형", event.asset_type ?? <span key="asset" style={{ color: "var(--dimmer)" }}>미지정</span>],
   ]
 
   return (

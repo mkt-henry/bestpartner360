@@ -16,7 +16,7 @@ export default async function AdminViewerCalendarPage({
 
   const { data: events } = await supabase
     .from("calendar_events")
-    .select("id, title, channel, asset_type, event_date, status, description")
+    .select("id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description")
     .in("brand_id", brandIds)
     .gte("event_date", from)
     .lte("event_date", to)
