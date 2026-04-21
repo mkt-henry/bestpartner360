@@ -1,7 +1,7 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import CalendarView from "@/components/viewer/CalendarView"
+import CalendarView from "@/components/viewer/calendar/CalendarView"
 import { Topbar, FooterBar } from "@/components/console/Topbar"
 
 export default async function CalendarPage() {
@@ -19,7 +19,7 @@ export default async function CalendarPage() {
 
   const { data: events } = await supabase
     .from("calendar_events")
-    .select("id, title, channel, asset_type, event_date, status, description")
+    .select("id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description")
     .in("brand_id", brandIds)
     .gte("event_date", from)
     .lte("event_date", to)
