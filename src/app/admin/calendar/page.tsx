@@ -1,98 +1,38 @@
 import { createClient } from "@/lib/supabase/server"
-import CalendarEventForm from "@/components/admin/CalendarEventForm"
-import { STATUS_LABELS } from "@/types"
-import type { CalendarEventStatus } from "@/types"
-
-const STATUS_INLINE_COLORS: Record<CalendarEventStatus, { background: string; color: string }> = {
-  draft: { background: "var(--bg-2)", color: "var(--text-2)" },
-  review_requested: { background: "#1877F220", color: "#6FA8F5" },
-  feedback_pending: { background: "#8aa6a11f", color: "var(--amber)" },
-  in_revision: { background: "#e5553b1a", color: "var(--bad)" },
-  upload_scheduled: { background: "#c77dd620", color: "var(--plum)" },
-  completed: { background: "#5ec27a1a", color: "var(--good)" },
-}
+import AdminCalendarShell from "@/components/admin/calendar/AdminCalendarShell"
+import type { CalendarEvent } from "@/types"
 
 export default async function AdminCalendarPage() {
   const supabase = await createClient()
-  const { data: brands } = await supabase.from("brands").select("id, name").order("name")
-  const { data: campaigns } = await supabase
-    .from("campaigns")
-    .select("id, name, brand_id, channel")
-    .order("name")
 
   const now = new Date()
-  const from = new Date(now)
-  from.setDate(now.getDate() - 7)
+  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
+  const to = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString().slice(0, 10)
 
-  const { data: events } = await supabase
-    .from("calendar_events")
-    .select("id, title, channel, event_date, status, brands(name)")
-    .gte("event_date", from.toISOString().slice(0, 10))
-    .order("event_date", { ascending: false })
-    .limit(30)
+  const [brandsRes, campaignsRes, eventsRes] = await Promise.all([
+    supabase.from("brands").select("id, name").order("name"),
+    supabase.from("campaigns").select("id, name, brand_id, channel").order("name"),
+    supabase
+      .from("calendar_events")
+      .select(`
+        id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
+        creatives(
+          id, title, asset_type, status, description,
+          creative_versions(id, version_number, file_path, file_url, uploaded_at)
+        )
+      `)
+      .gte("event_date", from)
+      .lte("event_date", to)
+      .order("event_date"),
+  ])
 
   return (
     <div className="canvas">
-      <div className="page-head">
-        <div>
-          <h1>캘린더 <em>관리</em></h1>
-          <p className="sub">캘린더 관리</p>
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="p-head">
-          <h3>일정 등록</h3>
-        </div>
-        <div className="p-body">
-          <CalendarEventForm brands={brands ?? []} campaigns={campaigns ?? []} />
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="p-head">
-          <h3>최근 일정</h3>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {events?.map((ev) => {
-            const statusStyle = STATUS_INLINE_COLORS[ev.status as CalendarEventStatus] ?? {}
-            return (
-              <div
-                key={ev.id}
-                style={{
-                  padding: "12px 18px",
-                  borderBottom: "1px solid var(--line)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  transition: "background .15s",
-                  cursor: "default",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-2)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, color: "var(--dim)" }}>{ev.event_date}</span>
-                    {ev.channel && (
-                      <span className={`tag ${ev.channel.toLowerCase()}`}>{ev.channel}</span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: 13, color: "var(--text)" }}>{ev.title}</p>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, color: "var(--dim)" }}>
-                    {(ev.brands as unknown as { name: string } | null)?.name}
-                  </span>
-                  <span className="tag" style={statusStyle}>
-                    {STATUS_LABELS[ev.status as CalendarEventStatus]}
-                  </span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      <AdminCalendarShell
+        brands={brandsRes.data ?? []}
+        campaigns={campaignsRes.data ?? []}
+        events={(eventsRes.data ?? []) as CalendarEvent[]}
+      />
     </div>
   )
 }

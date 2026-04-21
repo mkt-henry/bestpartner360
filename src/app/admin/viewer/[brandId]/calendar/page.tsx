@@ -1,5 +1,7 @@
+import { headers } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import CalendarView from "@/components/viewer/calendar/CalendarView"
+import type { CalendarEvent } from "@/types"
 
 export default async function AdminViewerCalendarPage({
   params,
@@ -8,6 +10,8 @@ export default async function AdminViewerCalendarPage({
 }) {
   const { brandId } = await params
   const brandIds = [brandId]
+  const h = await headers()
+  const userId = h.get("x-user-id") ?? ""
 
   const supabase = await createClient()
   const now = new Date()
@@ -16,7 +20,17 @@ export default async function AdminViewerCalendarPage({
 
   const { data: events } = await supabase
     .from("calendar_events")
-    .select("id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description")
+    .select(`
+      id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
+      creatives(
+        id, title, asset_type, status, description,
+        creative_versions(id, version_number, file_path, file_url, uploaded_at),
+        creative_comments(
+          id, content, created_at, user_id,
+          user_profiles(full_name, role)
+        )
+      )
+    `)
     .in("brand_id", brandIds)
     .gte("event_date", from)
     .lte("event_date", to)
@@ -32,7 +46,7 @@ export default async function AdminViewerCalendarPage({
           </div>
         </div>
       </div>
-      <CalendarView events={events ?? []} />
+      <CalendarView events={(events ?? []) as unknown as CalendarEvent[]} currentUserId={userId} />
     </div>
   )
 }

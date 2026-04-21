@@ -79,7 +79,7 @@ export default async function ConsoleOverviewPage({
 
   const supabase = await createClient()
 
-  const [campaignsResult, utmEntriesResult, activitiesResult, ga4PropResult] = await Promise.all([
+  const [campaignsResult, utmEntriesResult, ga4PropResult] = await Promise.all([
     supabase
       .from("campaigns")
       .select("id, name, channel, status")
@@ -89,12 +89,6 @@ export default async function ConsoleOverviewPage({
       .from("ga4_utm_entries")
       .select("id, utm_campaign, utm_source, utm_medium")
       .in("brand_id", brandIds),
-    supabase
-      .from("activities")
-      .select("id, title, content, channel, activity_date")
-      .in("brand_id", brandIds)
-      .order("activity_date", { ascending: false })
-      .limit(6),
     supabase
       .from("ga4_properties")
       .select("property_id")
@@ -379,8 +373,6 @@ export default async function ConsoleOverviewPage({
   const connectedSources = campaigns.length > 0 ? new Set(campaigns.map((c) => c.channel)).size : 0
   const rangeLabel = `${start} — ${end}`
 
-  const activities = activitiesResult.data ?? []
-
   const kpis = [
     {
       label: "매출",
@@ -487,7 +479,7 @@ export default async function ConsoleOverviewPage({
           ))}
         </div>
 
-        <div className="grid">
+        <div>
           <div className="panel">
             <div className="p-head">
               <h3>매출 vs 광고비</h3>
@@ -524,32 +516,6 @@ export default async function ConsoleOverviewPage({
             </div>
           </div>
 
-          <div className="panel alerts">
-            <div className="p-head">
-              <h3>운영 현황</h3>
-              <div className="sub">최근 업데이트 6건</div>
-            </div>
-            <div className="p-body">
-              {activities.length === 0 && (
-                <div style={{ padding: 12, color: "var(--dim)", fontSize: 11 }}>
-                  등록된 운영 현황이 없습니다.
-                </div>
-              )}
-              {activities.map((a) => (
-                <div key={a.id} className="alert info">
-                  <div className="bullet" />
-                  <div className="body">
-                    <div className="top">
-                      <span className="tag">{a.channel ?? "기타"}</span>
-                      <span className="time">{a.activity_date}</span>
-                    </div>
-                    <div className="msg">{a.title}</div>
-                    {a.content && <div className="meta">{a.content}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className="panel">
