@@ -1,47 +1,108 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import type { Brand, MetaAdAccount, NaverAdAccount, Ga4Property } from "@/types"
+import type { Brand } from "@/types"
+import { PROVIDER_METADATA } from "@/lib/providers/public"
+import type { ProviderId, ProviderMetadata } from "@/lib/providers/types"
 import BrandConnectionModal from "@/components/admin/BrandConnectionModal"
 
-interface MetaAccount {
-  id: string
-  name: string
-  account_status: number
-}
-
-interface NaverAccount {
-  id: string
-  name: string
-}
-
-interface Ga4Account {
-  id: string
-  name: string
-  accountName: string
+export interface BrandProviderMapping {
+  providerId: ProviderId
+  account_id: string
+  account_name: string
 }
 
 interface Props {
   brand: Brand
-  metaMappings: MetaAdAccount[]
-  naverMappings: NaverAdAccount[]
-  ga4Mappings: Ga4Property[]
-  ga4Connected?: boolean
+  mappings: Record<ProviderId, BrandProviderMapping[]>
+  ga4Connected: boolean
   isLast?: boolean
 }
 
-type MediaTone = "connected" | "partial" | "empty" | "error"
-type ModalProvider = "meta" | "naver" | "ga4" | null
-
-const STATUS_LABELS: Record<number, string> = {
-  1: "활성",
-  2: "비활성",
-  3: "미확인",
-  7: "보류",
+interface RemoteAccount {
+  id: string
+  name: string
+  status?: string | null
 }
 
-const MEDIA_TOTAL = 3
+interface ProviderState {
+  accounts: RemoteAccount[]
+  linked: BrandProviderMapping[]
+  loading: boolean
+  selected: string
+  error: string | null
+  // Manual-add (GA4 only)
+  manualMode: boolean
+  manualId: string
+  manualName: string
+}
+
+type ProviderStateMap = Record<ProviderId, ProviderState>
+type ModalProvider = ProviderId | null
+type MediaTone = "connected" | "partial" | "empty" | "error"
+
+function initialState(linked: BrandProviderMapping[]): ProviderState {
+  return {
+    accounts: [],
+    linked,
+    loading: false,
+    selected: "",
+    error: null,
+    manualMode: false,
+    manualId: "",
+    manualName: "",
+  }
+}
+
+function mediaTone(linked: number, errored: boolean): MediaTone {
+  if (errored) return "error"
+  if (linked > 0) return "connected"
+  return "empty"
+}
+
+function toneLabel(tone: MediaTone) {
+  if (tone === "connected") return "연결됨"
+  if (tone === "partial") return "부분 연결"
+  if (tone === "error") return "오류"
+  return "미연결"
+}
+
+function toneDotColor(tone: MediaTone) {
+  if (tone === "connected") return "var(--good)"
+  if (tone === "partial") return "var(--amber)"
+  if (tone === "error") return "var(--bad)"
+  return "var(--dim)"
+}
+
+function humanizeError(provider: ProviderMetadata, message: string) {
+  const lower = message.toLowerCase()
+  const authHints = [
+    "session has expired",
+    "access token",
+    "invalid authentication credentials",
+    "oauth 2 access token",
+    "login cookie",
+    "만료",
+    "설정되지",
+    "연결되지",
+    "api 키",
+    "api key",
+  ]
+  if (authHints.some((h) => lower.includes(h))) {
+    return {
+      title: `${provider.shortLabel} 인증이 만료되었거나 설정되지 않았습니다.`,
+      detail:
+        provider.authMode === "oauth"
+          ? "매체 연결 화면에서 Google 계정을 다시 연결한 뒤 새로고침하세요."
+          : "매체 연결 화면에서 API 키를 다시 확인한 뒤 새로고침하세요.",
+    }
+  }
+  return {
+    title: `${provider.shortLabel} 연결 상태를 확인하지 못했습니다.`,
+    detail: message,
+  }
+}
 
 const s = {
   trigger: {
@@ -273,194 +334,90 @@ const s = {
     fontSize: 10,
     fontWeight: 500,
     marginTop: 2,
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
   },
 }
 
-function getMediaTone(hasLinked: boolean, hasError: boolean): MediaTone {
-  if (hasError) return "error"
-  if (hasLinked) return "connected"
-  return "empty"
-}
-
-function renderToneLabel(tone: MediaTone) {
-  if (tone === "connected") return "연결됨"
-  if (tone === "partial") return "부분 연결"
-  if (tone === "error") return "오류"
-  return "미연결"
-}
-
-function toneDotColor(tone: MediaTone) {
-  if (tone === "connected") return "var(--good)"
-  if (tone === "partial") return "var(--amber)"
-  if (tone === "error") return "var(--bad)"
-  return "var(--dim)"
-}
-
-function formatProviderError(provider: "meta" | "naver" | "ga4", message: string) {
-  const normalized = message.toLowerCase()
-
-  if (provider === "meta") {
-    if (normalized.includes("session has expired") || normalized.includes("access token")) {
-      return {
-        title: "Meta 액세스 토큰이 만료되었거나 유효하지 않습니다.",
-        detail: "설정 페이지에서 Meta 계정을 다시 인증한 뒤 새로고침하세요.",
-      }
-    }
-  }
-
-  if (provider === "naver") {
-    if (normalized.includes("api 키") || normalized.includes("api key") || normalized.includes("설정되지")) {
-      return {
-        title: "Naver API 설정이 완료되지 않았습니다.",
-        detail: "설정 페이지에서 API 키와 고객 계정을 입력한 뒤 다시 시도하세요.",
-      }
-    }
-  }
-
-  if (provider === "ga4") {
-    if (
-      normalized.includes("invalid authentication credentials") ||
-      normalized.includes("oauth 2 access token") ||
-      normalized.includes("login cookie") ||
-      normalized.includes("만료") ||
-      normalized.includes("연결되지")
-    ) {
-      return {
-        title: "GA4 Google 인증이 만료되었거나 끊어졌습니다.",
-        detail: "Google 계정을 다시 연결한 뒤 GA4 속성 목록을 새로고침하세요.",
-      }
-    }
-  }
-
-  return {
-    title:
-      provider === "meta"
-        ? "Meta 연결 상태를 확인하지 못했습니다."
-        : provider === "naver"
-          ? "Naver Ads 연결 상태를 확인하지 못했습니다."
-          : "GA4 속성 목록을 확인하지 못했습니다.",
-    detail: message,
-  }
-}
-
-export default function BrandChannelManager({
-  brand,
-  metaMappings,
-  naverMappings,
-  ga4Mappings,
-  ga4Connected,
-  isLast,
-}: Props) {
+export default function BrandChannelManager({ brand, mappings, ga4Connected, isLast }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-
-  const [metaAccounts, setMetaAccounts] = useState<MetaAccount[]>([])
-  const [metaLinked, setMetaLinked] = useState<MetaAdAccount[]>(metaMappings)
-  const [metaLoading, setMetaLoading] = useState(false)
-  const [metaSelected, setMetaSelected] = useState("")
-  const [metaError, setMetaError] = useState<string | null>(null)
-
-  const [naverAccounts, setNaverAccounts] = useState<NaverAccount[]>([])
-  const [naverLinked, setNaverLinked] = useState<NaverAdAccount[]>(naverMappings)
-  const [naverLoading, setNaverLoading] = useState(false)
-  const [naverSelected, setNaverSelected] = useState("")
-  const [naverError, setNaverError] = useState<string | null>(null)
-
-  const [ga4Accounts, setGa4Accounts] = useState<Ga4Account[]>([])
-  const [ga4Linked, setGa4Linked] = useState<Ga4Property[]>(ga4Mappings)
-  const [ga4Loading, setGa4Loading] = useState(false)
-  const [ga4Selected, setGa4Selected] = useState("")
-  const [ga4Error, setGa4Error] = useState<string | null>(null)
-  const [ga4ManualMode, setGa4ManualMode] = useState(false)
-  const [ga4PropertyId, setGa4PropertyId] = useState("")
-  const [ga4PropertyName, setGa4PropertyName] = useState("")
   const [bootstrapped, setBootstrapped] = useState(false)
   const [modalProvider, setModalProvider] = useState<ModalProvider>(null)
 
-  async function fetchMetaAccounts() {
-    setMetaLoading(true)
-    setMetaError(null)
-    try {
-      const res = await fetch("/api/admin/meta/accounts")
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      setMetaAccounts(json.accounts ?? [])
-    } catch (e: unknown) {
-      setMetaError(e instanceof Error ? e.message : "Meta 계정 로드 실패")
-    } finally {
-      setMetaLoading(false)
+  const [state, setState] = useState<ProviderStateMap>(() => {
+    const init = {} as ProviderStateMap
+    for (const p of PROVIDER_METADATA) {
+      init[p.id] = initialState(mappings[p.id] ?? [])
     }
-  }
+    return init
+  })
 
-  async function fetchNaverAccounts() {
-    setNaverLoading(true)
-    setNaverError(null)
-    try {
-      const res = await fetch("/api/admin/naver/accounts")
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      setNaverAccounts(json.accounts ?? [])
-    } catch (e: unknown) {
-      setNaverError(e instanceof Error ? e.message : "네이버 계정 로드 실패")
-    } finally {
-      setNaverLoading(false)
-    }
-  }
+  const patchProvider = useCallback(
+    (id: ProviderId, patch: Partial<ProviderState>) => {
+      setState((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))
+    },
+    []
+  )
 
-  async function fetchGa4Properties() {
-    setGa4Loading(true)
-    setGa4Error(null)
-    try {
-      const res = await fetch("/api/admin/ga4/properties")
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      setGa4Accounts(json.properties ?? [])
-    } catch (e: unknown) {
-      setGa4Error(e instanceof Error ? e.message : "GA4 속성 로드 실패")
-    } finally {
-      setGa4Loading(false)
-    }
-  }
+  const fetchAccounts = useCallback(
+    async (id: ProviderId) => {
+      patchProvider(id, { loading: true, error: null })
+      try {
+        const res = await fetch(`/api/admin/providers/${id}/accounts`)
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error ?? "계정 로드 실패")
+        patchProvider(id, { accounts: json.accounts ?? [], loading: false })
+      } catch (e: unknown) {
+        patchProvider(id, {
+          loading: false,
+          error: e instanceof Error ? e.message : "계정 로드 실패",
+        })
+      }
+    },
+    [patchProvider]
+  )
 
+  // Bootstrap account lists on first open.
   useEffect(() => {
     if (!open || bootstrapped) return
-
-    fetchMetaAccounts()
-    fetchNaverAccounts()
-    if (ga4Connected) fetchGa4Properties()
+    for (const p of PROVIDER_METADATA) {
+      // Don't hit GA4 listAccounts unless OAuth is wired up.
+      if (p.authMode === "oauth" && !ga4Connected) continue
+      fetchAccounts(p.id)
+    }
     setBootstrapped(true)
-  }, [bootstrapped, ga4Connected, open])
+  }, [open, bootstrapped, ga4Connected, fetchAccounts])
 
-  async function linkMeta() {
-    if (!metaSelected) return
-    const account = metaAccounts.find((item) => item.id === metaSelected)
-    if (!account) return
-
+  async function linkAccount(id: ProviderId, account: { id: string; name: string }) {
     setSaving(true)
     try {
-      const res = await fetch("/api/admin/meta/mapping", {
+      const res = await fetch(`/api/admin/providers/${id}/mapping`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           brand_id: brand.id,
-          meta_account_id: account.id,
-          meta_account_name: account.name,
+          account_id: account.id,
+          account_name: account.name,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setMetaLinked((prev) => [
+      if (!res.ok) throw new Error((await res.json()).error ?? "연결 실패")
+      setState((prev) => ({
         ...prev,
-        {
-          id: "",
-          brand_id: brand.id,
-          meta_account_id: account.id,
-          meta_account_name: account.name,
-          created_at: "",
-          brand,
+        [id]: {
+          ...prev[id],
+          linked: [
+            ...prev[id].linked.filter((m) => m.account_id !== account.id),
+            { providerId: id, account_id: account.id, account_name: account.name },
+          ],
+          selected: "",
+          manualId: "",
+          manualName: "",
         },
-      ])
-      setMetaSelected("")
+      }))
       router.refresh()
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "연결 실패")
@@ -469,16 +426,22 @@ export default function BrandChannelManager({
     }
   }
 
-  async function unlinkMeta(accountId: string) {
+  async function unlinkAccount(id: ProviderId, accountId: string) {
     setSaving(true)
     try {
-      const res = await fetch("/api/admin/meta/mapping", {
+      const res = await fetch(`/api/admin/providers/${id}/mapping`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meta_account_id: accountId }),
+        body: JSON.stringify({ account_id: accountId, brand_id: brand.id }),
       })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setMetaLinked((prev) => prev.filter((item) => item.meta_account_id !== accountId))
+      if (!res.ok) throw new Error((await res.json()).error ?? "해제 실패")
+      setState((prev) => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          linked: prev[id].linked.filter((m) => m.account_id !== accountId),
+        },
+      }))
       router.refresh()
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "해제 실패")
@@ -487,212 +450,41 @@ export default function BrandChannelManager({
     }
   }
 
-  async function linkNaver() {
-    if (!naverSelected) return
-    const account = naverAccounts.find((item) => item.id === naverSelected)
-    if (!account) return
-
-    setSaving(true)
-    try {
-      const res = await fetch("/api/admin/naver/mapping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brand_id: brand.id,
-          naver_customer_id: account.id,
-          naver_account_name: account.name,
-        }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setNaverLinked((prev) => [
-        ...prev,
-        {
-          id: "",
-          brand_id: brand.id,
-          naver_customer_id: account.id,
-          naver_account_name: account.name,
-          created_at: "",
-          brand,
-        },
-      ])
-      setNaverSelected("")
-      router.refresh()
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "연결 실패")
-    } finally {
-      setSaving(false)
+  function handleCredentialsSaved(provider: ProviderId) {
+    // OAuth-flow providers (ga4) re-authenticate via redirect; nothing to refetch here.
+    if (PROVIDER_METADATA.find((p) => p.id === provider)?.authMode === "manual") {
+      fetchAccounts(provider)
     }
-  }
-
-  async function unlinkNaver(customerId: string) {
-    setSaving(true)
-    try {
-      const res = await fetch("/api/admin/naver/mapping", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ naver_customer_id: customerId }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setNaverLinked((prev) => prev.filter((item) => item.naver_customer_id !== customerId))
-      router.refresh()
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "해제 실패")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function linkGa4() {
-    if (!ga4Selected) return
-    const account = ga4Accounts.find((item) => item.id === ga4Selected)
-    if (!account) return
-
-    setSaving(true)
-    try {
-      const res = await fetch("/api/admin/ga4", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brand_id: brand.id,
-          property_id: account.id,
-          property_name: account.name,
-        }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setGa4Linked((prev) => [
-        ...prev.filter((item) => item.property_id !== account.id),
-        {
-          id: "",
-          brand_id: brand.id,
-          property_id: account.id,
-          property_name: account.name,
-          website_url: null,
-          created_at: "",
-          brand,
-        },
-      ])
-      setGa4Selected("")
-      router.refresh()
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "연결 실패")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function addGa4() {
-    if (!ga4PropertyId.trim() || !ga4PropertyName.trim()) return
-
-    setSaving(true)
-    try {
-      const res = await fetch("/api/admin/ga4", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brand_id: brand.id,
-          property_id: ga4PropertyId.trim(),
-          property_name: ga4PropertyName.trim(),
-        }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setGa4Linked((prev) => [
-        ...prev.filter((item) => item.property_id !== ga4PropertyId.trim()),
-        {
-          id: "",
-          brand_id: brand.id,
-          property_id: ga4PropertyId.trim(),
-          property_name: ga4PropertyName.trim(),
-          website_url: null,
-          created_at: "",
-          brand,
-        },
-      ])
-      setGa4PropertyId("")
-      setGa4PropertyName("")
-      router.refresh()
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "추가 실패")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function removeGa4(propertyId: string) {
-    setSaving(true)
-    try {
-      const res = await fetch("/api/admin/ga4", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ property_id: propertyId }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setGa4Linked((prev) => prev.filter((item) => item.property_id !== propertyId))
-      router.refresh()
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "삭제 실패")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function handleCredentialsSaved(provider: "meta" | "naver") {
-    if (provider === "meta") {
-      setMetaError(null)
-      fetchMetaAccounts()
-    }
-
-    if (provider === "naver") {
-      setNaverError(null)
-      fetchNaverAccounts()
-    }
-
     router.refresh()
   }
 
-  const totalLinkedItems = metaLinked.length + naverLinked.length + ga4Linked.length
-  const connectedMediaCount =
-    Number(metaLinked.length > 0) + Number(naverLinked.length > 0) + Number(ga4Linked.length > 0)
-  const issueCount = [metaError, naverError, ga4Error].filter(Boolean).length
+  const totalLinked = Object.values(state).reduce((sum, st) => sum + st.linked.length, 0)
+  const connectedCount = Object.values(state).filter((st) => st.linked.length > 0).length
+  const mediaTotal = PROVIDER_METADATA.length
+  const issueCount = Object.values(state).filter((st) => st.error).length
 
   const overallTone: MediaTone =
     issueCount > 0
       ? "error"
-      : connectedMediaCount === MEDIA_TOTAL
+      : connectedCount === mediaTotal
         ? "connected"
-        : connectedMediaCount > 0
+        : connectedCount > 0
           ? "partial"
           : "empty"
 
   const overallSummary =
     issueCount > 0
       ? `확인이 필요한 매체 ${issueCount}개`
-      : connectedMediaCount === 0
+      : connectedCount === 0
         ? "아직 연결된 매체가 없습니다"
-        : `${connectedMediaCount}/${MEDIA_TOTAL} 매체 연결 완료`
-
-  const availableMeta = metaAccounts.filter(
-    (account) => !metaLinked.some((mapping) => mapping.meta_account_id === account.id)
-  )
-  const availableNaver = naverAccounts.filter(
-    (account) => !naverLinked.some((mapping) => mapping.naver_customer_id === account.id)
-  )
-  const availableGa4 = ga4Accounts.filter(
-    (account) => !ga4Linked.some((mapping) => mapping.property_id === account.id)
-  )
-
-  const metaTone = getMediaTone(metaLinked.length > 0, Boolean(metaError))
-  const naverTone = getMediaTone(naverLinked.length > 0, Boolean(naverError))
-  const ga4Tone = getMediaTone(ga4Linked.length > 0, Boolean(ga4Error))
-  const metaErrorDisplay = metaError ? formatProviderError("meta", metaError) : null
-  const naverErrorDisplay = naverError ? formatProviderError("naver", naverError) : null
-  const ga4ErrorDisplay = ga4Error ? formatProviderError("ga4", ga4Error) : null
+        : `${connectedCount}/${mediaTotal} 매체 연결 완료`
 
   return (
     <div style={{ borderBottom: isLast ? "none" : "1px solid var(--line)" }}>
       <BrandConnectionModal
         open={modalProvider !== null}
         provider={modalProvider}
-        ga4Connected={Boolean(ga4Connected)}
+        ga4Connected={ga4Connected}
         onClose={() => setModalProvider(null)}
         onSaved={handleCredentialsSaved}
       />
@@ -709,40 +501,18 @@ export default function BrandChannelManager({
       >
         <div style={s.avatar}>{brand.name.charAt(0).toUpperCase()}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-              marginBottom: 6,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "var(--text)",
-                lineHeight: 1.1,
-              }}
-            >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", lineHeight: 1.1 }}>
               {brand.name}
             </span>
             <span style={s.statusChip(overallTone)}>
               <span style={s.statusDot(toneDotColor(overallTone))} />
-              {renderToneLabel(overallTone)}
+              {toneLabel(overallTone)}
             </span>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11, color: "var(--dim)" }}>{overallSummary}</span>
-            <span style={{ fontSize: 11, color: "var(--dim)" }}>총 {totalLinkedItems}건 연결</span>
+            <span style={{ fontSize: 11, color: "var(--dim)" }}>총 {totalLinked}건 연결</span>
           </div>
         </div>
         <div
@@ -755,15 +525,11 @@ export default function BrandChannelManager({
             marginLeft: "auto",
           }}
         >
-          <span style={s.mediaChip(metaLinked.length > 0, "#6FA8F5")}>
-            Meta {metaLinked.length || "0"}
-          </span>
-          <span style={s.mediaChip(naverLinked.length > 0, "#5ec27a")}>
-            Naver {naverLinked.length || "0"}
-          </span>
-          <span style={s.mediaChip(ga4Linked.length > 0, "#E8B04B")}>
-            GA4 {ga4Linked.length || "0"}
-          </span>
+          {PROVIDER_METADATA.map((p) => (
+            <span key={p.id} style={s.mediaChip(state[p.id].linked.length > 0, p.ui.iconColor)}>
+              {p.shortLabel} {state[p.id].linked.length || "0"}
+            </span>
+          ))}
           <span
             aria-hidden="true"
             style={{
@@ -782,7 +548,8 @@ export default function BrandChannelManager({
         <div
           style={{
             padding: "18px 20px 20px",
-            background: "linear-gradient(180deg, var(--bg-1), color-mix(in srgb, var(--bg-1) 84%, var(--bg)))",
+            background:
+              "linear-gradient(180deg, var(--bg-1), color-mix(in srgb, var(--bg-1) 84%, var(--bg)))",
           }}
         >
           <div
@@ -802,7 +569,7 @@ export default function BrandChannelManager({
               </div>
             </div>
             <div style={{ fontSize: 10, color: "var(--dim)" }}>
-              연결된 매체 {connectedMediaCount}/{MEDIA_TOTAL}
+              연결된 매체 {connectedCount}/{mediaTotal}
             </div>
           </div>
 
@@ -813,356 +580,220 @@ export default function BrandChannelManager({
               gap: 14,
             }}
           >
-            <section style={s.mediaCard}>
-              <div style={s.mediaHeader}>
-                <div style={s.mediaTitleWrap}>
-                  <div style={s.mediaIcon("#1877F220", "#6FA8F5")}>M</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={s.title}>Meta Ads</div>
-                    <div style={s.subtitle}>광고 계정 연결 및 상태 관리</div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  <span style={s.statusChip(metaTone)}>
-                    <span style={s.statusDot(toneDotColor(metaTone))} />
-                    {renderToneLabel(metaTone)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setModalProvider("meta")}
-                    className="btn"
-                    style={{ padding: "6px 10px", fontSize: 10 }}
-                  >
-                    키 설정
-                  </button>
-                  <button type="button" onClick={fetchMetaAccounts} disabled={metaLoading} style={s.refreshBtn}>
-                    {metaLoading ? "불러오는 중" : "새로고침"}
-                  </button>
-                </div>
-              </div>
+            {PROVIDER_METADATA.map((provider) => {
+              const st = state[provider.id]
+              const isOauthLocked = provider.authMode === "oauth" && !ga4Connected
+              const tone = mediaTone(st.linked.length, Boolean(st.error))
+              const errorDisplay = st.error ? humanizeError(provider, st.error) : null
+              const availableAccounts = st.accounts.filter(
+                (a) => !st.linked.some((m) => m.account_id === a.id)
+              )
 
-              {metaErrorDisplay && (
-                <div style={s.notice("error")}>
-                  {metaErrorDisplay.title}
-                  <div style={{ marginTop: 4, color: "#ffb1a7" }}>{metaErrorDisplay.detail}</div>
-                </div>
-              )}
-
-              {metaLinked.length > 0 ? (
-                <div style={s.list}>
-                  {metaLinked.map((mapping) => (
-                    <div key={mapping.meta_account_id} style={s.linkedItem}>
-                      <span style={s.mediaIcon("#1877F220", "#6FA8F5")}>M</span>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={s.linkedName}>{mapping.meta_account_name}</div>
-                        <div style={s.linkedMeta}>{mapping.meta_account_id}</div>
+              return (
+                <section key={provider.id} style={s.mediaCard}>
+                  <div style={s.mediaHeader}>
+                    <div style={s.mediaTitleWrap}>
+                      <div style={s.mediaIcon(provider.ui.iconBg, provider.ui.iconColor)}>
+                        {provider.ui.iconMark}
                       </div>
-                      <span
-                        style={{
-                          ...s.statusChip("connected"),
-                          padding: "3px 8px",
-                          fontSize: 9,
-                        }}
-                      >
-                        연결
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => unlinkMeta(mapping.meta_account_id)}
-                        disabled={saving}
-                        style={{ ...s.unlinkBtn, opacity: saving ? 0.5 : 1 }}
-                      >
-                        해제
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={s.notice("empty")}>아직 연결된 Meta 광고 계정이 없습니다.</div>
-              )}
-
-              {metaLoading ? (
-                <div style={s.notice("info")}>Meta 광고 계정을 불러오는 중입니다.</div>
-              ) : availableMeta.length > 0 ? (
-                <div style={s.formRow}>
-                  <select value={metaSelected} onChange={(e) => setMetaSelected(e.target.value)} style={s.select}>
-                    <option value="">연결할 계정 선택</option>
-                    {availableMeta.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name} ({STATUS_LABELS[account.account_status] ?? account.account_status})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={linkMeta}
-                    disabled={saving || !metaSelected}
-                    className="btn primary"
-                    style={{ opacity: saving || !metaSelected ? 0.4 : 1 }}
-                  >
-                    연결
-                  </button>
-                </div>
-              ) : !metaError ? (
-                <div style={s.notice("empty")}>
-                  연결 가능한 Meta 계정이 없습니다. API 설정을 확인한 뒤 새로고침하세요.
-                </div>
-              ) : null}
-            </section>
-
-            <section style={s.mediaCard}>
-              <div style={s.mediaHeader}>
-                <div style={s.mediaTitleWrap}>
-                  <div style={s.mediaIcon("#03c75a20", "#5ec27a")}>N</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={s.title}>Naver Ads</div>
-                    <div style={s.subtitle}>검색 광고 계정 연결 관리</div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  <span style={s.statusChip(naverTone)}>
-                    <span style={s.statusDot(toneDotColor(naverTone))} />
-                    {renderToneLabel(naverTone)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setModalProvider("naver")}
-                    className="btn"
-                    style={{ padding: "6px 10px", fontSize: 10 }}
-                  >
-                    키 설정
-                  </button>
-                  <button type="button" onClick={fetchNaverAccounts} disabled={naverLoading} style={s.refreshBtn}>
-                    {naverLoading ? "불러오는 중" : "새로고침"}
-                  </button>
-                </div>
-              </div>
-
-              {naverErrorDisplay && (
-                <div style={s.notice("error")}>
-                  {naverErrorDisplay.title}
-                  <div style={{ marginTop: 4, color: "#ffb1a7" }}>{naverErrorDisplay.detail}</div>
-                </div>
-              )}
-
-              {naverLinked.length > 0 ? (
-                <div style={s.list}>
-                  {naverLinked.map((mapping) => (
-                    <div key={mapping.naver_customer_id} style={s.linkedItem}>
-                      <span style={s.mediaIcon("#03c75a20", "#5ec27a")}>N</span>
                       <div style={{ minWidth: 0 }}>
-                        <div style={s.linkedName}>{mapping.naver_account_name}</div>
-                        <div style={s.linkedMeta}>{mapping.naver_customer_id}</div>
+                        <div style={s.title}>{provider.label}</div>
+                        <div style={s.subtitle}>{provider.ui.cardSubtitle}</div>
                       </div>
-                      <span
-                        style={{
-                          ...s.statusChip("connected"),
-                          padding: "3px 8px",
-                          fontSize: 9,
-                        }}
-                      >
-                        연결
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => unlinkNaver(mapping.naver_customer_id)}
-                        disabled={saving}
-                        style={{ ...s.unlinkBtn, opacity: saving ? 0.5 : 1 }}
-                      >
-                        해제
-                      </button>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={s.notice("empty")}>아직 연결된 Naver 광고 계정이 없습니다.</div>
-              )}
-
-              {naverLoading ? (
-                <div style={s.notice("info")}>Naver Ads 계정을 불러오는 중입니다.</div>
-              ) : availableNaver.length > 0 ? (
-                <div style={s.formRow}>
-                  <select value={naverSelected} onChange={(e) => setNaverSelected(e.target.value)} style={s.select}>
-                    <option value="">연결할 계정 선택</option>
-                    {availableNaver.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={linkNaver}
-                    disabled={saving || !naverSelected}
-                    className="btn primary"
-                    style={{ opacity: saving || !naverSelected ? 0.4 : 1 }}
-                  >
-                    연결
-                  </button>
-                </div>
-              ) : !naverError ? (
-                <div style={s.notice("empty")}>
-                  연결 가능한 Naver 계정이 없습니다. API 키를 확인한 뒤 새로고침하세요.
-                </div>
-              ) : null}
-            </section>
-
-            <section style={s.mediaCard}>
-              <div style={s.mediaHeader}>
-                <div style={s.mediaTitleWrap}>
-                  <div style={s.mediaIcon("#FBBC0520", "#E8B04B")}>G</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={s.title}>GA4</div>
-                    <div style={s.subtitle}>속성 연결과 수동 등록 관리</div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  {ga4Connected && (
-                    <span style={s.statusChip("connected")}>
-                      <span style={s.statusDot("var(--good)")} />
-                      공통 인증
-                    </span>
-                  )}
-                  <span style={s.statusChip(ga4Tone)}>
-                    <span style={s.statusDot(toneDotColor(ga4Tone))} />
-                    {renderToneLabel(ga4Tone)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setModalProvider("ga4")}
-                    className="btn"
-                    style={{ padding: "6px 10px", fontSize: 10 }}
-                  >
-                    {ga4Connected ? "재연결" : "연결"}
-                  </button>
-                  {ga4Connected && (
-                    <button type="button" onClick={fetchGa4Properties} disabled={ga4Loading} style={s.refreshBtn}>
-                      {ga4Loading ? "불러오는 중" : "새로고침"}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {ga4ErrorDisplay && (
-                <div style={s.notice("error")}>
-                  {ga4ErrorDisplay.title}
-                  <div style={{ marginTop: 4, color: "#ffb1a7" }}>{ga4ErrorDisplay.detail}</div>
-                </div>
-              )}
-
-              {ga4Linked.length > 0 ? (
-                <div style={s.list}>
-                  {ga4Linked.map((mapping) => (
-                    <div key={mapping.property_id} style={s.linkedItem}>
-                      <span style={s.mediaIcon("#FBBC0520", "#E8B04B")}>G</span>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={s.linkedName}>{mapping.property_name}</div>
-                        <div style={s.linkedMeta}>{mapping.property_id}</div>
-                      </div>
-                      <span
-                        style={{
-                          ...s.statusChip("connected"),
-                          padding: "3px 8px",
-                          fontSize: 9,
-                        }}
-                      >
-                        연결
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeGa4(mapping.property_id)}
-                        disabled={saving}
-                        style={{ ...s.unlinkBtn, opacity: saving ? 0.5 : 1 }}
-                      >
-                        해제
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={s.notice("empty")}>아직 연결된 GA4 속성이 없습니다.</div>
-              )}
-
-              {!ga4Connected && ga4Linked.length === 0 && (
-                <div style={s.notice("info")}>
-                  상단의 Google 계정 연결을 먼저 완료하면 GA4 속성 목록을 불러올 수 있습니다.
-                </div>
-              )}
-
-              {ga4Connected && ga4Loading ? (
-                <div style={s.notice("info")}>GA4 속성 목록을 불러오는 중입니다.</div>
-              ) : null}
-
-              {ga4Connected && !ga4Loading && !ga4ManualMode && availableGa4.length > 0 && (
-                <div style={s.formRow}>
-                  <select value={ga4Selected} onChange={(e) => setGa4Selected(e.target.value)} style={s.select}>
-                    <option value="">연결할 GA4 속성 선택</option>
-                    {availableGa4.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        [{account.accountName}] {account.name} ({account.id})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={linkGa4}
-                    disabled={saving || !ga4Selected}
-                    className="btn primary"
-                    style={{ opacity: saving || !ga4Selected ? 0.4 : 1 }}
-                  >
-                    연결
-                  </button>
-                </div>
-              )}
-
-              {ga4ManualMode ? (
-                <>
-                  <div style={s.formRow}>
-                    <input
-                      type="text"
-                      value={ga4PropertyId}
-                      onChange={(e) => setGa4PropertyId(e.target.value)}
-                      placeholder="속성 ID"
-                      style={{ ...s.input, width: 140 }}
-                    />
-                    <input
-                      type="text"
-                      value={ga4PropertyName}
-                      onChange={(e) => setGa4PropertyName(e.target.value)}
-                      placeholder="속성 이름"
-                      style={{ ...s.input, flex: 1 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={addGa4}
-                      disabled={saving || !ga4PropertyId.trim() || !ga4PropertyName.trim()}
-                      className="btn primary"
+                    <div
                       style={{
-                        opacity:
-                          saving || !ga4PropertyId.trim() || !ga4PropertyName.trim() ? 0.4 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
                       }}
                     >
-                      추가
-                    </button>
+                      {provider.authMode === "oauth" && ga4Connected && (
+                        <span style={s.statusChip("connected")}>
+                          <span style={s.statusDot("var(--good)")} />
+                          공통 인증
+                        </span>
+                      )}
+                      <span style={s.statusChip(tone)}>
+                        <span style={s.statusDot(toneDotColor(tone))} />
+                        {toneLabel(tone)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setModalProvider(provider.id)}
+                        className="btn"
+                        style={{ padding: "6px 10px", fontSize: 10 }}
+                      >
+                        {provider.authMode === "oauth"
+                          ? ga4Connected
+                            ? "재연결"
+                            : "연결"
+                          : "키 설정"}
+                      </button>
+                      {!isOauthLocked && (
+                        <button
+                          type="button"
+                          onClick={() => fetchAccounts(provider.id)}
+                          disabled={st.loading}
+                          style={s.refreshBtn}
+                        >
+                          {st.loading ? "불러오는 중" : "새로고침"}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setGa4ManualMode(false)}
-                    style={s.secondaryAction}
-                  >
-                    ← 목록 선택으로 돌아가기
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setGa4ManualMode(true)}
-                  style={s.secondaryAction}
-                >
-                  직접 속성 ID 입력하기 →
-                </button>
-              )}
-            </section>
+
+                  {errorDisplay && (
+                    <div style={s.notice("error")}>
+                      {errorDisplay.title}
+                      <div style={{ marginTop: 4, color: "#ffb1a7" }}>{errorDisplay.detail}</div>
+                    </div>
+                  )}
+
+                  {st.linked.length > 0 ? (
+                    <div style={s.list}>
+                      {st.linked.map((m) => (
+                        <div key={m.account_id} style={s.linkedItem}>
+                          <span style={s.mediaIcon(provider.ui.iconBg, provider.ui.iconColor)}>
+                            {provider.ui.iconMark}
+                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={s.linkedName}>{m.account_name}</div>
+                            <div style={s.linkedMeta}>{m.account_id}</div>
+                          </div>
+                          <span
+                            style={{
+                              ...s.statusChip("connected"),
+                              padding: "3px 8px",
+                              fontSize: 9,
+                            }}
+                          >
+                            연결
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => unlinkAccount(provider.id, m.account_id)}
+                            disabled={saving}
+                            style={{ ...s.unlinkBtn, opacity: saving ? 0.5 : 1 }}
+                          >
+                            해제
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={s.notice("empty")}>
+                      아직 연결된 {provider.shortLabel} {provider.category === "ads" ? "광고 계정" : "속성"}이 없습니다.
+                    </div>
+                  )}
+
+                  {isOauthLocked ? (
+                    <div style={s.notice("info")}>
+                      상단의 Google 계정 연결을 먼저 완료하면 GA4 속성 목록을 불러올 수 있습니다.
+                    </div>
+                  ) : st.loading ? (
+                    <div style={s.notice("info")}>
+                      {provider.shortLabel} 계정을 불러오는 중입니다.
+                    </div>
+                  ) : st.manualMode ? null : availableAccounts.length > 0 ? (
+                    <div style={s.formRow}>
+                      <select
+                        value={st.selected}
+                        onChange={(e) => patchProvider(provider.id, { selected: e.target.value })}
+                        style={s.select}
+                      >
+                        <option value="">연결할 계정 선택</option>
+                        {availableAccounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.name}
+                            {account.status ? ` · ${account.status}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const acc = availableAccounts.find((a) => a.id === st.selected)
+                          if (acc) linkAccount(provider.id, acc)
+                        }}
+                        disabled={saving || !st.selected}
+                        className="btn primary"
+                        style={{ opacity: saving || !st.selected ? 0.4 : 1 }}
+                      >
+                        연결
+                      </button>
+                    </div>
+                  ) : !st.error ? (
+                    <div style={s.notice("empty")}>
+                      연결 가능한 계정이 없습니다. API 설정을 확인한 뒤 새로고침하세요.
+                    </div>
+                  ) : null}
+
+                  {provider.supportsManualAdd && !isOauthLocked && (
+                    <>
+                      {st.manualMode ? (
+                        <>
+                          <div style={s.formRow}>
+                            <input
+                              type="text"
+                              value={st.manualId}
+                              onChange={(e) => patchProvider(provider.id, { manualId: e.target.value })}
+                              placeholder={
+                                provider.id === "ga4" ? "속성 ID" : `${provider.shortLabel} 계정 ID`
+                              }
+                              style={{ ...s.input, width: 140 }}
+                            />
+                            <input
+                              type="text"
+                              value={st.manualName}
+                              onChange={(e) => patchProvider(provider.id, { manualName: e.target.value })}
+                              placeholder={provider.id === "ga4" ? "속성 이름" : "계정 이름"}
+                              style={{ ...s.input, flex: 1 }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const idv = st.manualId.trim()
+                                const nv = st.manualName.trim()
+                                if (!idv || !nv) return
+                                linkAccount(provider.id, { id: idv, name: nv })
+                              }}
+                              disabled={
+                                saving || !st.manualId.trim() || !st.manualName.trim()
+                              }
+                              className="btn primary"
+                              style={{
+                                opacity:
+                                  saving || !st.manualId.trim() || !st.manualName.trim() ? 0.4 : 1,
+                              }}
+                            >
+                              추가
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => patchProvider(provider.id, { manualMode: false })}
+                            style={s.secondaryAction}
+                          >
+                            ← 목록 선택으로 돌아가기
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => patchProvider(provider.id, { manualMode: true })}
+                          style={s.secondaryAction}
+                        >
+                          직접 ID 입력하기 →
+                        </button>
+                      )}
+                    </>
+                  )}
+                </section>
+              )
+            })}
           </div>
         </div>
       )}

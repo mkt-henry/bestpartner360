@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Loader2, Save, Trash2, Eye, EyeOff, CheckCircle2, ExternalLink } from "lucide-react"
+import { PROVIDER_METADATA } from "@/lib/providers/public"
+import type { ProviderMetadata } from "@/lib/providers/types"
 
 interface CredentialInfo {
   platform: string
@@ -10,13 +12,8 @@ interface CredentialInfo {
   fields: Record<string, string>
 }
 
-interface FieldConfig {
-  key: string
-  label: string
-  placeholder: string
-}
-
-export type CredentialPlatform = "meta" | "naver"
+// Credential form only supports manual-auth providers (OAuth has no form).
+export type CredentialPlatform = "meta" | "naver" | "tiktok"
 
 interface PlatformCredentialsFormProps {
   platforms?: CredentialPlatform[]
@@ -24,28 +21,20 @@ interface PlatformCredentialsFormProps {
   onSaved?: (platform: CredentialPlatform) => void
 }
 
-const platformConfig: Record<CredentialPlatform, { label: string; description: string; helpUrl: string; helpLabel: string; fields: FieldConfig[] }> = {
-  meta: {
-    label: "Meta (Facebook / Instagram)",
-    description: "Meta Business Suite에서 발급한 액세스 토큰을 입력하세요.",
-    helpUrl: "https://developers.facebook.com/tools/explorer/",
-    helpLabel: "Graph API Explorer에서 토큰 발급 →",
-    fields: [
-      { key: "access_token", label: "Access Token", placeholder: "EAAxxxxxxx..." },
-    ],
-  },
-  naver: {
-    label: "네이버 검색광고",
-    description: "네이버 검색광고 API 라이선스 관리에서 발급한 키를 입력하세요.",
-    helpUrl: "https://manage.searchad.naver.com/customers/START/tool/management",
-    helpLabel: "검색광고 API 라이선스 관리 →",
-    fields: [
-      { key: "api_key", label: "액세스라이선스", placeholder: "010000000050e04ece..." },
-      { key: "secret_key", label: "비밀키", placeholder: "AQAAAAD1GRmybWH..." },
-      { key: "customer_id", label: "CUSTOMER_ID", placeholder: "1655763" },
-    ],
-  },
+function isCredentialPlatform(id: string): id is CredentialPlatform {
+  return id === "meta" || id === "naver" || id === "tiktok"
 }
+
+const manualProviders: Record<CredentialPlatform, ProviderMetadata> = PROVIDER_METADATA.filter(
+  (p): p is ProviderMetadata & { id: CredentialPlatform } =>
+    p.authMode === "manual" && isCredentialPlatform(p.id)
+).reduce(
+  (acc, p) => {
+    acc[p.id] = p
+    return acc
+  },
+  {} as Record<CredentialPlatform, ProviderMetadata>
+)
 
 export default function PlatformCredentialsForm({
   platforms,
@@ -53,10 +42,17 @@ export default function PlatformCredentialsForm({
   onSaved,
 }: PlatformCredentialsFormProps = {}) {
   const [existing, setExisting] = useState<Partial<Record<CredentialPlatform, CredentialInfo>>>({})
-  const [formData, setFormData] = useState<Record<CredentialPlatform, Record<string, string>>>({
-    meta: { access_token: "" },
-    naver: { api_key: "", secret_key: "", customer_id: "" },
-  })
+  const [formData, setFormData] = useState<Record<CredentialPlatform, Record<string, string>>>(
+    () => {
+      const init = {} as Record<CredentialPlatform, Record<string, string>>
+      for (const id of Object.keys(manualProviders) as CredentialPlatform[]) {
+        init[id] = Object.fromEntries(
+          (manualProviders[id].credentialFields ?? []).map((f) => [f.key, ""])
+        )
+      }
+      return init
+    }
+  )
   const [saving, setSaving] = useState<CredentialPlatform | null>(null)
   const [deleting, setDeleting] = useState<CredentialPlatform | null>(null)
   const [success, setSuccess] = useState<CredentialPlatform | null>(null)
@@ -64,10 +60,13 @@ export default function PlatformCredentialsForm({
   const [showValues, setShowValues] = useState<Record<string, boolean>>({})
   const [showReplaceForm, setShowReplaceForm] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
-  const visiblePlatforms = (platforms && platforms.length > 0
-    ? platforms
-    : (Object.keys(platformConfig) as CredentialPlatform[]))
-  const visibleConfigs = visiblePlatforms.map((platform) => [platform, platformConfig[platform]] as const)
+  const visiblePlatforms =
+    platforms && platforms.length > 0
+      ? platforms
+      : (Object.keys(manualProviders) as CredentialPlatform[])
+  const visibleConfigs = visiblePlatforms.map(
+    (platform) => [platform, manualProviders[platform]] as const
+  )
 
   async function fetchCredentials() {
     setLoading(true)
@@ -100,7 +99,7 @@ export default function PlatformCredentialsForm({
   }
 
   async function handleSave(platform: CredentialPlatform) {
-    const fields = platformConfig[platform].fields
+    const fields = manualProviders[platform].credentialFields ?? []
     const creds = formData[platform]
 
     console.log("[handleSave] platform:", platform, "creds:", creds)
@@ -147,7 +146,7 @@ export default function PlatformCredentialsForm({
   }
 
   async function handleDelete(platform: CredentialPlatform) {
-    if (!confirm(`${platformConfig[platform].label} API 키를 삭제하시겠습니까?`)) return
+    if (!confirm(`${manualProviders[platform].label} API 키를 삭제하시겠습니까?`)) return
 
     setDeleting(platform)
     setError(null)
@@ -263,7 +262,7 @@ export default function PlatformCredentialsForm({
                     </button>
                   )}
                 </div>
-                {config.fields.map((field) => (
+                {(config.credentialFields ?? []).map((field) => (
                   <div key={field.key}>
                     <label className="form-label">
                       {field.label}

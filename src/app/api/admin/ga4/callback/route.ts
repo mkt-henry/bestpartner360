@@ -59,15 +59,30 @@ export async function GET(req: NextRequest) {
   }
 
   // Store tokens in platform_credentials
+  // 재인증 시 Google이 refresh_token을 다시 내려주지 않을 수 있음 → 기존 값 보존
   const supabase = createAdminClient()
+
+  let refreshToken: string | undefined = tokenData.refresh_token
+  if (!refreshToken) {
+    const { data: existing } = await supabase
+      .from("platform_credentials")
+      .select("credentials")
+      .eq("platform", "ga4")
+      .single()
+    refreshToken = existing?.credentials?.refresh_token
+  }
+
+  const expiresInSec = typeof tokenData.expires_in === "number" ? tokenData.expires_in : 3600
+
   const { error: dbError } = await supabase.from("platform_credentials").upsert(
     {
       platform: "ga4",
       credentials: {
         access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_at: Date.now() + tokenData.expires_in * 1000,
+        refresh_token: refreshToken,
+        expires_at: Date.now() + expiresInSec * 1000,
       },
+      updated_at: new Date().toISOString(),
     },
     { onConflict: "platform" }
   )

@@ -180,6 +180,15 @@ export interface NaverAdAccount {
   brand?: Brand
 }
 
+export interface TiktokAdAccount {
+  id: string
+  brand_id: string
+  tiktok_advertiser_id: string
+  tiktok_advertiser_name: string
+  created_at: string
+  brand?: Brand
+}
+
 export interface Ga4Property {
   id: string
   brand_id: string

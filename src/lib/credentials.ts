@@ -42,37 +42,47 @@ export async function getGa4Credentials(): Promise<Ga4Credentials | null> {
     .eq("platform", "ga4")
     .single()
 
-  if (!data?.credentials?.access_token) return null
+  const creds = data?.credentials as
+    | { access_token?: string; refresh_token?: string; expires_at?: number }
+    | undefined
 
-  const creds = data.credentials as {
-    access_token: string
-    refresh_token?: string
-    expires_at?: number
-  }
+  if (!creds) return null
 
-  // 토큰 만료 확인 및 자동 갱신
-  const isExpired = creds.expires_at && Date.now() > creds.expires_at - 60_000
+  // refresh_token이 있으면 access_token이 비어있어도 복구 가능
+  if (!creds.access_token && !creds.refresh_token) return null
 
-  if (isExpired && creds.refresh_token) {
+  // expires_at이 숫자가 아니거나 없으면 만료로 간주해 한 번만 갱신 시도
+  const expiresAt = typeof creds.expires_at === "number" ? creds.expires_at : 0
+  const isExpired = Date.now() > expiresAt - 60_000
+
+  if (isExpired) {
+    if (!creds.refresh_token) {
+      console.error("[ga4] access_token expired and no refresh_token available — reauth required")
+      return null
+    }
     const refreshed = await refreshGa4Token(creds.refresh_token)
     if (refreshed) return refreshed
-    // 갱신 실패 시 만료된 토큰 반환하지 않음
     return null
   }
 
-  // 만료 정보 없이 refresh_token만 있으면 갱신 시도 (최초 1시간 이후)
-  if (!creds.expires_at && creds.refresh_token) {
-    const refreshed = await refreshGa4Token(creds.refresh_token)
-    if (refreshed) return refreshed
-  }
-
-  return { access_token: creds.access_token }
+  return { access_token: creds.access_token! }
 }
 
 async function refreshGa4Token(refreshToken: string): Promise<Ga4Credentials | null> {
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  if (!clientId || !clientSecret) return null
+  if (!clientId || !clientSecret) {
+    console.error("[ga4] refresh skipped: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
+    return null
+  }
+
+  let tokenData: {
+    access_token?: string
+    refresh_token?: string
+    expires_in?: number
+    error?: string
+    error_description?: string
+  } = {}
 
   try {
     const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -86,27 +96,89 @@ async function refreshGa4Token(refreshToken: string): Promise<Ga4Credentials | n
       }),
     })
 
-    const tokenData = await res.json()
-    if (!res.ok || !tokenData.access_token) return null
+    tokenData = await res.json().catch(() => ({}))
 
-    // DB에 갱신된 토큰 저장
-    const supabase = createAdminClient()
-    await supabase.from("platform_credentials").upsert(
-      {
-        platform: "ga4",
-        credentials: {
-          access_token: tokenData.access_token,
-          refresh_token: refreshToken,
-          expires_at: Date.now() + tokenData.expires_in * 1000,
-        },
-      },
-      { onConflict: "platform" }
-    )
-
-    return { access_token: tokenData.access_token }
-  } catch {
+    if (!res.ok || !tokenData.access_token) {
+      console.error(
+        `[ga4] refresh failed (HTTP ${res.status}): ${tokenData.error ?? "unknown"} — ${tokenData.error_description ?? ""}`
+      )
+      // invalid_grant는 refresh_token이 영구적으로 무효 → 재인증 유도를 위해 만료 처리
+      if (tokenData.error === "invalid_grant") {
+        const supabase = createAdminClient()
+        await supabase
+          .from("platform_credentials")
+          .update({
+            credentials: { refresh_token: null, access_token: null, expires_at: 0 },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("platform", "ga4")
+      }
+      return null
+    }
+  } catch (err) {
+    console.error("[ga4] refresh network error:", err instanceof Error ? err.message : err)
     return null
   }
+
+  const expiresInSec = typeof tokenData.expires_in === "number" ? tokenData.expires_in : 3600
+
+  // refresh_token rotation: Google이 새로 내려주면 그걸 쓰고, 아니면 기존 것 유지
+  const newRefreshToken = tokenData.refresh_token ?? refreshToken
+
+  const supabase = createAdminClient()
+  const { error: upsertErr } = await supabase.from("platform_credentials").upsert(
+    {
+      platform: "ga4",
+      credentials: {
+        access_token: tokenData.access_token,
+        refresh_token: newRefreshToken,
+        expires_at: Date.now() + expiresInSec * 1000,
+      },
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "platform" }
+  )
+
+  if (upsertErr) {
+    console.error("[ga4] refresh succeeded but DB upsert failed:", upsertErr.message)
+  }
+
+  return { access_token: tokenData.access_token }
+}
+
+export interface TiktokCredentials {
+  access_token: string
+  app_id: string
+  secret: string
+}
+
+export async function getTiktokCredentials(): Promise<TiktokCredentials | null> {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from("platform_credentials")
+    .select("credentials")
+    .eq("platform", "tiktok")
+    .single()
+
+  const creds = data?.credentials as Partial<TiktokCredentials> | undefined
+
+  if (creds?.access_token && creds?.app_id && creds?.secret) {
+    return creds as TiktokCredentials
+  }
+
+  if (
+    process.env.TIKTOK_ACCESS_TOKEN &&
+    process.env.TIKTOK_APP_ID &&
+    process.env.TIKTOK_APP_SECRET
+  ) {
+    return {
+      access_token: process.env.TIKTOK_ACCESS_TOKEN,
+      app_id: process.env.TIKTOK_APP_ID,
+      secret: process.env.TIKTOK_APP_SECRET,
+    }
+  }
+
+  return null
 }
 
 export async function getNaverCredentials(): Promise<NaverCredentials | null> {

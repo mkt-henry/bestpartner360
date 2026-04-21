@@ -112,7 +112,7 @@ const adminWorkspace: NavItem[] = [
   { href: "/admin/brands", label: "브랜드", icon: Icon.building },
   { href: "/admin/users", label: "계정", icon: Icon.users },
   { href: "/admin/calendar", label: "캘린더", icon: Icon.calendar },
-  { href: "/admin/settings", label: "API 설정", icon: Icon.key },
+  { href: "/admin/connections", label: "매체 연결", icon: Icon.key },
 ]
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {

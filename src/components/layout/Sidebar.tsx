@@ -31,7 +31,7 @@ const adminNavFull = [
   { href: "/admin/campaigns", label: "브랜드 KPI", icon: BarChart2 },
   { href: "/admin/meta", label: "Meta 인사이트", icon: Megaphone },
   { href: "/admin/ga4-utm", label: "GA4 UTM", icon: TrendingUp },
-  { href: "/admin/settings", label: "API 설정", icon: KeyRound },
+  { href: "/admin/connections", label: "매체 연결", icon: KeyRound },
   { href: "/admin/calendar", label: "캘린더 관리", icon: Calendar },
   { href: "/admin/viewer", label: "파트너 뷰어", icon: Eye },
 ]

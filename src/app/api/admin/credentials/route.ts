@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 })
   }
 
-  if (!["meta", "naver"].includes(platform)) {
+  if (!["meta", "naver", "tiktok"].includes(platform)) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 })
   }
 

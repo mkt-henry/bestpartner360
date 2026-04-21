@@ -3,35 +3,15 @@
 import { useEffect } from "react"
 import { ExternalLink } from "lucide-react"
 import PlatformCredentialsForm, { type CredentialPlatform } from "@/components/admin/PlatformCredentialsForm"
-
-type ModalProvider = CredentialPlatform | "ga4"
+import { getProviderMetadata } from "@/lib/providers/public"
+import type { ProviderId } from "@/lib/providers/types"
 
 interface BrandConnectionModalProps {
   open: boolean
-  provider: ModalProvider | null
+  provider: ProviderId | null
   ga4Connected: boolean
   onClose: () => void
   onSaved: (provider: CredentialPlatform) => void
-}
-
-const contentMap: Record<
-  ModalProvider,
-  { title: string; description: string; helpUrl?: string; helpLabel?: string }
-> = {
-  meta: {
-    title: "Meta API 설정",
-    description: "이 화면에서 바로 Meta 액세스 토큰을 저장하고 계정 목록을 다시 불러올 수 있습니다.",
-  },
-  naver: {
-    title: "Naver API 설정",
-    description: "API 키, Secret Key, Customer ID를 저장하면 브랜드 카드에서 바로 계정을 연결할 수 있습니다.",
-  },
-  ga4: {
-    title: "GA4 Google 연결",
-    description: "Google 계정을 연결하거나 다시 연결하면 GA4 속성 목록을 현재 화면에서 바로 다시 불러올 수 있습니다.",
-    helpUrl: "https://analytics.google.com/analytics/web/",
-    helpLabel: "Google Analytics 관리 콘솔 →",
-  },
 }
 
 export default function BrandConnectionModal({
@@ -60,7 +40,8 @@ export default function BrandConnectionModal({
 
   if (!open || !provider) return null
 
-  const modalContent = contentMap[provider]
+  const meta = getProviderMetadata(provider)
+  if (!meta) return null
 
   return (
     <div
@@ -107,22 +88,27 @@ export default function BrandConnectionModal({
               id="brand-connection-modal-title"
               style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}
             >
-              {modalContent.title}
+              {meta.label}
             </div>
             <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 6, lineHeight: 1.6 }}>
-              {modalContent.description}
+              {meta.description}
             </div>
-            {modalContent.helpUrl && (
-              <a
-                href={modalContent.helpUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 12, color: "var(--accent)", display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6 }}
-              >
-                <ExternalLink style={{ width: 12, height: 12 }} />
-                {modalContent.helpLabel}
-              </a>
-            )}
+            <a
+              href={meta.helpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: 12,
+                color: "var(--accent)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                marginTop: 6,
+              }}
+            >
+              <ExternalLink style={{ width: 12, height: 12 }} />
+              {meta.helpLabel}
+            </a>
           </div>
           <button
             type="button"
@@ -144,7 +130,7 @@ export default function BrandConnectionModal({
         </div>
 
         <div style={{ padding: 24 }}>
-          {provider === "ga4" ? (
+          {meta.authMode === "oauth" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div
                 style={{
@@ -172,7 +158,7 @@ export default function BrandConnectionModal({
             </div>
           ) : (
             <PlatformCredentialsForm
-              platforms={[provider]}
+              platforms={[provider as CredentialPlatform]}
               flat
               onSaved={(savedProvider) => {
                 onSaved(savedProvider)
