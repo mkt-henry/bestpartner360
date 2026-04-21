@@ -27,10 +27,13 @@ interface MonthViewProps {
   events: CalendarEvent[]
   selectedEventId: string | null
   onEventClick: (ev: CalendarEvent) => void
+  editable?: boolean
+  onDayClick?: (dateKey: string) => void
 }
 
 export default function MonthView({
   currentDate, events, selectedEventId, onEventClick,
+  editable = false, onDayClick,
 }: MonthViewProps) {
   const cells = useMemo(() => getMonthCells(currentDate), [currentDate])
   const byDate = useMemo(() => groupEventsByDate(events), [events])
@@ -82,10 +85,19 @@ export default function MonthView({
               : di === 6 ? "var(--steel)"
               : "var(--text-2)"
 
+            const handleCellClick = (e: React.MouseEvent) => {
+              if (!editable || !onDayClick || !day) return
+              // Pill/더보기 버튼 자체 클릭은 무시 (자체 핸들러 존재)
+              const target = e.target as HTMLElement
+              if (target.closest("button")) return
+              onDayClick(formatDateKey(day))
+            }
+
             return (
               <div
                 key={key}
                 data-day-key={key}
+                onClick={handleCellClick}
                 style={{
                   minHeight: 110,
                   padding: "6px 6px 8px",
@@ -93,8 +105,10 @@ export default function MonthView({
                   background: isTodayCell ? "color-mix(in srgb, var(--amber) 6%, transparent)" : "transparent",
                   borderRight: di === 6 ? 0 : "1px solid var(--line)",
                   transition: "background .12s",
+                  cursor: editable && day ? "pointer" : "default",
                 }}
                 aria-current={isTodayCell ? "date" : undefined}
+                className={editable && day ? "cal-cell-editable" : undefined}
               >
                 {isTodayCell && (
                   <span aria-hidden style={{

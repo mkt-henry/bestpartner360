@@ -5,9 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   BarChart2,
-  FileText,
   Calendar,
-  Image,
   Settings,
   ChevronRight,
   Users,
@@ -24,9 +22,7 @@ const viewerNavFull = [
   { href: "/dashboard", label: "대시보드", icon: LayoutDashboard },
   { href: "/dashboard/performance", label: "성과", icon: BarChart2 },
   { href: "/dashboard/ga4", label: "GA4 UTM", icon: TrendingUp },
-  { href: "/dashboard/activity", label: "운영 현황", icon: FileText },
   { href: "/dashboard/calendar", label: "캘린더", icon: Calendar },
-  { href: "/dashboard/creatives", label: "소재", icon: Image },
 ]
 
 const adminNavFull = [
@@ -36,9 +32,7 @@ const adminNavFull = [
   { href: "/admin/meta", label: "Meta 인사이트", icon: Megaphone },
   { href: "/admin/ga4-utm", label: "GA4 UTM", icon: TrendingUp },
   { href: "/admin/settings", label: "API 설정", icon: KeyRound },
-  { href: "/admin/activity", label: "운영 현황 작성", icon: FileText },
   { href: "/admin/calendar", label: "캘린더 관리", icon: Calendar },
-  { href: "/admin/creatives", label: "소재 관리", icon: Image },
   { href: "/admin/viewer", label: "파트너 뷰어", icon: Eye },
 ]
 
@@ -46,16 +40,13 @@ const adminNavFull = [
 const viewerNavMobile = [
   { href: "/dashboard", label: "홈", icon: LayoutDashboard },
   { href: "/dashboard/performance", label: "성과", icon: BarChart2 },
-  { href: "/dashboard/activity", label: "운영현황", icon: FileText },
   { href: "/dashboard/calendar", label: "캘린더", icon: Calendar },
-  { href: "/dashboard/creatives", label: "소재", icon: Image },
 ]
 
 const adminNavMobile = [
   { href: "/admin/brands", label: "브랜드", icon: Building2 },
   { href: "/admin/users", label: "계정", icon: Users },
   { href: "/admin/campaigns", label: "브랜드KPI", icon: BarChart2 },
-  { href: "/admin/activity", label: "운영현황", icon: FileText },
   { href: "/admin/calendar", label: "캘린더", icon: Calendar },
   { href: "/admin/viewer", label: "뷰어", icon: Eye },
 ]

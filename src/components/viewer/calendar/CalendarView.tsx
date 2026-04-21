@@ -18,9 +18,15 @@ import {
 
 interface CalendarViewProps {
   events: CalendarEvent[]
+  editable?: boolean
+  onDayClick?: (dateKey: string) => void
+  onEventEdit?: (event: CalendarEvent) => void
+  currentUserId?: string
 }
 
-export default function CalendarView({ events }: CalendarViewProps) {
+export default function CalendarView({
+  events, editable = false, onDayClick, onEventEdit, currentUserId,
+}: CalendarViewProps) {
   const today = useMemo(() => new Date(), [])
   const {
     view, date, filters, queryInput,
@@ -39,11 +45,15 @@ export default function CalendarView({ events }: CalendarViewProps) {
   const assetTypeOptions = useMemo(() => distinctValues(events, "asset_type"), [events])
 
   const selectedEvent =
-    selectedEventId ? events.find((e) => e.id === selectedEventId) ?? null : null
+    !editable && selectedEventId ? events.find((e) => e.id === selectedEventId) ?? null : null
 
   const outOfRange = !isInLoadedRange(date, events) && events.length > 0
 
   const handleEventClick = (ev: CalendarEvent) => {
+    if (editable) {
+      onEventEdit?.(ev)
+      return
+    }
     setSelectedEventId((prev) => (prev === ev.id ? null : ev.id))
   }
 
@@ -110,6 +120,8 @@ export default function CalendarView({ events }: CalendarViewProps) {
           events={filtered}
           selectedEventId={selectedEventId}
           onEventClick={handleEventClick}
+          editable={editable}
+          onDayClick={onDayClick}
         />
       )}
       {view === "week" && (
@@ -118,6 +130,8 @@ export default function CalendarView({ events }: CalendarViewProps) {
           events={filtered}
           selectedEventId={selectedEventId}
           onEventClick={handleEventClick}
+          editable={editable}
+          onDayClick={onDayClick}
         />
       )}
       {view === "list" && (
@@ -128,11 +142,14 @@ export default function CalendarView({ events }: CalendarViewProps) {
         />
       )}
 
-      <EventDrawer
-        event={selectedEvent}
-        today={today}
-        onClose={() => setSelectedEventId(null)}
-      />
+      {!editable && (
+        <EventDrawer
+          event={selectedEvent}
+          today={today}
+          currentUserId={currentUserId}
+          onClose={() => setSelectedEventId(null)}
+        />
+      )}
     </div>
   )
 }

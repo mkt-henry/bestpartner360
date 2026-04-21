@@ -89,6 +89,25 @@ export interface CalendarEvent {
   status: CalendarEventStatus
   description: string | null
   campaign?: Campaign
+  creatives?: CalendarEventCreative[]
+}
+
+export interface CalendarEventCreative {
+  id: string
+  title: string
+  asset_type: "image" | "video" | "other"
+  status: CalendarEventStatus
+  description: string | null
+  creative_versions: CreativeVersion[]
+  creative_comments?: CalendarEventCreativeComment[]
+}
+
+export interface CalendarEventCreativeComment {
+  id: string
+  content: string
+  created_at: string
+  user_id: string
+  user_profiles: { full_name: string | null; role: UserRole } | null
 }
 
 export type CalendarEventStatus =
@@ -121,15 +140,17 @@ export interface Creative {
   id: string
   brand_id: string
   campaign_id: string | null
+  calendar_event_id: string | null
   title: string
   channel: string | null
-  asset_type: "image" | "video" | "banner" | "other"
+  asset_type: "image" | "video" | "other"
   status: CalendarEventStatus
   description: string | null
   scheduled_date: string | null
   created_at: string
   campaign?: Campaign
   latest_version?: CreativeVersion
+  creative_versions?: CreativeVersion[]
 }
 
 export interface CreativeVersion {

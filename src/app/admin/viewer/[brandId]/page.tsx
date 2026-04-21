@@ -56,14 +56,8 @@ export default async function AdminViewerDashboardPage({
 
   const basePath = `/admin/viewer/${brandId}`
 
-  const [campaignsResult, activitiesResult, eventsResult, creativesResult, utmEntriesResult, ga4PropertiesResult] = await Promise.all([
+  const [campaignsResult, eventsResult, creativesResult, utmEntriesResult, ga4PropertiesResult] = await Promise.all([
     supabase.from("campaigns").select("id, channel").in("brand_id", brandIds),
-    supabase
-      .from("activities")
-      .select("id, title, content, channel, activity_date")
-      .in("brand_id", brandIds)
-      .order("activity_date", { ascending: false })
-      .limit(3),
     supabase
       .from("calendar_events")
       .select("id, title, channel, event_date, status")
@@ -137,7 +131,6 @@ export default async function AdminViewerDashboardPage({
     completed: creativeStats.filter((c) => c.status === "completed").length,
   }
 
-  const activities = activitiesResult.data
   const upcomingEvents = eventsResult.data
 
   return (
@@ -207,7 +200,7 @@ export default async function AdminViewerDashboardPage({
           )}
         </Link>
 
-        <Link href={`${basePath}/creatives`} className="card">
+        <Link href={`${basePath}/calendar`} className="card">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{
@@ -332,32 +325,7 @@ export default async function AdminViewerDashboardPage({
       )}
 
       {/* Bottom Section */}
-      <div className="card-grid cols-2">
-        <div className="panel">
-          <div className="p-head">
-            <h3>최근 운영 현황</h3>
-            <Link href={`${basePath}/activity`} className="btn" style={{ marginLeft: "auto", padding: "4px 10px", fontSize: 10 }}>전체보기</Link>
-          </div>
-          <div className="p-body">
-            {activities && activities.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {activities.map((a) => (
-                  <div key={a.id} style={{ borderLeft: "2px solid var(--amber)", paddingLeft: 12 }}>
-                    <p style={{ fontSize: 10, color: "var(--dim)", marginBottom: 2 }}>
-                      {a.channel && <span style={{ fontWeight: 500, color: "var(--text-2)" }}>[{a.channel}]</span>}{" "}
-                      {formatDate(a.activity_date)}
-                    </p>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", lineHeight: 1.4 }}>{a.title}</p>
-                    <p style={{ fontSize: 10, color: "var(--dim)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.content}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty">운영 현황이 없습니다.</div>
-            )}
-          </div>
-        </div>
-
+      <div className="card-grid cols-1">
         <div className="panel">
           <div className="p-head">
             <h3>예정 일정</h3>

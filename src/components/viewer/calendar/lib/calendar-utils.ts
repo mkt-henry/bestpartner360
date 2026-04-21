@@ -31,6 +31,7 @@ export const CHANNEL_COLORS: Record<string, string> = {
   Google: "#4285F4",
   Naver: "#03c75a",
   Kakao: "#FEE500",
+  Tistory: "#ED7C2F",
   TikTok: "#ff0040",
   YouTube: "#FF0000",
   GA4: "#FBBC05",
@@ -39,7 +40,7 @@ export const CHANNEL_COLORS: Record<string, string> = {
 export function channelTagClass(channel: string | null): string {
   if (!channel) return "tag neutral"
   const key = channel.toLowerCase()
-  const known = ["meta", "instagram", "facebook", "google", "naver", "kakao", "tiktok", "youtube", "ga4"]
+  const known = ["meta", "instagram", "facebook", "google", "naver", "kakao", "tistory", "tiktok", "youtube", "ga4"]
   return known.includes(key) ? `tag ${key}` : "tag neutral"
 }
 

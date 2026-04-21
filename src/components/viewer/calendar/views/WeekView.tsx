@@ -16,10 +16,13 @@ interface WeekViewProps {
   events: CalendarEvent[]
   selectedEventId: string | null
   onEventClick: (ev: CalendarEvent) => void
+  editable?: boolean
+  onDayClick?: (dateKey: string) => void
 }
 
 export default function WeekView({
   currentDate, events, selectedEventId, onEventClick,
+  editable = false, onDayClick,
 }: WeekViewProps) {
   const days = useMemo(() => getWeekDays(currentDate), [currentDate])
   const byDate = useMemo(() => groupEventsByDate(events), [events])
@@ -43,10 +46,19 @@ export default function WeekView({
           : di === 6 ? "var(--steel)"
           : "var(--text-2)"
 
+        const handleColClick = (e: React.MouseEvent) => {
+          if (!editable || !onDayClick) return
+          const target = e.target as HTMLElement
+          if (target.closest("button")) return
+          onDayClick(key)
+        }
+
         return (
           <div
             key={key}
             aria-current={isTodayCell ? "date" : undefined}
+            onClick={handleColClick}
+            className={editable ? "cal-cell-editable" : undefined}
             style={{
               minHeight: 400,
               padding: 10,
@@ -56,6 +68,7 @@ export default function WeekView({
               flexDirection: "column",
               gap: 6,
               minWidth: 0,
+              cursor: editable ? "pointer" : "default",
             }}
           >
             <header style={{

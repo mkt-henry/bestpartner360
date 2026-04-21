@@ -526,6 +526,7 @@
 .console-scope .tag.instagram{background:#E1306C20;color:#E77FB3}
 .console-scope .tag.facebook{background:#1877F220;color:#6FA8F5}
 .console-scope .tag.kakao{background:#FEE50020;color:#E8B04B}
+.console-scope .tag.tistory{background:#ED7C2F20;color:#F0A472}
 .console-scope .tag.tiktok{background:#ff004020;color:#ff4770}
 .console-scope .tag.youtube{background:#FF000020;color:#E5553B}
 .console-scope .tag.admin{background:var(--amber-dim);color:var(--amber)}
@@ -648,6 +649,9 @@
 /* ── Calendar (viewer/calendar) ───────────────────────────────── */
 .console-scope .cal-pill:hover{background:var(--bg-2)}
 .console-scope .cal-pill:focus-visible{outline:1px solid var(--amber);outline-offset:1px}
+.console-scope .cal-cell-editable{position:relative}
+.console-scope .cal-cell-editable:hover{background:color-mix(in srgb, var(--amber) 4%, transparent) !important}
+.console-scope .cal-cell-editable:hover::after{content:"＋";position:absolute;top:4px;right:6px;font-size:14px;color:var(--amber);opacity:.7;pointer-events:none}
 
 @media(max-width:1279px){
   .console-scope .cal-drawer{width:320px !important}

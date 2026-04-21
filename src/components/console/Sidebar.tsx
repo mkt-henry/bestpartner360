@@ -98,9 +98,7 @@ const viewerMonitor: NavItem[] = [
   { href: "/dashboard/ga4", label: "GA4", icon: Icon.trending, requiresGa4: true },
 ]
 const viewerWorkspace: NavItem[] = [
-  { href: "/dashboard/activity", label: "운영현황", icon: Icon.doc },
   { href: "/dashboard/calendar", label: "캘린더", icon: Icon.calendar },
-  { href: "/dashboard/creatives", label: "소재", icon: Icon.image },
 ]
 
 // ── Admin nav (/admin/*) ──────────────────────────────────────────────
@@ -113,9 +111,7 @@ const adminMonitor: NavItem[] = [
 const adminWorkspace: NavItem[] = [
   { href: "/admin/brands", label: "브랜드", icon: Icon.building },
   { href: "/admin/users", label: "계정", icon: Icon.users },
-  { href: "/admin/activity", label: "운영현황", icon: Icon.doc },
   { href: "/admin/calendar", label: "캘린더", icon: Icon.calendar },
-  { href: "/admin/creatives", label: "소재", icon: Icon.image },
   { href: "/admin/settings", label: "API 설정", icon: Icon.key },
 ]
 
