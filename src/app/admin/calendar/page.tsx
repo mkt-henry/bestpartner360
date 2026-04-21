@@ -1,29 +1,23 @@
 import { createClient } from "@/lib/supabase/server"
 import AdminCalendarShell from "@/components/admin/calendar/AdminCalendarShell"
+import { fetchCalendarEvents } from "@/lib/calendar-events"
+import { getCalendarQueryRange } from "@/lib/calendar-query-range"
 import type { CalendarEvent } from "@/types"
 
-export default async function AdminCalendarPage() {
-  const supabase = await createClient()
+interface PageProps {
+  searchParams: Promise<{ date?: string | string[] }>
+}
 
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
-  const to = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString().slice(0, 10)
+export default async function AdminCalendarPage({ searchParams }: PageProps) {
+  const supabase = await createClient()
+  const { date } = await searchParams
+
+  const { from, to } = getCalendarQueryRange(date)
 
   const [brandsRes, campaignsRes, eventsRes] = await Promise.all([
     supabase.from("brands").select("id, name").order("name"),
     supabase.from("campaigns").select("id, name, brand_id, channel").order("name"),
-    supabase
-      .from("calendar_events")
-      .select(`
-        id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
-        creatives(
-          id, title, asset_type, status, description,
-          creative_versions(id, version_number, file_path, file_url, uploaded_at)
-        )
-      `)
-      .gte("event_date", from)
-      .lte("event_date", to)
-      .order("event_date"),
+    fetchCalendarEvents(supabase, { from, to }),
   ])
 
   return (

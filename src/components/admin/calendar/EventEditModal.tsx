@@ -44,6 +44,45 @@ type PendingCreative = {
   file: File
 }
 
+type CreativeInsertPayload = {
+  brand_id: string
+  campaign_id: string | null
+  calendar_event_id?: string
+  title: string
+  channel: string | null
+  asset_type: "image" | "video" | "other"
+  status: CalendarEventStatus
+  description: null
+  scheduled_date: string
+}
+
+function isMissingCalendarEventIdColumnError(error: { code?: string | null; message?: string | null } | null | undefined) {
+  return error?.code === "42703" && (error.message ?? "").includes("calendar_event_id")
+}
+
+async function insertCreativeWithOptionalCalendarLink(
+  supabase: ReturnType<typeof createClient>,
+  payload: CreativeInsertPayload,
+) {
+  const primary = await supabase
+    .from("creatives")
+    .insert(payload)
+    .select()
+    .single()
+
+  if (!isMissingCalendarEventIdColumnError(primary.error)) {
+    return primary
+  }
+
+  const fallbackPayload = { ...payload }
+  delete fallbackPayload.calendar_event_id
+  return supabase
+    .from("creatives")
+    .insert(fallbackPayload)
+    .select()
+    .single()
+}
+
 export default function EventEditModal({ state, brands, campaigns, onClose }: EventEditModalProps) {
   const router = useRouter()
   const open = !!state
@@ -141,21 +180,17 @@ export default function EventEditModal({ state, brands, campaigns, onClose }: Ev
     }
 
     for (const pc of pendingCreatives) {
-      const { data: creative, error: creativeError } = await supabase
-        .from("creatives")
-        .insert({
-          brand_id: form.brand_id,
-          campaign_id: form.campaign_id || null,
-          calendar_event_id: created.id,
-          title: pc.title,
-          channel: form.channel || null,
-          asset_type: pc.asset_type,
-          status: form.status,
-          description: null,
-          scheduled_date: form.event_date,
-        })
-        .select()
-        .single()
+      const { data: creative, error: creativeError } = await insertCreativeWithOptionalCalendarLink(supabase, {
+        brand_id: form.brand_id,
+        campaign_id: form.campaign_id || null,
+        calendar_event_id: created.id,
+        title: pc.title,
+        channel: form.channel || null,
+        asset_type: pc.asset_type,
+        status: form.status,
+        description: null,
+        scheduled_date: form.event_date,
+      })
 
       if (creativeError || !creative) {
         setLoading(false)
@@ -467,21 +502,17 @@ function CreativeSection({ event }: { event: CalendarEvent }) {
     setNewLoading(true)
     setError(null)
     const supabase = createClient()
-    const { data: creative, error: creativeError } = await supabase
-      .from("creatives")
-      .insert({
-        brand_id: event.brand_id,
-        campaign_id: event.campaign_id,
-        calendar_event_id: event.id,
-        title: newTitle,
-        channel: event.channel,
-        asset_type: inferAssetType(newFile),
-        status: event.status,
-        description: null,
-        scheduled_date: event.event_date,
-      })
-      .select()
-      .single()
+    const { data: creative, error: creativeError } = await insertCreativeWithOptionalCalendarLink(supabase, {
+      brand_id: event.brand_id,
+      campaign_id: event.campaign_id,
+      calendar_event_id: event.id,
+      title: newTitle,
+      channel: event.channel,
+      asset_type: inferAssetType(newFile),
+      status: event.status,
+      description: null,
+      scheduled_date: event.event_date,
+    })
     if (creativeError || !creative) {
       setError(creativeError?.message ?? "소재 등록 실패")
       setNewLoading(false)

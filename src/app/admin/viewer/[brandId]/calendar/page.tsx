@@ -1,40 +1,32 @@
 import { headers } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import CalendarView from "@/components/viewer/calendar/CalendarView"
+import { fetchCalendarEvents } from "@/lib/calendar-events"
+import { getCalendarQueryRange } from "@/lib/calendar-query-range"
 import type { CalendarEvent } from "@/types"
 
 export default async function AdminViewerCalendarPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ brandId: string }>
+  searchParams: Promise<{ date?: string | string[] }>
 }) {
   const { brandId } = await params
   const brandIds = [brandId]
+  const { date } = await searchParams
   const h = await headers()
   const userId = h.get("x-user-id") ?? ""
 
   const supabase = await createClient()
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
-  const to = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString().slice(0, 10)
+  const { from, to } = getCalendarQueryRange(date)
 
-  const { data: events } = await supabase
-    .from("calendar_events")
-    .select(`
-      id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
-      creatives(
-        id, title, asset_type, status, description,
-        creative_versions(id, version_number, file_path, file_url, uploaded_at),
-        creative_comments(
-          id, content, created_at, user_id,
-          user_profiles(full_name, role)
-        )
-      )
-    `)
-    .in("brand_id", brandIds)
-    .gte("event_date", from)
-    .lte("event_date", to)
-    .order("event_date")
+  const { data: events } = await fetchCalendarEvents(supabase, {
+    brandIds,
+    from,
+    to,
+    includeCreativeComments: true,
+  })
 
   return (
     <div className="canvas">
