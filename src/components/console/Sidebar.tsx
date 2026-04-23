@@ -13,6 +13,7 @@ type NavItem = {
   badge?: string
   trailing?: React.ReactNode
   requiresGa4?: boolean
+  requiresMeta?: boolean
 }
 
 // ── Icon primitives (inline SVG so bundle stays light) ────────────────
@@ -95,6 +96,7 @@ const Icon = {
 const viewerMonitor: NavItem[] = [
   { href: "/dashboard", label: "개요", exact: true, icon: Icon.grid },
   { href: "/dashboard/performance", label: "성과", icon: Icon.chart },
+  { href: "/dashboard/meta", label: "Meta 인사이트", icon: Icon.megaphone, requiresMeta: true },
   { href: "/dashboard/ga4", label: "GA4", icon: Icon.trending, requiresGa4: true },
 ]
 const viewerWorkspace: NavItem[] = [
@@ -140,6 +142,7 @@ interface SidebarProps {
   propertyCount?: number
   availableMedia?: {
     hasGa4: boolean
+    hasMeta: boolean
   }
 }
 
@@ -148,7 +151,11 @@ export function Sidebar({ role, userName, brandName, propertyCount, availableMed
   const isAdmin = role === "admin"
   const monitor = isAdmin
     ? adminMonitor
-    : viewerMonitor.filter((item) => !item.requiresGa4 || availableMedia?.hasGa4)
+    : viewerMonitor.filter(
+        (item) =>
+          (!item.requiresGa4 || availableMedia?.hasGa4) &&
+          (!item.requiresMeta || availableMedia?.hasMeta)
+      )
   const workspace = isAdmin ? adminWorkspace : viewerWorkspace
 
   const isActive = (item: NavItem) =>

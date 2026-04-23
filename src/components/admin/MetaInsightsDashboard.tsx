@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -35,7 +35,7 @@ interface ParsedRow {
   actions?: MetaAction[]
 }
 
-interface Props { accounts: MetaAccount[] }
+interface Props { accounts: MetaAccount[]; hideAccountSelector?: boolean }
 
 /* --- Constants --- */
 const ACTION_LABELS: Record<string, string> = {
@@ -95,8 +95,10 @@ function getTopAction(actions?: MetaAction[]): { label: string; value: number } 
 }
 
 /* --- Main --- */
-export default function MetaInsightsDashboard({ accounts }: Props) {
-  const [selectedAccount, setSelectedAccount] = useState("")
+export default function MetaInsightsDashboard({ accounts, hideAccountSelector = false }: Props) {
+  const [selectedAccount, setSelectedAccount] = useState(
+    hideAccountSelector ? accounts[0]?.meta_account_id ?? "" : ""
+  )
   const [datePreset, setDatePreset] = useState("7d")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -131,7 +133,7 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
 
     const { since, until } = getDateRange(datePreset)
     const qs = (level: string) =>
-      `/api/admin/meta/insights?account_id=${encodeURIComponent(selectedAccount)}&since=${since}&until=${until}&level=${level}`
+      `/api/meta/insights?account_id=${encodeURIComponent(selectedAccount)}&since=${since}&until=${until}&level=${level}`
 
     try {
       const [campRes, adsetRes, adRes, dailyRes] = await Promise.all([
@@ -164,7 +166,7 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
 
       const adIds = rawAdData.map((r: InsightRow) => r.ad_id).filter(Boolean).slice(0, 50)
       if (adIds.length > 0) {
-        fetch(`/api/admin/meta/ad-previews?ad_ids=${adIds.join(",")}`)
+        fetch(`/api/meta/ad-previews?ad_ids=${adIds.join(",")}`)
           .then(async (r) => {
             const json = await safeJson(r)
             if (!json) return
@@ -182,6 +184,13 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
       setLoading(false)
     }
   }, [selectedAccount, datePreset])
+
+  useEffect(() => {
+    if (hideAccountSelector && selectedAccount) {
+      fetchAllData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccount, datePreset, hideAccountSelector])
 
   const filteredAdsets = selectedCampaign
     ? parseRows(rawAdsets.filter((r) => r.campaign_id === selectedCampaign), "adset")
@@ -217,30 +226,45 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
       {/* Controls */}
       <div className="panel">
         <div className="p-body" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", gap: 10 }}>
-            <select
-              value={selectedAccount}
-              onChange={(e) => { setSelectedAccount(e.target.value); setCampaigns([]); setAdsets([]); setAds([]) }}
-              className="form-select"
-              style={{ flex: 1 }}
-            >
-              <option value="">광고 계정 선택</option>
+          {!hideAccountSelector && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <select
+                value={selectedAccount}
+                onChange={(e) => { setSelectedAccount(e.target.value); setCampaigns([]); setAdsets([]); setAds([]) }}
+                className="form-select"
+                style={{ flex: 1 }}
+              >
+                <option value="">광고 계정 선택</option>
+                {accounts.map((acc) => (
+                  <option key={acc.meta_account_id} value={acc.meta_account_id}>
+                    {acc.brand?.name ? `[${acc.brand.name}] ` : ""}{acc.meta_account_name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={fetchAllData}
+                disabled={!selectedAccount || loading}
+                className="btn primary"
+                style={{ opacity: (!selectedAccount || loading) ? 0.5 : 1 }}
+              >
+                <RefreshCw style={{ width: 14, height: 14, animation: loading ? "spin 1s linear infinite" : "none" }} />
+                전체 조회
+              </button>
+            </div>
+          )}
+          {hideAccountSelector && accounts.length > 1 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, overflowX: "auto" }}>
               {accounts.map((acc) => (
-                <option key={acc.meta_account_id} value={acc.meta_account_id}>
-                  {acc.brand?.name ? `[${acc.brand.name}] ` : ""}{acc.meta_account_name}
-                </option>
+                <button
+                  key={acc.meta_account_id}
+                  onClick={() => setSelectedAccount(acc.meta_account_id)}
+                  className={selectedAccount === acc.meta_account_id ? "chip on" : "chip"}
+                >
+                  {acc.meta_account_name}
+                </button>
               ))}
-            </select>
-            <button
-              onClick={fetchAllData}
-              disabled={!selectedAccount || loading}
-              className="btn primary"
-              style={{ opacity: (!selectedAccount || loading) ? 0.5 : 1 }}
-            >
-              <RefreshCw style={{ width: 14, height: 14, animation: loading ? "spin 1s linear infinite" : "none" }} />
-              전체 조회
-            </button>
-          </div>
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 4, overflowX: "auto" }}>
             {DATE_PRESETS.map((p) => (
               <button
@@ -357,7 +381,7 @@ export default function MetaInsightsDashboard({ accounts }: Props) {
       {!loading && !hasData && selectedAccount && (
         <div className="empty"><p>조회 버튼을 눌러 데이터를 불러오세요.</p></div>
       )}
-      {!selectedAccount && (
+      {!selectedAccount && !hideAccountSelector && (
         <div className="empty"><p>광고 계정을 선택하세요.</p></div>
       )}
 

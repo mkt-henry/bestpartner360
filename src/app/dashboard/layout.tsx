@@ -45,7 +45,7 @@ export default async function DashboardLayout({
           userName={userName}
           brandName={brandName}
           propertyCount={propertyCount}
-          availableMedia={{ hasGa4: availableMedia.hasGa4 }}
+          availableMedia={{ hasGa4: availableMedia.hasGa4, hasMeta: availableMedia.hasMeta }}
         />
         <main>{children}</main>
       </div>
