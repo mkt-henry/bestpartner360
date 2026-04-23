@@ -24,7 +24,7 @@ async function naverFetch(
       "X-Timestamp": timestamp,
       "X-Signature": signature(timestamp, method, path, creds.secret_key),
     },
-    next: { revalidate: 60 },
+    cache: "no-store",
   })
 }
 

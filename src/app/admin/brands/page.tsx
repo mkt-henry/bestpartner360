@@ -3,8 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import BrandForm from "@/components/admin/BrandForm"
 import BrandChannelManager, {
   type BrandProviderMapping,
+  type ProviderInitialState,
 } from "@/components/admin/BrandChannelManager"
 import { PROVIDER_METADATA } from "@/lib/providers/public"
+import { getProvider } from "@/lib/providers/registry"
 import type { ProviderId } from "@/lib/providers/types"
 import type { Brand } from "@/types"
 
@@ -37,6 +39,45 @@ export default async function AdminBrandsPage() {
   const brandList = (brands ?? []) as Brand[]
   const ga4Connected = !!(ga4Cred?.credentials as { refresh_token?: string } | undefined)
     ?.refresh_token
+
+  // Pre-fetch each provider's account list server-side so token-expired state
+  // is visible on the brands page without opening any panel. One call per
+  // provider (shared credentials across all brands).
+  const providerInitial: Record<ProviderId, ProviderInitialState> = {} as Record<
+    ProviderId,
+    ProviderInitialState
+  >
+  await Promise.all(
+    PROVIDER_METADATA.map(async (p) => {
+      // OAuth providers (GA4) list properties via Google using a different
+      // endpoint — skip bootstrap here to avoid blocking on tokens that may
+      // need to be refreshed in the client path.
+      if (p.authMode === "oauth") {
+        providerInitial[p.id] = { accounts: [], error: null, bootstrapped: false }
+        return
+      }
+      const provider = getProvider(p.id)
+      if (!provider) {
+        providerInitial[p.id] = { accounts: [], error: null, bootstrapped: true }
+        return
+      }
+      const hasCreds = await provider.hasCredentials()
+      if (!hasCreds) {
+        providerInitial[p.id] = { accounts: [], error: null, bootstrapped: true }
+        return
+      }
+      const result = await provider.listAccounts()
+      if (result.ok) {
+        providerInitial[p.id] = { accounts: result.accounts, error: null, bootstrapped: true }
+      } else {
+        providerInitial[p.id] = {
+          accounts: [],
+          error: result.error ?? "계정 조회 실패",
+          bootstrapped: true,
+        }
+      }
+    })
+  )
 
   const mediaTotal = PROVIDER_METADATA.length
 
@@ -184,6 +225,7 @@ export default async function AdminBrandsPage() {
                 brand={brand}
                 mappings={mappingsForBrand(brand.id)}
                 ga4Connected={ga4Connected}
+                providerInitial={providerInitial}
                 isLast={i === brandList.length - 1}
               />
             ))

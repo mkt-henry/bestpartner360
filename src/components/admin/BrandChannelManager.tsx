@@ -13,10 +13,17 @@ export interface BrandProviderMapping {
   account_name: string
 }
 
+export interface ProviderInitialState {
+  accounts: RemoteAccount[]
+  error: string | null
+  bootstrapped: boolean
+}
+
 interface Props {
   brand: Brand
   mappings: Record<ProviderId, BrandProviderMapping[]>
   ga4Connected: boolean
+  providerInitial?: Record<ProviderId, ProviderInitialState>
   isLast?: boolean
 }
 
@@ -42,13 +49,16 @@ type ProviderStateMap = Record<ProviderId, ProviderState>
 type ModalProvider = ProviderId | null
 type MediaTone = "connected" | "partial" | "empty" | "error"
 
-function initialState(linked: BrandProviderMapping[]): ProviderState {
+function initialState(
+  linked: BrandProviderMapping[],
+  preloaded?: ProviderInitialState
+): ProviderState {
   return {
-    accounts: [],
+    accounts: preloaded?.accounts ?? [],
     linked,
     loading: false,
     selected: "",
-    error: null,
+    error: preloaded?.error ?? null,
     manualMode: false,
     manualId: "",
     manualName: "",
@@ -56,7 +66,9 @@ function initialState(linked: BrandProviderMapping[]): ProviderState {
 }
 
 function mediaTone(linked: number, errored: boolean): MediaTone {
-  if (errored) return "error"
+  // linked 매핑이 있고 에러가 있으면 "인증 만료/오류"로 간주 (error 톤)
+  // 매핑도 없고 에러만 있는 경우는 단순 미설정 → empty로 처리
+  if (errored && linked > 0) return "error"
   if (linked > 0) return "connected"
   return "empty"
 }
@@ -341,17 +353,27 @@ const s = {
   },
 }
 
-export default function BrandChannelManager({ brand, mappings, ga4Connected, isLast }: Props) {
+export default function BrandChannelManager({
+  brand,
+  mappings,
+  ga4Connected,
+  providerInitial,
+  isLast,
+}: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [bootstrapped, setBootstrapped] = useState(false)
+  // Mark providers with a server-preloaded account list/error as already
+  // bootstrapped so the client-side fetch doesn't re-run on panel open.
+  const [bootstrapped, setBootstrapped] = useState(() =>
+    Boolean(providerInitial && PROVIDER_METADATA.some((p) => providerInitial[p.id]?.bootstrapped))
+  )
   const [modalProvider, setModalProvider] = useState<ModalProvider>(null)
 
   const [state, setState] = useState<ProviderStateMap>(() => {
     const init = {} as ProviderStateMap
     for (const p of PROVIDER_METADATA) {
-      init[p.id] = initialState(mappings[p.id] ?? [])
+      init[p.id] = initialState(mappings[p.id] ?? [], providerInitial?.[p.id])
     }
     return init
   })
@@ -461,7 +483,9 @@ export default function BrandChannelManager({ brand, mappings, ga4Connected, isL
   const totalLinked = Object.values(state).reduce((sum, st) => sum + st.linked.length, 0)
   const connectedCount = Object.values(state).filter((st) => st.linked.length > 0).length
   const mediaTotal = PROVIDER_METADATA.length
-  const issueCount = Object.values(state).filter((st) => st.error).length
+  // linked 매핑이 있는 매체에 한해 에러가 있으면 문제로 집계
+  // (매핑도 없는 매체의 에러는 단순 미설정일 가능성이 높음)
+  const issueCount = Object.values(state).filter((st) => st.error && st.linked.length > 0).length
 
   const overallTone: MediaTone =
     issueCount > 0
