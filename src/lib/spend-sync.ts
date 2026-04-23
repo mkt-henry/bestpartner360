@@ -53,97 +53,115 @@ export async function syncMetaSpendForBrand(brandId: string): Promise<SyncResult
       .from("campaigns")
       .select("id, channel, sync_tag, start_date, end_date")
       .eq("brand_id", brandId)
-      .in("channel", META_CHANNELS)
-      .not("sync_tag", "is", null),
+      .in("channel", META_CHANNELS),
   ])
 
   if (accountsRes.error) return { ok: false, error: accountsRes.error.message, status: 500 }
   if (campaignsRes.error) return { ok: false, error: campaignsRes.error.message, status: 500 }
 
   const accounts = accountsRes.data ?? []
-  const dbCampaigns = (campaignsRes.data ?? []).filter(
+  // 대상 채널의 모든 캠페인 — 삭제(클린업) 범위에 포함
+  const allCampaigns = (campaignsRes.data ?? []) as Array<{
+    id: string
+    channel: string
+    sync_tag: string | null
+    start_date: string
+    end_date: string | null
+  }>
+  // sync_tag가 설정된 캠페인만 API 매칭·업서트 대상
+  const taggedCampaigns = allCampaigns.filter(
     (c): c is DbCampaign => typeof c.sync_tag === "string" && c.sync_tag.trim().length > 0
   )
 
   if (accounts.length === 0) {
     return { ok: false, error: "이 브랜드에 연결된 Meta 광고 계정이 없습니다.", status: 400 }
   }
-  if (dbCampaigns.length === 0) {
-    return {
-      ok: true,
-      synced: 0,
-      message: "매칭 설명(sync_tag)이 설정된 Instagram/Facebook 기간 세트가 없습니다.",
-    }
+  if (allCampaigns.length === 0) {
+    return { ok: true, synced: 0, message: "Instagram/Facebook 기간 세트가 없습니다." }
   }
 
-  const earliest = dbCampaigns.reduce(
+  const today = new Date().toISOString().slice(0, 10)
+  // 범위는 전체 캠페인 기준으로 계산 (open-ended end_date는 오늘로 폴백)
+  const earliest = allCampaigns.reduce(
     (min, c) => (c.start_date < min ? c.start_date : min),
     "9999-12-31"
   )
-  const latest = dbCampaigns.reduce(
-    (max, c) => ((c.end_date ?? "0001-01-01") > max ? c.end_date ?? max : max),
-    "0001-01-01"
-  )
+  const latest = allCampaigns.reduce((max, c) => {
+    const end = c.end_date ?? today
+    return end > max ? end : max
+  }, "0001-01-01")
 
   const aggregated = new Map<string, number>()
   const unmatched = new Set<string>()
 
-  for (const acc of accounts) {
-    const params = new URLSearchParams({
-      access_token: creds.access_token,
-      fields: "spend,campaign_id,campaign_name",
-      time_range: JSON.stringify({ since: earliest, until: latest }),
-      time_increment: "1",
-      level: "campaign",
-      limit: "500",
-    })
-
-    let url: string | null = `${META_API}/${acc.meta_account_id}/insights?${params.toString()}`
-    const rows: CampaignInsightRow[] = []
-
-    while (url) {
-      const res: Response = await fetch(url)
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        return {
-          ok: false,
-          error: `Meta API 오류 (${acc.meta_account_id}): ${err.error?.message ?? res.statusText}`,
-          status: 502,
-        }
-      }
-      const json = await res.json()
-      rows.push(...((json.data ?? []) as CampaignInsightRow[]))
-      url = json.paging?.next ?? null
-    }
-
-    for (const row of rows) {
-      const name = row.campaign_name ?? ""
-      const date = row.date_start
-      const amount = Number(row.spend ?? "0")
-      if (!name || !amount) continue
-
-      const target = dbCampaigns.find((c) => {
-        const end = c.end_date ?? "9999-12-31"
-        if (date < c.start_date || date > end) return false
-        return name.toLowerCase().includes(c.sync_tag.toLowerCase())
+  // sync_tag가 설정된 캠페인이 있을 때만 Meta API 호출
+  if (taggedCampaigns.length > 0) {
+    for (const acc of accounts) {
+      const params = new URLSearchParams({
+        access_token: creds.access_token,
+        fields: "spend,campaign_id,campaign_name",
+        time_range: JSON.stringify({ since: earliest, until: latest }),
+        time_increment: "1",
+        level: "campaign",
+        limit: "500",
       })
-      if (!target) {
-        unmatched.add(name)
-        continue
+
+      let url: string | null = `${META_API}/${acc.meta_account_id}/insights?${params.toString()}`
+      const rows: CampaignInsightRow[] = []
+
+      while (url) {
+        const res: Response = await fetch(url)
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          return {
+            ok: false,
+            error: `Meta API 오류 (${acc.meta_account_id}): ${err.error?.message ?? res.statusText}`,
+            status: 502,
+          }
+        }
+        const json = await res.json()
+        rows.push(...((json.data ?? []) as CampaignInsightRow[]))
+        url = json.paging?.next ?? null
       }
 
-      const key = `${target.id}|${date}`
-      aggregated.set(key, (aggregated.get(key) ?? 0) + amount)
+      for (const row of rows) {
+        const name = row.campaign_name ?? ""
+        const date = row.date_start
+        const amount = Number(row.spend ?? "0")
+        if (!name || !amount) continue
+
+        const target = taggedCampaigns.find((c) => {
+          const end = c.end_date ?? "9999-12-31"
+          if (date < c.start_date || date > end) return false
+          return name.toLowerCase().includes(c.sync_tag.toLowerCase())
+        })
+        if (!target) {
+          unmatched.add(name)
+          continue
+        }
+
+        const key = `${target.id}|${date}`
+        aggregated.set(key, (aggregated.get(key) ?? 0) + amount)
+      }
     }
   }
 
-  const allTargetCampaignIds = dbCampaigns.map((c) => c.id)
+  // 삭제는 전체 캠페인 기준 (sync_tag 없는 캠페인의 고아 레코드도 함께 정리)
+  const allCampaignIds = allCampaigns.map((c) => c.id)
   await admin
     .from("spend_records")
     .delete()
-    .in("campaign_id", allTargetCampaignIds)
+    .in("campaign_id", allCampaignIds)
     .gte("spend_date", earliest)
     .lte("spend_date", latest)
+
+  if (taggedCampaigns.length === 0) {
+    return {
+      ok: true,
+      synced: 0,
+      message: "매칭 설명(sync_tag)이 설정된 Instagram/Facebook 기간 세트가 없어 기존 지출만 정리했습니다.",
+    }
+  }
 
   if (aggregated.size === 0) {
     const hint = unmatched.size > 0
@@ -235,106 +253,119 @@ export async function syncNaverSpendForBrand(brandId: string): Promise<SyncResul
       .from("campaigns")
       .select("id, channel, sync_tag, start_date, end_date")
       .eq("brand_id", brandId)
-      .eq("channel", "Naver")
-      .not("sync_tag", "is", null),
+      .eq("channel", "Naver"),
   ])
 
   if (accountsRes.error) return { ok: false, error: accountsRes.error.message, status: 500 }
   if (campaignsRes.error) return { ok: false, error: campaignsRes.error.message, status: 500 }
 
   const accounts = accountsRes.data ?? []
-  const dbCampaigns = (campaignsRes.data ?? []).filter(
+  const allCampaigns = (campaignsRes.data ?? []) as Array<{
+    id: string
+    channel: string
+    sync_tag: string | null
+    start_date: string
+    end_date: string | null
+  }>
+  const taggedCampaigns = allCampaigns.filter(
     (c): c is DbCampaign => typeof c.sync_tag === "string" && c.sync_tag.trim().length > 0
   )
 
   if (accounts.length === 0) {
     return { ok: false, error: "이 브랜드에 연결된 Naver 광고 계정이 없습니다.", status: 400 }
   }
-  if (dbCampaigns.length === 0) {
-    return {
-      ok: true,
-      synced: 0,
-      message: "매칭 설명(파워링크/브랜드검색/쇼핑검색/파워컨텐츠)이 설정된 Naver 기간 세트가 없습니다.",
-    }
+  if (allCampaigns.length === 0) {
+    return { ok: true, synced: 0, message: "Naver 기간 세트가 없습니다." }
   }
 
-  const earliest = dbCampaigns.reduce(
+  const today = new Date().toISOString().slice(0, 10)
+  const earliest = allCampaigns.reduce(
     (min, c) => (c.start_date < min ? c.start_date : min),
     "9999-12-31"
   )
-  const latest = dbCampaigns.reduce(
-    (max, c) => ((c.end_date ?? "0001-01-01") > max ? c.end_date ?? max : max),
-    "0001-01-01"
-  )
+  const latest = allCampaigns.reduce((max, c) => {
+    const end = c.end_date ?? today
+    return end > max ? end : max
+  }, "0001-01-01")
 
   const aggregated = new Map<string, number>()
   const unmatchedTps = new Set<string>()
 
-  for (const acc of accounts) {
-    const customerId = String(acc.naver_customer_id)
+  if (taggedCampaigns.length > 0) {
+    for (const acc of accounts) {
+      const customerId = String(acc.naver_customer_id)
 
-    const campRes = await naverFetch("GET", "/ncc/campaigns", creds, customerId)
-    if (!campRes.ok) {
-      const err = await campRes.json().catch(() => ({}))
-      return {
-        ok: false,
-        error: `Naver 캠페인 조회 실패 (${customerId}): ${err.title ?? err.message ?? campRes.statusText}`,
-        status: 502,
-      }
-    }
-    const naverCampaigns = (await campRes.json()) as NaverCampaign[]
-
-    for (const nc of naverCampaigns) {
-      const tag = NAVER_TP_TO_TAG[nc.campaignTp]
-      if (!tag) {
-        unmatchedTps.add(nc.campaignTp)
-        continue
-      }
-
-      const query = new URLSearchParams({
-        id: nc.nccCampaignId,
-        fields: JSON.stringify(["salesAmt"]),
-        timeRange: JSON.stringify({ since: earliest, until: latest }),
-        breakdown: "dt",
-      })
-      const path = `/stats?${query.toString()}`
-      const statsRes = await naverFetch("GET", path, creds, customerId)
-      if (!statsRes.ok) {
-        const err = await statsRes.json().catch(() => ({}))
+      const campRes = await naverFetch("GET", "/ncc/campaigns", creds, customerId)
+      if (!campRes.ok) {
+        const err = await campRes.json().catch(() => ({}))
         return {
           ok: false,
-          error: `Naver stats 조회 실패 (${nc.nccCampaignId}): ${err.title ?? err.message ?? statsRes.statusText}`,
+          error: `Naver 캠페인 조회 실패 (${customerId}): ${err.title ?? err.message ?? campRes.statusText}`,
           status: 502,
         }
       }
-      const statsJson = (await statsRes.json()) as StatsResponse
-      const statRows = statsJson.data ?? []
+      const naverCampaigns = (await campRes.json()) as NaverCampaign[]
 
-      for (const row of statRows) {
-        const date = row.breakdown
-        const amount = Number(row.salesAmt ?? 0)
-        if (!date || !amount) continue
+      for (const nc of naverCampaigns) {
+        const tag = NAVER_TP_TO_TAG[nc.campaignTp]
+        if (!tag) {
+          unmatchedTps.add(nc.campaignTp)
+          continue
+        }
 
-        const target = dbCampaigns.find((c) => {
-          if (c.sync_tag !== tag) return false
-          const end = c.end_date ?? "9999-12-31"
-          return date >= c.start_date && date <= end
+        const query = new URLSearchParams({
+          id: nc.nccCampaignId,
+          fields: JSON.stringify(["salesAmt"]),
+          timeRange: JSON.stringify({ since: earliest, until: latest }),
+          breakdown: "dt",
         })
-        if (!target) continue
+        const path = `/stats?${query.toString()}`
+        const statsRes = await naverFetch("GET", path, creds, customerId)
+        if (!statsRes.ok) {
+          const err = await statsRes.json().catch(() => ({}))
+          return {
+            ok: false,
+            error: `Naver stats 조회 실패 (${nc.nccCampaignId}): ${err.title ?? err.message ?? statsRes.statusText}`,
+            status: 502,
+          }
+        }
+        const statsJson = (await statsRes.json()) as StatsResponse
+        const statRows = statsJson.data ?? []
 
-        const key = `${target.id}|${date}`
-        aggregated.set(key, (aggregated.get(key) ?? 0) + amount)
+        for (const row of statRows) {
+          const date = row.breakdown
+          const amount = Number(row.salesAmt ?? 0)
+          if (!date || !amount) continue
+
+          const target = taggedCampaigns.find((c) => {
+            if (c.sync_tag !== tag) return false
+            const end = c.end_date ?? "9999-12-31"
+            return date >= c.start_date && date <= end
+          })
+          if (!target) continue
+
+          const key = `${target.id}|${date}`
+          aggregated.set(key, (aggregated.get(key) ?? 0) + amount)
+        }
       }
     }
   }
 
-  const allTargetCampaignIds = dbCampaigns.map((c) => c.id)
+  const allCampaignIds = allCampaigns.map((c) => c.id)
   await admin
     .from("spend_records")
     .delete()
-    .in("campaign_id", allTargetCampaignIds)
+    .in("campaign_id", allCampaignIds)
     .gte("spend_date", earliest)
     .lte("spend_date", latest)
+
+  if (taggedCampaigns.length === 0) {
+    return {
+      ok: true,
+      synced: 0,
+      message: "매칭 설명(파워링크/브랜드검색/쇼핑검색/파워컨텐츠)이 설정된 Naver 기간 세트가 없어 기존 지출만 정리했습니다.",
+    }
+  }
 
   if (aggregated.size === 0) {
     const hint = unmatchedTps.size > 0
