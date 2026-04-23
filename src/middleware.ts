@@ -33,7 +33,8 @@ export async function middleware(request: NextRequest) {
   const isPublicApiRoute =
     pathname.startsWith("/api/admin/alerts/evaluate") ||
     pathname.startsWith("/api/admin/ga4/auth") ||
-    pathname.startsWith("/api/admin/ga4/callback")
+    pathname.startsWith("/api/admin/ga4/callback") ||
+    pathname.startsWith("/api/cron/")
 
   // OAuth 콜백은 미들웨어 인증 체크 건너뛰기
   if (isPublicApiRoute) {
