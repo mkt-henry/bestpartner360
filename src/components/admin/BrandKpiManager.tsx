@@ -51,6 +51,7 @@ export default function BrandKpiManager({
   })
   const [campaignSaving, setCampaignSaving] = useState(false)
   const [campaignError, setCampaignError] = useState("")
+  const [postAddNotice, setPostAddNotice] = useState("")
 
   // 예산 폼 (매체당 1개)
   const [budgetForm, setBudgetForm] = useState({
@@ -92,17 +93,34 @@ export default function BrandKpiManager({
     return 0
   }
 
-  // 매체 추가
+  // 매체 추가 (+ 옵션: 예산)
   async function addCampaign() {
     if (!campaignForm.channel || !campaignForm.name || !campaignForm.start_date) {
       setCampaignError("매체, 매체명, 시작일은 필수입니다.")
       return
     }
+
+    const budgetRaw = campaignForm.total_budget.trim()
+    const hasBudget = budgetRaw !== ""
+    let budgetNum = 0
+    if (hasBudget) {
+      if (!campaignForm.end_date) {
+        setCampaignError("예산 입력 시 종료일을 설정해주세요.")
+        return
+      }
+      budgetNum = Number(budgetRaw.replace(/,/g, ""))
+      if (!Number.isFinite(budgetNum) || budgetNum < 0) {
+        setCampaignError("예산은 0 이상의 숫자로 입력해주세요.")
+        return
+      }
+    }
+
     setCampaignSaving(true)
     setCampaignError("")
+    setPostAddNotice("")
 
     const supabase = createClient()
-    const { data, error } = await supabase
+    const { data: campaign, error: campaignErr } = await supabase
       .from("campaigns")
       .insert({
         brand_id: brandId,
@@ -115,14 +133,36 @@ export default function BrandKpiManager({
       .select("id, name, channel, start_date, end_date")
       .single()
 
-    if (error) {
-      setCampaignError(error.message)
-    } else {
-      setCampaigns((prev) => [...prev, { ...data, kpiCount: 0 }])
-      setCampaignForm({ name: "", channel: "", start_date: "", end_date: "" })
-      setShowNewCampaign(false)
-      router.refresh()
+    if (campaignErr || !campaign) {
+      setCampaignError(campaignErr?.message ?? "매체 생성에 실패했습니다.")
+      setCampaignSaving(false)
+      return
     }
+
+    setCampaigns((prev) => [...prev, { ...campaign, kpiCount: 0 }])
+
+    if (hasBudget) {
+      const res = await fetch("/api/admin/budget", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: campaign.id,
+          period_start: campaign.start_date,
+          period_end: campaign.end_date,
+          total_budget: budgetNum,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        setBudgets((prev) => [...prev, json])
+      } else {
+        setPostAddNotice(`매체는 추가되었지만 예산 저장에 실패했습니다: ${json.error ?? "알 수 없는 오류"}. 해당 매체 행을 펼쳐 다시 저장해주세요.`)
+      }
+    }
+
+    setCampaignForm({ name: "", channel: "", start_date: "", end_date: "", total_budget: "" })
+    setShowNewCampaign(false)
+    router.refresh()
     setCampaignSaving(false)
   }
 
@@ -218,6 +258,31 @@ export default function BrandKpiManager({
           {showNewCampaign ? "취소" : "매체 추가"}
         </button>
       </div>
+
+      {postAddNotice && (
+        <div
+          style={{
+            padding: "0.625rem 1.25rem",
+            background: "var(--bg-2)",
+            borderBottom: "1px solid var(--line)",
+            fontSize: "0.8rem",
+            color: "var(--amber)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1rem",
+          }}
+        >
+          <span>{postAddNotice}</span>
+          <button
+            onClick={() => setPostAddNotice("")}
+            className="btn"
+            style={{ fontSize: "0.7rem" }}
+          >
+            닫기
+          </button>
+        </div>
+      )}
 
       {/* 매체 추가 인라인 폼 */}
       {showNewCampaign && (
