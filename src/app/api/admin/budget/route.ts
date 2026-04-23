@@ -17,14 +17,18 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { campaign_id, period_start, period_end, total_budget } = await request.json()
-  if (!campaign_id || !period_start || !period_end || !total_budget) {
+  if (!campaign_id || !period_start || !period_end || total_budget === undefined || total_budget === null) {
     return NextResponse.json({ error: "필수 항목 누락" }, { status: 400 })
+  }
+  const budgetNum = Number(total_budget)
+  if (!Number.isFinite(budgetNum) || budgetNum < 0) {
+    return NextResponse.json({ error: "total_budget은 0 이상의 숫자여야 합니다" }, { status: 400 })
   }
 
   const admin = createAdminClient()
   const { data, error } = await admin
     .from("budgets")
-    .insert({ campaign_id, period_start, period_end, total_budget: Number(total_budget) })
+    .insert({ campaign_id, period_start, period_end, total_budget: budgetNum })
     .select()
     .single()
 
