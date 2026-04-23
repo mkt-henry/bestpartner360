@@ -119,51 +119,57 @@ export default function BrandKpiManager({
     setCampaignError("")
     setPostAddNotice("")
 
-    const supabase = createClient()
-    const { data: campaign, error: campaignErr } = await supabase
-      .from("campaigns")
-      .insert({
-        brand_id: brandId,
-        name: campaignForm.name,
-        channel: campaignForm.channel,
-        status: "active",
-        start_date: campaignForm.start_date,
-        end_date: campaignForm.end_date || null,
-      })
-      .select("id, name, channel, start_date, end_date")
-      .single()
+    try {
+      const supabase = createClient()
+      const { data: campaign, error: campaignErr } = await supabase
+        .from("campaigns")
+        .insert({
+          brand_id: brandId,
+          name: campaignForm.name,
+          channel: campaignForm.channel,
+          status: "active",
+          start_date: campaignForm.start_date,
+          end_date: campaignForm.end_date || null,
+        })
+        .select("id, name, channel, start_date, end_date")
+        .single()
 
-    if (campaignErr || !campaign) {
-      setCampaignError(campaignErr?.message ?? "매체 생성에 실패했습니다.")
-      setCampaignSaving(false)
-      return
-    }
-
-    setCampaigns((prev) => [...prev, { ...campaign, kpiCount: 0 }])
-
-    if (hasBudget) {
-      const res = await fetch("/api/admin/budget", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaign_id: campaign.id,
-          period_start: campaign.start_date,
-          period_end: campaign.end_date,
-          total_budget: budgetNum,
-        }),
-      })
-      const json = await res.json()
-      if (res.ok) {
-        setBudgets((prev) => [...prev, json])
-      } else {
-        setPostAddNotice(`매체는 추가되었지만 예산 저장에 실패했습니다: ${json.error ?? "알 수 없는 오류"}. 해당 매체 행을 펼쳐 다시 저장해주세요.`)
+      if (campaignErr || !campaign) {
+        setCampaignError(campaignErr?.message ?? "매체 생성에 실패했습니다.")
+        return
       }
-    }
 
-    setCampaignForm({ name: "", channel: "", start_date: "", end_date: "", total_budget: "" })
-    setShowNewCampaign(false)
-    router.refresh()
-    setCampaignSaving(false)
+      setCampaigns((prev) => [...prev, { ...campaign, kpiCount: 0 }])
+
+      if (hasBudget) {
+        try {
+          const res = await fetch("/api/admin/budget", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              campaign_id: campaign.id,
+              period_start: campaign.start_date,
+              period_end: campaign.end_date,
+              total_budget: budgetNum,
+            }),
+          })
+          const json = await res.json().catch(() => ({} as { error?: string }))
+          if (res.ok) {
+            setBudgets((prev) => [...prev, json])
+          } else {
+            setPostAddNotice(`매체는 추가되었지만 예산 저장에 실패했습니다: ${json.error ?? "알 수 없는 오류"}. 해당 매체 행을 펼쳐 다시 저장해주세요.`)
+          }
+        } catch {
+          setPostAddNotice("매체는 추가되었지만 예산 저장 중 네트워크 오류가 발생했습니다. 해당 매체 행을 펼쳐 다시 저장해주세요.")
+        }
+      }
+
+      setCampaignForm({ name: "", channel: "", start_date: "", end_date: "", total_budget: "" })
+      setShowNewCampaign(false)
+      router.refresh()
+    } finally {
+      setCampaignSaving(false)
+    }
   }
 
   // 매체 삭제
