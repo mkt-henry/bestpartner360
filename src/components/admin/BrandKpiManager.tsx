@@ -26,6 +26,18 @@ interface BudgetRow {
   total_budget: number
 }
 
+type ParseBudgetResult =
+  | { ok: true; value: number }
+  | { ok: false; error: string }
+
+function parseBudgetInput(raw: string): ParseBudgetResult {
+  const trimmed = raw.trim()
+  if (trimmed === "") return { ok: false, error: "예산을 입력해주세요." }
+  const n = Number(trimmed.replace(/,/g, ""))
+  if (!Number.isFinite(n) || n < 0) return { ok: false, error: "예산은 0 이상의 숫자로 입력해주세요." }
+  return { ok: true, value: n }
+}
+
 export default function BrandKpiManager({
   brandId,
   initialCampaigns,
@@ -90,19 +102,19 @@ export default function BrandKpiManager({
       return
     }
 
-    const budgetRaw = campaignForm.total_budget.trim()
-    const hasBudget = budgetRaw !== ""
+    const hasBudget = campaignForm.total_budget.trim() !== ""
     let budgetNum = 0
     if (hasBudget) {
       if (!campaignForm.end_date) {
         setCampaignError("예산 입력 시 종료일을 설정해주세요.")
         return
       }
-      budgetNum = Number(budgetRaw.replace(/,/g, ""))
-      if (!Number.isFinite(budgetNum) || budgetNum < 0) {
-        setCampaignError("예산은 0 이상의 숫자로 입력해주세요.")
+      const parsed = parseBudgetInput(campaignForm.total_budget)
+      if (!parsed.ok) {
+        setCampaignError(parsed.error)
         return
       }
+      budgetNum = parsed.value
     }
 
     setCampaignSaving(true)
@@ -188,16 +200,12 @@ export default function BrandKpiManager({
       setBudgetError("이 매체의 종료일을 먼저 설정해야 예산을 저장할 수 있습니다.")
       return
     }
-    const raw = budgetForm.total_budget.trim()
-    if (raw === "") {
-      setBudgetError("예산을 입력해주세요.")
+    const parsed = parseBudgetInput(budgetForm.total_budget)
+    if (!parsed.ok) {
+      setBudgetError(parsed.error)
       return
     }
-    const budgetNum = Number(raw.replace(/,/g, ""))
-    if (!Number.isFinite(budgetNum) || budgetNum < 0) {
-      setBudgetError("예산은 0 이상의 숫자로 입력해주세요.")
-      return
-    }
+    const budgetNum = parsed.value
 
     setBudgetSaving(true)
     setBudgetError("")
