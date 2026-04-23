@@ -47,6 +47,7 @@ export default function BrandKpiManager({
     channel: "",
     start_date: "",
     end_date: "",
+    total_budget: "",
   })
   const [campaignSaving, setCampaignSaving] = useState(false)
   const [campaignError, setCampaignError] = useState("")
@@ -264,6 +265,22 @@ export default function BrandKpiManager({
                 onChange={(e) => setCampaignForm({ ...campaignForm, end_date: e.target.value })}
                 className="form-input"
               />
+            </div>
+          </div>
+          <div className="form-grid cols-1" style={{ marginTop: "0.75rem" }}>
+            <div>
+              <label className="form-label">예산 (원)</label>
+              <input
+                type="number"
+                min={0}
+                value={campaignForm.total_budget}
+                onChange={(e) => setCampaignForm({ ...campaignForm, total_budget: e.target.value })}
+                className="form-input"
+                placeholder="선택 입력 · 예: 5000000"
+              />
+              <p style={{ fontSize: "0.7rem", color: "var(--dim)", marginTop: "0.25rem" }}>
+                입력 시 종료일이 필수이며, 예산 기간은 매체 시작/종료일과 동일하게 저장됩니다.
+              </p>
             </div>
           </div>
           {campaignError && <p className="form-error">{campaignError}</p>}
