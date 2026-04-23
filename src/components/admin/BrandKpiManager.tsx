@@ -53,10 +53,8 @@ export default function BrandKpiManager({
   const [campaignError, setCampaignError] = useState("")
   const [postAddNotice, setPostAddNotice] = useState("")
 
-  // 예산 폼 (매체당 1개)
+  // 예산 폼 (매체당 1개 · 금액만 편집, 기간은 매체 기간을 상속)
   const [budgetForm, setBudgetForm] = useState({
-    period_start: "",
-    period_end: "",
     total_budget: "",
   })
   const [budgetSaving, setBudgetSaving] = useState(false)
@@ -73,15 +71,7 @@ export default function BrandKpiManager({
       setExpandedId(id)
       setBudgetError("")
       const existing = getBudget(id)
-      if (existing) {
-        setBudgetForm({
-          period_start: existing.period_start,
-          period_end: existing.period_end,
-          total_budget: String(existing.total_budget),
-        })
-      } else {
-        setBudgetForm({ period_start: "", period_end: "", total_budget: "" })
-      }
+      setBudgetForm({ total_budget: existing ? String(existing.total_budget) : "" })
     }
   }
 
@@ -189,43 +179,64 @@ export default function BrandKpiManager({
 
   // 예산 저장 (기존 삭제 후 새로 삽입)
   async function saveBudget(campaignId: string) {
-    if (!budgetForm.period_start || !budgetForm.period_end || !budgetForm.total_budget) {
-      setBudgetError("모든 항목을 입력해주세요.")
+    const campaign = campaigns.find((c) => c.id === campaignId)
+    if (!campaign) {
+      setBudgetError("매체 정보를 찾을 수 없습니다.")
       return
     }
+    if (!campaign.end_date) {
+      setBudgetError("이 매체의 종료일을 먼저 설정해야 예산을 저장할 수 있습니다.")
+      return
+    }
+    const raw = budgetForm.total_budget.trim()
+    if (raw === "") {
+      setBudgetError("예산을 입력해주세요.")
+      return
+    }
+    const budgetNum = Number(raw.replace(/,/g, ""))
+    if (!Number.isFinite(budgetNum) || budgetNum < 0) {
+      setBudgetError("예산은 0 이상의 숫자로 입력해주세요.")
+      return
+    }
+
     setBudgetSaving(true)
     setBudgetError("")
 
-    // 기존 예산 삭제
-    const existing = getBudget(campaignId)
-    if (existing) {
-      await fetch("/api/admin/budget", {
-        method: "DELETE",
+    try {
+      // 기존 예산 삭제
+      const existing = getBudget(campaignId)
+      if (existing) {
+        await fetch("/api/admin/budget", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: existing.id }),
+        })
+      }
+
+      // 새 예산 추가
+      const res = await fetch("/api/admin/budget", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: existing.id }),
+        body: JSON.stringify({
+          campaign_id: campaignId,
+          period_start: campaign.start_date,
+          period_end: campaign.end_date,
+          total_budget: budgetNum,
+        }),
       })
-    }
 
-    // 새 예산 추가
-    const res = await fetch("/api/admin/budget", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        campaign_id: campaignId,
-        period_start: budgetForm.period_start,
-        period_end: budgetForm.period_end,
-        total_budget: parseFloat(budgetForm.total_budget.replace(/,/g, "")),
-      }),
-    })
-
-    const json = await res.json()
-    if (res.ok) {
-      setBudgets((prev) => [...prev.filter((b) => b.campaign_id !== campaignId), json])
-      router.refresh()
-    } else {
-      setBudgetError(json.error ?? "저장 실패")
+      const json = await res.json().catch(() => ({} as { error?: string }))
+      if (res.ok) {
+        setBudgets((prev) => [...prev.filter((b) => b.campaign_id !== campaignId), json])
+        router.refresh()
+      } else {
+        setBudgetError(json.error ?? "저장 실패")
+      }
+    } catch {
+      setBudgetError("네트워크 오류가 발생했습니다. 다시 시도해주세요.")
+    } finally {
+      setBudgetSaving(false)
     }
-    setBudgetSaving(false)
   }
 
   // 예산 삭제
@@ -240,7 +251,7 @@ export default function BrandKpiManager({
     })
     if (res.ok) {
       setBudgets((prev) => prev.filter((b) => b.campaign_id !== campaignId))
-      setBudgetForm({ period_start: "", period_end: "", total_budget: "" })
+      setBudgetForm({ total_budget: "" })
       router.refresh()
     }
   }
@@ -460,39 +471,27 @@ export default function BrandKpiManager({
                     <div>
                       <p style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--text-2)", marginBottom: "0.5rem" }}>
                         예산 설정
-                        {budget && (
-                          <span style={{ marginLeft: "0.5rem", color: "var(--dim)", fontWeight: 400 }}>
-                            ({budget.period_start} ~ {budget.period_end} · {formatCurrency(budget.total_budget)})
-                          </span>
-                        )}
+                        <span style={{ marginLeft: "0.5rem", color: "var(--dim)", fontWeight: 400 }}>
+                          (기간: {c.start_date}{c.end_date ? ` ~ ${c.end_date}` : " ~ 종료일 미설정"} · 매체 기간 기준
+                          {budget && ` · 현재 ${formatCurrency(budget.total_budget)}`})
+                        </span>
                       </p>
-                      <div className="form-grid cols-3">
-                        <div>
-                          <label className="form-label">시작일</label>
-                          <input
-                            type="date"
-                            value={budgetForm.period_start}
-                            onChange={(e) => setBudgetForm({ ...budgetForm, period_start: e.target.value })}
-                            className="form-input"
-                          />
-                        </div>
-                        <div>
-                          <label className="form-label">종료일</label>
-                          <input
-                            type="date"
-                            value={budgetForm.period_end}
-                            onChange={(e) => setBudgetForm({ ...budgetForm, period_end: e.target.value })}
-                            className="form-input"
-                          />
-                        </div>
+                      {!c.end_date && (
+                        <p style={{ fontSize: "0.75rem", color: "var(--amber)", marginBottom: "0.5rem" }}>
+                          이 매체의 종료일을 먼저 설정해야 예산을 저장할 수 있습니다.
+                        </p>
+                      )}
+                      <div className="form-grid cols-1">
                         <div>
                           <label className="form-label">예산 (원)</label>
                           <input
                             type="number"
+                            min={0}
                             value={budgetForm.total_budget}
-                            onChange={(e) => setBudgetForm({ ...budgetForm, total_budget: e.target.value })}
+                            onChange={(e) => setBudgetForm({ total_budget: e.target.value })}
                             placeholder="5000000"
                             className="form-input"
+                            disabled={!c.end_date}
                           />
                         </div>
                       </div>
@@ -500,7 +499,7 @@ export default function BrandKpiManager({
                       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                         <button
                           onClick={() => saveBudget(c.id)}
-                          disabled={budgetSaving}
+                          disabled={budgetSaving || !c.end_date}
                           className="btn primary"
                         >
                           {budgetSaving ? "저장 중..." : budget ? "예산 수정" : "예산 저장"}
