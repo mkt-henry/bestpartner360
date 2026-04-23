@@ -89,13 +89,9 @@ export default function BrandKpiManager({
   const [spendSaving, setSpendSaving] = useState(false)
   const [spendError, setSpendError] = useState("")
 
-  // Meta 동기화
-  const [metaSyncing, setMetaSyncing] = useState(false)
-  const [metaSyncMsg, setMetaSyncMsg] = useState("")
-
-  // Naver 동기화
-  const [naverSyncing, setNaverSyncing] = useState(false)
-  const [naverSyncMsg, setNaverSyncMsg] = useState("")
+  // 지출 동기화 (Meta + Naver 통합)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState("")
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -223,71 +219,58 @@ export default function BrandKpiManager({
     router.refresh()
   }
 
-  // Meta 동기화
-  async function syncMeta() {
-    if (!confirm("Meta에서 지출 데이터를 가져옵니다. 계속하시겠습니까?")) return
-    setMetaSyncing(true)
-    setMetaSyncMsg("")
-    const res = await fetch("/api/admin/spend/sync/meta", {
+  // 지출 동기화 (Meta + Naver 통합)
+  async function syncSpend() {
+    if (!confirm("연결된 매체(Meta / Naver)의 지출 데이터를 가져옵니다. 계속하시겠습니까?")) return
+    setSyncing(true)
+    setSyncMsg("")
+    const res = await fetch("/api/admin/spend/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ brand_id: brandId }),
     })
     const json = await res.json()
     if (!res.ok) {
-      setMetaSyncMsg(`오류: ${json.error ?? "동기화 실패"}`)
-      setMetaSyncing(false)
+      setSyncMsg(`오류: ${json.error ?? "동기화 실패"}`)
+      setSyncing(false)
       return
     }
-    if (typeof json.synced === "number") {
-      let msg = json.synced > 0 ? `${json.synced}개 일자 지출 동기화 완료` : (json.message ?? "동기화 완료")
-      if (Array.isArray(json.unmatched) && json.unmatched.length > 0) {
-        const preview = json.unmatched.slice(0, 3).join(", ")
-        const suffix = json.unmatched.length > 3 ? ` 외 ${json.unmatched.length - 3}건` : ""
-        msg += ` · 분류되지 않은 Meta 캠페인: ${preview}${suffix}`
+    // 매체별 결과를 한 줄로 요약
+    const parts: string[] = []
+    const formatMeta = (r: { ok?: boolean; synced?: number; message?: string; unmatched?: string[]; error?: string } | null) => {
+      if (!r) return
+      if (r.ok === false) {
+        parts.push(`Meta 오류: ${r.error ?? "실패"}`)
+        return
       }
-      setMetaSyncMsg(msg)
-    } else {
-      setMetaSyncMsg("동기화 완료")
-    }
-    await refreshSpendTotals()
-    // 현재 펼친 기간 세트가 있으면 지출 목록도 다시 조회
-    if (expandedId) {
-      const r = await fetch(`/api/admin/spend?campaign_id=${expandedId}`)
-      if (r.ok) {
-        const j = await r.json()
-        setSpends((j.spends ?? []) as SpendRow[])
+      let s = `Meta ${r.synced ?? 0}건`
+      if (Array.isArray(r.unmatched) && r.unmatched.length > 0) {
+        const preview = r.unmatched.slice(0, 3).join(", ")
+        const suffix = r.unmatched.length > 3 ? ` 외 ${r.unmatched.length - 3}건` : ""
+        s += ` (미매칭: ${preview}${suffix})`
+      } else if (r.synced === 0 && r.message) {
+        s += ` · ${r.message}`
       }
+      parts.push(s)
     }
-    setMetaSyncing(false)
-    router.refresh()
-  }
+    const formatNaver = (r: { ok?: boolean; synced?: number; message?: string; unmatched_tps?: string[]; error?: string } | null) => {
+      if (!r) return
+      if (r.ok === false) {
+        parts.push(`Naver 오류: ${r.error ?? "실패"}`)
+        return
+      }
+      let s = `Naver ${r.synced ?? 0}건`
+      if (Array.isArray(r.unmatched_tps) && r.unmatched_tps.length > 0) {
+        s += ` (미매칭 유형: ${r.unmatched_tps.join(", ")})`
+      } else if (r.synced === 0 && r.message) {
+        s += ` · ${r.message}`
+      }
+      parts.push(s)
+    }
+    formatMeta(json.meta)
+    formatNaver(json.naver)
+    setSyncMsg(parts.length > 0 ? parts.join(" · ") : "동기화 완료")
 
-  // Naver 동기화
-  async function syncNaver() {
-    if (!confirm("Naver에서 지출 데이터를 가져옵니다. 계속하시겠습니까?")) return
-    setNaverSyncing(true)
-    setNaverSyncMsg("")
-    const res = await fetch("/api/admin/spend/sync/naver", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brand_id: brandId }),
-    })
-    const json = await res.json()
-    if (!res.ok) {
-      setNaverSyncMsg(`오류: ${json.error ?? "동기화 실패"}`)
-      setNaverSyncing(false)
-      return
-    }
-    if (typeof json.synced === "number") {
-      let msg = json.synced > 0 ? `${json.synced}개 일자 지출 동기화 완료` : (json.message ?? "동기화 완료")
-      if (Array.isArray(json.unmatched_tps) && json.unmatched_tps.length > 0) {
-        msg += ` · 매칭되지 않은 Naver 캠페인 유형: ${json.unmatched_tps.join(", ")}`
-      }
-      setNaverSyncMsg(msg)
-    } else {
-      setNaverSyncMsg("동기화 완료")
-    }
     await refreshSpendTotals()
     if (expandedId) {
       const r = await fetch(`/api/admin/spend?campaign_id=${expandedId}`)
@@ -296,7 +279,7 @@ export default function BrandKpiManager({
         setSpends((j.spends ?? []) as SpendRow[])
       }
     }
-    setNaverSyncing(false)
+    setSyncing(false)
     router.refresh()
   }
 
@@ -447,28 +430,16 @@ export default function BrandKpiManager({
           </span>
         </h3>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-          {hasMeta && (
+          {(hasMeta || hasNaver) && (
             <button
-              onClick={syncMeta}
-              disabled={metaSyncing}
+              onClick={syncSpend}
+              disabled={syncing}
               className="btn"
               style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
-              title="Meta Ads 지출 데이터를 가져와 Instagram/Facebook 기간 세트에 반영합니다"
+              title="연결된 모든 매체(Meta / Naver)의 지출 데이터를 가져와 기간 세트에 반영합니다"
             >
-              <RefreshCw className={`w-3.5 h-3.5${metaSyncing ? " animate-spin" : ""}`} />
-              {metaSyncing ? "동기화 중..." : "Meta 지출 동기화"}
-            </button>
-          )}
-          {hasNaver && (
-            <button
-              onClick={syncNaver}
-              disabled={naverSyncing}
-              className="btn"
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
-              title="Naver 검색광고 지출 데이터를 가져와 Naver 기간 세트에 반영합니다"
-            >
-              <RefreshCw className={`w-3.5 h-3.5${naverSyncing ? " animate-spin" : ""}`} />
-              {naverSyncing ? "동기화 중..." : "Naver 지출 동기화"}
+              <RefreshCw className={`w-3.5 h-3.5${syncing ? " animate-spin" : ""}`} />
+              {syncing ? "동기화 중..." : "지출 동기화"}
             </button>
           )}
           <button
@@ -484,30 +455,17 @@ export default function BrandKpiManager({
           </button>
         </div>
       </div>
-      {metaSyncMsg && (
+      {syncMsg && (
         <div
           style={{
             padding: "0.5rem 1.25rem",
             fontSize: "0.75rem",
-            color: metaSyncMsg.startsWith("오류") ? "var(--bad)" : "var(--amber)",
+            color: syncMsg.startsWith("오류") || syncMsg.includes("오류:") ? "var(--bad)" : "var(--amber)",
             borderBottom: "1px solid var(--line)",
             background: "var(--bg-2)",
           }}
         >
-          {metaSyncMsg}
-        </div>
-      )}
-      {naverSyncMsg && (
-        <div
-          style={{
-            padding: "0.5rem 1.25rem",
-            fontSize: "0.75rem",
-            color: naverSyncMsg.startsWith("오류") ? "var(--bad)" : "var(--amber)",
-            borderBottom: "1px solid var(--line)",
-            background: "var(--bg-2)",
-          }}
-        >
-          {naverSyncMsg}
+          {syncMsg}
         </div>
       )}
 
