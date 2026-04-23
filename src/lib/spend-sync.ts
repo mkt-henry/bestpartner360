@@ -203,8 +203,9 @@ interface NaverCampaign {
 }
 
 interface StatRow {
-  id: string
-  breakdown?: string
+  // 일별 breakdown(timeIncrement=1) 응답 항목의 날짜 필드
+  dateStart?: string
+  dateEnd?: string
   salesAmt?: number | string
 }
 
@@ -214,16 +215,25 @@ interface StatsResponse {
 
 type NaverCreds = { api_key: string; secret_key: string; customer_id: string }
 
-function naverSignature(timestamp: string, method: string, path: string, secretKey: string) {
+function naverSignature(timestamp: string, method: string, resource: string, secretKey: string) {
   return crypto
     .createHmac("sha256", secretKey)
-    .update(`${timestamp}.${method}.${path}`)
+    .update(`${timestamp}.${method}.${resource}`)
     .digest("base64")
 }
 
-function naverFetch(method: string, path: string, creds: NaverCreds, customerId: string) {
+// Naver signature는 query string을 제외한 경로만 사용해야 하므로,
+// path(서명용)와 query(URL 조립용)를 분리해서 받는다
+function naverFetch(
+  method: string,
+  path: string,
+  creds: NaverCreds,
+  customerId: string,
+  query?: URLSearchParams
+) {
   const timestamp = String(Date.now())
-  return fetch(`${NAVER_API}${path}`, {
+  const url = query && query.toString() ? `${NAVER_API}${path}?${query.toString()}` : `${NAVER_API}${path}`
+  return fetch(url, {
     method,
     headers: {
       "X-API-KEY": creds.api_key,
@@ -317,10 +327,9 @@ export async function syncNaverSpendForBrand(brandId: string): Promise<SyncResul
           id: nc.nccCampaignId,
           fields: JSON.stringify(["salesAmt"]),
           timeRange: JSON.stringify({ since: earliest, until: latest }),
-          breakdown: "dt",
+          timeIncrement: "1",
         })
-        const path = `/stats?${query.toString()}`
-        const statsRes = await naverFetch("GET", path, creds, customerId)
+        const statsRes = await naverFetch("GET", "/stats", creds, customerId, query)
         if (!statsRes.ok) {
           const err = await statsRes.json().catch(() => ({}))
           return {
@@ -333,7 +342,7 @@ export async function syncNaverSpendForBrand(brandId: string): Promise<SyncResul
         const statRows = statsJson.data ?? []
 
         for (const row of statRows) {
-          const date = row.breakdown
+          const date = row.dateStart
           const amount = Number(row.salesAmt ?? 0)
           if (!date || !amount) continue
 
