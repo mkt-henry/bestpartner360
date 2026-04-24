@@ -50,11 +50,9 @@ export function channelColor(channel: string | null): string {
 }
 
 const STATUS_ORDER: CalendarEventStatus[] = [
-  "review_requested",
-  "feedback_pending",
+  "in_review",
   "in_revision",
-  "upload_scheduled",
-  "completed",
+  "published",
   "draft",
 ]
 
@@ -65,11 +63,9 @@ export function statusPriority(status: string): number {
 
 export const STATUS_DOT_COLOR: Record<string, string> = {
   draft: "var(--dimmer)",
-  review_requested: "var(--steel)",
-  feedback_pending: "var(--amber)",
+  in_review: "var(--steel)",
   in_revision: "#e08a5a",
-  upload_scheduled: "var(--plum)",
-  completed: "var(--good)",
+  published: "var(--good)",
 }
 
 export function groupEventsByDate(events: CalendarEvent[]): Record<string, CalendarEvent[]> {

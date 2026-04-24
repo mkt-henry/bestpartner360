@@ -70,6 +70,7 @@ export default function MonthView({
         <div key={wi} style={{
           display: "grid",
           gridTemplateColumns: "repeat(7, 1fr)",
+          gridAutoRows: "minmax(132px, 1fr)",
           borderBottom: wi === weeks.length - 1 ? 0 : "1px solid var(--line)",
         }}>
           {week.map((day, di) => {
@@ -99,9 +100,10 @@ export default function MonthView({
                 data-day-key={key}
                 onClick={handleCellClick}
                 style={{
-                  minHeight: 110,
+                  minHeight: 132,
                   padding: "6px 6px 8px",
                   position: "relative",
+                  overflow: "hidden",
                   background: isTodayCell ? "color-mix(in srgb, var(--amber) 6%, transparent)" : "transparent",
                   borderRight: di === 6 ? 0 : "1px solid var(--line)",
                   transition: "background .12s",

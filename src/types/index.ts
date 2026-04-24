@@ -107,33 +107,28 @@ export interface CalendarEventCreativeComment {
   content: string
   created_at: string
   user_id: string
+  version_number: number | null
   user_profiles: { full_name: string | null; role: UserRole } | null
 }
 
 export type CalendarEventStatus =
   | "draft"
-  | "review_requested"
-  | "feedback_pending"
+  | "in_review"
   | "in_revision"
-  | "upload_scheduled"
-  | "completed"
+  | "published"
 
 export const STATUS_LABELS: Record<CalendarEventStatus, string> = {
-  draft: "초안",
-  review_requested: "검토 요청",
-  feedback_pending: "피드백 대기",
-  in_revision: "수정 중",
-  upload_scheduled: "업로드 예정",
-  completed: "완료",
+  draft: "미발행",
+  in_review: "컨펌중",
+  in_revision: "수정중",
+  published: "발행",
 }
 
 export const STATUS_COLORS: Record<CalendarEventStatus, string> = {
   draft: "bg-slate-100 text-slate-700",
-  review_requested: "bg-blue-100 text-blue-700",
-  feedback_pending: "bg-yellow-100 text-yellow-700",
+  in_review: "bg-blue-100 text-blue-700",
   in_revision: "bg-orange-100 text-orange-700",
-  upload_scheduled: "bg-purple-100 text-purple-700",
-  completed: "bg-green-100 text-green-700",
+  published: "bg-green-100 text-green-700",
 }
 
 export interface Creative {

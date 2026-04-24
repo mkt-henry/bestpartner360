@@ -10,8 +10,7 @@ import {
 } from "./lib/calendar-utils"
 
 const STATUS_ORDER: CalendarEventStatus[] = [
-  "draft", "review_requested", "feedback_pending",
-  "in_revision", "upload_scheduled", "completed",
+  "draft", "in_review", "in_revision", "published",
 ]
 
 interface CalendarFiltersProps {

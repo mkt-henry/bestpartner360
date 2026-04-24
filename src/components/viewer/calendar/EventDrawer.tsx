@@ -8,6 +8,7 @@ import { X, Download, Send } from "lucide-react"
 import type {
   CalendarEvent,
   CalendarEventCreative,
+  CalendarEventCreativeComment,
   CalendarEventStatus,
 } from "@/types"
 import { STATUS_LABELS } from "@/types"
@@ -25,6 +26,11 @@ interface EventDrawerProps {
 export default function EventDrawer({ event, today, currentUserId, onClose }: EventDrawerProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null)
   const open = !!event
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -34,13 +40,13 @@ export default function EventDrawer({ event, today, currentUserId, onClose }: Ev
     return () => window.removeEventListener("keydown", onKey)
   }, [open, event?.id, onClose])
 
-  if (typeof window === "undefined") return null
+  if (!mounted) return null
 
   return createPortal(
     <aside
       role="dialog"
       aria-label={event?.title ?? "이벤트 상세"}
-      className="cal-drawer"
+      className="console-scope cal-drawer"
       data-open={open}
       style={{
         position: "fixed",
@@ -54,6 +60,8 @@ export default function EventDrawer({ event, today, currentUserId, onClose }: Ev
         display: "flex",
         flexDirection: "column",
         boxShadow: open ? "-12px 0 40px #0008" : "none",
+        minHeight: 0,
+        backgroundImage: "none",
       }}
     >
       {event && (
@@ -125,18 +133,13 @@ export default function EventDrawer({ event, today, currentUserId, onClose }: Ev
               </>
             )}
 
-            {(event.creatives?.length ?? 0) > 0 && (
+            {event.creatives?.[0] && (
               <>
-                <SectionHeader>소재 ({event.creatives?.length})</SectionHeader>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {event.creatives?.map((c) => (
-                    <CreativeBlock
-                      key={c.id}
-                      creative={c}
-                      currentUserId={currentUserId}
-                    />
-                  ))}
-                </div>
+                <SectionHeader>소재 전달</SectionHeader>
+                <CreativeBlock
+                  creative={event.creatives[0]}
+                  currentUserId={currentUserId}
+                />
               </>
             )}
           </div>
@@ -160,16 +163,25 @@ function CreativeBlock({
   const [error, setError] = useState<string | null>(null)
 
   const versions = [...creative.creative_versions].sort(
-    (a, b) => b.version_number - a.version_number,
+    (a, b) => a.version_number - b.version_number,
   )
-  const latest = versions[0]
-  const comments = [...(creative.creative_comments ?? [])].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  )
+  const latest = versions[versions.length - 1]
+
+  const commentsByVersion: Record<number, CalendarEventCreativeComment[]> = {}
+  for (const c of creative.creative_comments ?? []) {
+    const v = c.version_number ?? 1
+    if (!commentsByVersion[v]) commentsByVersion[v] = []
+    commentsByVersion[v].push(c)
+  }
+  for (const key of Object.keys(commentsByVersion)) {
+    commentsByVersion[Number(key)].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    )
+  }
 
   async function submitComment(e: React.FormEvent) {
     e.preventDefault()
-    if (!newComment.trim() || !currentUserId) return
+    if (!newComment.trim() || !currentUserId || !latest) return
     setPosting(true)
     setError(null)
     const supabase = createClient()
@@ -177,6 +189,7 @@ function CreativeBlock({
       creative_id: creative.id,
       user_id: currentUserId,
       content: newComment.trim(),
+      version_number: latest.version_number,
     })
     setPosting(false)
     if (dbError) {
@@ -187,174 +200,188 @@ function CreativeBlock({
     router.refresh()
   }
 
-  return (
-    <div
-      style={{
-        border: "1px solid var(--line)",
-        borderRadius: 8,
-        padding: 12,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        background: "var(--bg-2)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="tag" style={{ fontSize: 9 }}>{creative.asset_type}</span>
-        <div style={{ fontSize: 12, fontWeight: 500, flex: 1, minWidth: 0, color: "var(--text)" }}>
-          {creative.title}
-        </div>
-        {latest && (
-          <a
-            href={latest.file_url}
-            target="_blank"
-            rel="noreferrer"
-            download
-            className="btn"
-            style={{ fontSize: 10, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}
-          >
-            <Download style={{ width: 11, height: 11 }} />
-            v{latest.version_number}
-          </a>
-        )}
-      </div>
-
-      {versions.length > 1 && (
-        <div
-          style={{
-            fontSize: 10,
-            color: "var(--dim)",
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          이전 버전:{" "}
-          {versions.slice(1).map((v) => (
-            <a
-              key={v.id}
-              href={v.file_url}
-              target="_blank"
-              rel="noreferrer"
-              download
-              style={{ color: "var(--dim)", textDecoration: "underline" }}
-            >
-              v{v.version_number}
-            </a>
-          ))}
-        </div>
-      )}
-
-      {creative.description && (
-        <p
-          style={{
-            fontSize: 11,
-            color: "var(--text-2)",
-            lineHeight: 1.5,
-            whiteSpace: "pre-wrap",
-            margin: 0,
-          }}
-        >
-          {creative.description}
-        </p>
-      )}
-
+  if (versions.length === 0) {
+    return (
       <div
         style={{
-          borderTop: "1px solid var(--line)",
-          paddingTop: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          border: "1px dashed var(--line)",
+          borderRadius: 8,
+          padding: 16,
+          textAlign: "center",
+          fontSize: 11,
+          color: "var(--dim)",
         }}
       >
-        <div
-          style={{
-            fontSize: 10,
-            color: "var(--dim)",
-            textTransform: "uppercase",
-            letterSpacing: ".1em",
-          }}
-        >
-          피드백 ({comments.length})
-        </div>
-
-        {comments.length > 0 && (
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-            {comments.map((c) => {
-              const isAdmin = c.user_profiles?.role === "admin"
-              return (
-                <li
-                  key={c.id}
-                  style={{
-                    fontSize: 11,
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    background: isAdmin
-                      ? "color-mix(in srgb, var(--amber) 10%, var(--bg-1))"
-                      : "var(--bg-1)",
-                    border: "1px solid var(--line)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                    <span style={{ fontSize: 10, fontWeight: 500, color: "var(--text)" }}>
-                      {c.user_profiles?.full_name ?? "사용자"}
-                    </span>
-                    {isAdmin && (
-                      <span style={{ fontSize: 9, color: "var(--amber)" }}>대행사</span>
-                    )}
-                    <span style={{ fontSize: 9, color: "var(--dim)", marginLeft: "auto" }}>
-                      {new Date(c.created_at).toLocaleString("ko-KR", {
-                        month: "numeric",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
-                  <div style={{ color: "var(--text-2)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                    {c.content}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-
-        {currentUserId && (
-          <form
-            onSubmit={submitComment}
-            style={{ display: "flex", gap: 6, alignItems: "flex-start" }}
-          >
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              rows={2}
-              placeholder="피드백을 남겨주세요"
-              className="form-textarea"
-              style={{ flex: 1, fontSize: 11, padding: "6px 8px", minHeight: 0 }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                  submitComment(e as unknown as React.FormEvent)
-                }
-              }}
-            />
-            <button
-              type="submit"
-              disabled={!newComment.trim() || posting}
-              className="btn primary"
-              style={{ fontSize: 10, padding: "5px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}
-            >
-              <Send style={{ width: 10, height: 10 }} />
-              {posting ? "전송 중" : "전송"}
-            </button>
-          </form>
-        )}
-
-        {error && (
-          <div style={{ fontSize: 10, color: "var(--bad)" }}>전송 실패: {error}</div>
-        )}
+        아직 업로드된 소재 버전이 없습니다.
       </div>
+    )
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {versions.map((v) => {
+        const isLatest = v.version_number === latest.version_number
+        const vComments = commentsByVersion[v.version_number] ?? []
+        return (
+          <div
+            key={v.id}
+            style={{
+              border: isLatest
+                ? "1px solid color-mix(in srgb, var(--amber) 35%, var(--line))"
+                : "1px solid var(--line)",
+              borderRadius: 8,
+              padding: 12,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              background: "var(--bg-2)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                className="tag"
+                style={{
+                  fontSize: 9,
+                  background: "var(--amber-dim)",
+                  color: "var(--amber)",
+                }}
+              >
+                {v.version_number}차
+              </span>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  flex: 1,
+                  minWidth: 0,
+                  color: "var(--text)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {creative.title}
+              </div>
+              <span style={{ fontSize: 10, color: "var(--dim)" }}>
+                {new Date(v.uploaded_at).toLocaleDateString("ko-KR", {
+                  month: "numeric", day: "numeric",
+                })}
+              </span>
+              <a
+                href={v.file_url}
+                target="_blank"
+                rel="noreferrer"
+                download
+                className="btn"
+                style={{
+                  fontSize: 10, padding: "3px 8px",
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                }}
+              >
+                <Download style={{ width: 11, height: 11 }} />
+                다운로드
+              </a>
+            </div>
+
+            <div
+              style={{
+                borderTop: "1px solid var(--line)",
+                paddingTop: 8,
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--dim)",
+                  textTransform: "uppercase",
+                  letterSpacing: ".1em",
+                }}
+              >
+                피드백 ({vComments.length})
+              </div>
+
+              {vComments.length > 0 && (
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {vComments.map((c) => {
+                    const isAdmin = c.user_profiles?.role === "admin"
+                    return (
+                      <li
+                        key={c.id}
+                        style={{
+                          fontSize: 11,
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          background: isAdmin
+                            ? "color-mix(in srgb, var(--amber) 10%, var(--bg-1))"
+                            : "var(--bg-1)",
+                          border: "1px solid var(--line)",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 10, fontWeight: 500, color: "var(--text)" }}>
+                            {c.user_profiles?.full_name ?? "사용자"}
+                          </span>
+                          {isAdmin && (
+                            <span style={{ fontSize: 9, color: "var(--amber)" }}>대행사</span>
+                          )}
+                          <span style={{ fontSize: 9, color: "var(--dim)", marginLeft: "auto" }}>
+                            {new Date(c.created_at).toLocaleString("ko-KR", {
+                              month: "numeric",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <div style={{ color: "var(--text-2)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+                          {c.content}
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+
+              {isLatest && currentUserId && (
+                <form
+                  onSubmit={submitComment}
+                  style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 4 }}
+                >
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows={2}
+                    placeholder={`${v.version_number}차 버전에 피드백 남기기`}
+                    className="form-textarea"
+                    style={{ flex: 1, fontSize: 11, padding: "6px 8px", minHeight: 0 }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                        submitComment(e as unknown as React.FormEvent)
+                      }
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newComment.trim() || posting}
+                    className="btn primary"
+                    style={{ fontSize: 10, padding: "5px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}
+                  >
+                    <Send style={{ width: 10, height: 10 }} />
+                    {posting ? "전송 중" : "전송"}
+                  </button>
+                </form>
+              )}
+
+              {isLatest && error && (
+                <div style={{ fontSize: 10, color: "var(--bad)" }}>전송 실패: {error}</div>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

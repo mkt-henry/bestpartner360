@@ -26,7 +26,7 @@ export default async function AdminViewerCalendarPage({
         id, title, asset_type, status, description,
         creative_versions(id, version_number, file_path, file_url, uploaded_at),
         creative_comments(
-          id, content, created_at, user_id,
+          id, content, created_at, user_id, version_number,
           user_profiles(full_name, role)
         )
       )

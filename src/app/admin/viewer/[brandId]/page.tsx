@@ -126,9 +126,9 @@ export default async function AdminViewerDashboardPage({
 
   const creativeStats = creativesResult.data ?? []
   const creativeCounts = {
-    review_requested: creativeStats.filter((c) => c.status === "review_requested").length,
-    feedback_pending: creativeStats.filter((c) => c.status === "feedback_pending").length,
-    completed: creativeStats.filter((c) => c.status === "completed").length,
+    in_review: creativeStats.filter((c) => c.status === "in_review").length,
+    in_revision: creativeStats.filter((c) => c.status === "in_revision").length,
+    published: creativeStats.filter((c) => c.status === "published").length,
   }
 
   const upcomingEvents = eventsResult.data
@@ -215,16 +215,16 @@ export default async function AdminViewerDashboardPage({
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-              <span style={{ color: "var(--dim)" }}>검토 요청</span>
-              <span style={{ fontWeight: 600, color: "var(--steel)" }}>{creativeCounts.review_requested}건</span>
+              <span style={{ color: "var(--dim)" }}>컨펌중</span>
+              <span style={{ fontWeight: 600, color: "var(--steel)" }}>{creativeCounts.in_review}건</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-              <span style={{ color: "var(--dim)" }}>피드백 대기</span>
-              <span style={{ fontWeight: 600, color: "var(--amber)" }}>{creativeCounts.feedback_pending}건</span>
+              <span style={{ color: "var(--dim)" }}>수정중</span>
+              <span style={{ fontWeight: 600, color: "#e08a5a" }}>{creativeCounts.in_revision}건</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-              <span style={{ color: "var(--dim)" }}>완료</span>
-              <span style={{ fontWeight: 600, color: "var(--good)" }}>{creativeCounts.completed}건</span>
+              <span style={{ color: "var(--dim)" }}>발행</span>
+              <span style={{ fontWeight: 600, color: "var(--good)" }}>{creativeCounts.published}건</span>
             </div>
           </div>
         </Link>

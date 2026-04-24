@@ -654,10 +654,10 @@
 .console-scope .cal-cell-editable:hover::after{content:"＋";position:absolute;top:4px;right:6px;font-size:14px;color:var(--amber);opacity:.7;pointer-events:none}
 
 @media(max-width:1279px){
-  .console-scope .cal-drawer{width:320px !important}
+  .console-scope .cal-drawer,.console-scope.cal-drawer{width:320px !important}
 }
 @media(max-width:899px){
-  .console-scope .cal-drawer{width:100% !important}
+  .console-scope .cal-drawer,.console-scope.cal-drawer{width:100% !important}
   .console-scope .cal-filters .fg-label{display:none}
 }
 

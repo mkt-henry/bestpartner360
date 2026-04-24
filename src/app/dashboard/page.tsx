@@ -121,9 +121,9 @@ export default async function DashboardPage() {
 
   const creativeStats = creativesResult.data ?? []
   const creativeCounts = {
-    review_requested: creativeStats.filter((c) => c.status === "review_requested").length,
-    feedback_pending: creativeStats.filter((c) => c.status === "feedback_pending").length,
-    completed: creativeStats.filter((c) => c.status === "completed").length,
+    in_review: creativeStats.filter((c) => c.status === "in_review").length,
+    in_revision: creativeStats.filter((c) => c.status === "in_revision").length,
+    published: creativeStats.filter((c) => c.status === "published").length,
   }
 
   const upcomingEvents = eventsResult.data ?? []
@@ -171,7 +171,7 @@ export default async function DashboardPage() {
       label: "소재",
       value: String(creativeStats.length),
       unit: "",
-      hint: `리뷰 ${creativeCounts.review_requested} · 대기 ${creativeCounts.feedback_pending}`,
+      hint: `컨펌중 ${creativeCounts.in_review} · 수정중 ${creativeCounts.in_revision}`,
     },
   ]
 
@@ -291,9 +291,9 @@ export default async function DashboardPage() {
               <div className="sub">{creativeStats.length}건</div>
             </div>
             <div className="p-body">
-              <StatRow label="리뷰 요청" value={creativeCounts.review_requested} />
-              <StatRow label="피드백 대기" value={creativeCounts.feedback_pending} />
-              <StatRow label="완료" value={creativeCounts.completed} />
+              <StatRow label="컨펌중" value={creativeCounts.in_review} />
+              <StatRow label="수정중" value={creativeCounts.in_revision} />
+              <StatRow label="발행" value={creativeCounts.published} />
               <div style={{ marginTop: 12 }}>
                 <Link href="/dashboard/calendar" style={{ color: "var(--amber)", fontSize: 11 }}>
                   캘린더에서 보기 →
