@@ -1,7 +1,7 @@
 // src/components/viewer/calendar/EventDrawer.tsx
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { useRouter } from "next/navigation"
 import { createPortal } from "react-dom"
 import { X, Download, Send } from "lucide-react"
@@ -13,7 +13,6 @@ import type {
 } from "@/types"
 import { STATUS_LABELS } from "@/types"
 import { parseISO } from "date-fns"
-import { createClient } from "@/lib/supabase/client"
 import { channelTagClass, getRelativeDateLabel, STATUS_DOT_COLOR } from "./lib/calendar-utils"
 
 interface EventDrawerProps {
@@ -26,11 +25,7 @@ interface EventDrawerProps {
 export default function EventDrawer({ event, today, currentUserId, onClose }: EventDrawerProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null)
   const open = !!event
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useIsClient()
 
   useEffect(() => {
     if (!open) return
@@ -150,6 +145,14 @@ export default function EventDrawer({ event, today, currentUserId, onClose }: Ev
   )
 }
 
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
+}
+
 function CreativeBlock({
   creative,
   currentUserId,
@@ -184,18 +187,25 @@ function CreativeBlock({
     if (!newComment.trim() || !currentUserId || !latest) return
     setPosting(true)
     setError(null)
-    const supabase = createClient()
-    const { error: dbError } = await supabase.from("creative_comments").insert({
-      creative_id: creative.id,
-      user_id: currentUserId,
-      content: newComment.trim(),
-      version_number: latest.version_number,
+
+    const response = await fetch("/api/creative-comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        creative_id: creative.id,
+        content: newComment.trim(),
+        version_number: latest.version_number,
+      }),
     })
+
     setPosting(false)
-    if (dbError) {
-      setError(dbError.message)
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null)
+      setError(data?.error ?? "피드백 저장에 실패했습니다.")
       return
     }
+
     setNewComment("")
     router.refresh()
   }
