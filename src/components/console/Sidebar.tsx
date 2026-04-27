@@ -112,6 +112,7 @@ const adminMonitor: NavItem[] = [
 ]
 const adminWorkspace: NavItem[] = [
   { href: "/admin/brands", label: "브랜드", icon: Icon.building },
+  { href: "/admin/channels", label: "매체 연동", icon: Icon.settings },
   { href: "/admin/users", label: "계정", icon: Icon.users },
   { href: "/admin/calendar", label: "캘린더", icon: Icon.calendar },
   { href: "/admin/settings", label: "API 설정", icon: Icon.key },

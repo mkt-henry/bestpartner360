@@ -4,6 +4,8 @@ import BrandForm from "@/components/admin/BrandForm"
 import BrandChannelManager from "@/components/admin/BrandChannelManager"
 import Ga4ConnectButton from "@/components/admin/Ga4ConnectButton"
 import type { Brand, MetaAdAccount, NaverAdAccount, Ga4Property } from "@/types"
+import Link from "next/link"
+import { getLiveMediaPlatformCount } from "@/lib/media-platforms"
 
 export default async function AdminBrandsPage() {
   const supabase = await createClient()
@@ -28,6 +30,7 @@ export default async function AdminBrandsPage() {
   const naverList = (naverMappings ?? []) as NaverAdAccount[]
   const ga4List = (ga4Mappings ?? []) as Ga4Property[]
   const ga4Connected = !!ga4Cred?.credentials?.refresh_token
+  const liveMediaCount = getLiveMediaPlatformCount()
   const brandSummaries = brandList.map((brand) => {
     const metaCount = metaList.filter((mapping) => mapping.brand_id === brand.id).length
     const naverCount = naverList.filter((mapping) => mapping.brand_id === brand.id).length
@@ -43,7 +46,7 @@ export default async function AdminBrandsPage() {
   })
   const connectedBrands = brandSummaries.filter((item) => item.connectedMediaCount > 0).length
   const partiallyConnectedBrands = brandSummaries.filter(
-    (item) => item.connectedMediaCount > 0 && item.connectedMediaCount < 3
+    (item) => item.connectedMediaCount > 0 && item.connectedMediaCount < liveMediaCount
   ).length
   const unconnectedBrands = brandSummaries.filter((item) => item.connectedMediaCount === 0).length
   const totalConnections = brandSummaries.reduce((sum, item) => sum + item.totalConnections, 0)
@@ -56,11 +59,16 @@ export default async function AdminBrandsPage() {
             브랜드 <em>관리</em>
           </h1>
           <p className="sub">
-            브랜드 및 광고 매체 연결 관리
+            브랜드 생성과 브랜드별 연결 현황을 관리합니다
             <span className="live">
               {brandList.length}개 브랜드
             </span>
           </p>
+        </div>
+        <div className="pg-actions">
+          <Link href="/admin/channels" className="btn">
+            매체 연동 허브
+          </Link>
         </div>
       </div>
 
@@ -140,7 +148,7 @@ export default async function AdminBrandsPage() {
           <h3>브랜드 목록</h3>
           <span className="sub" style={{ marginLeft: 8 }}>{brandList.length}개</span>
           <span className="sub" style={{ marginLeft: "auto" }}>
-            브랜드를 열면 매체별 연결 상태와 오류를 한 번에 확인할 수 있습니다
+            브랜드를 열면 연결된 매체만 먼저 표시됩니다
           </span>
         </div>
         <div style={{ padding: 0 }}>

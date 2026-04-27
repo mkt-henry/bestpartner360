@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Brand, MetaAdAccount, NaverAdAccount, Ga4Property } from "@/types"
 import BrandConnectionModal from "@/components/admin/BrandConnectionModal"
+import { getLiveMediaPlatformCount } from "@/lib/media-platforms"
 
 interface MetaAccount {
   id: string
@@ -41,7 +43,7 @@ const STATUS_LABELS: Record<number, string> = {
   7: "보류",
 }
 
-const MEDIA_TOTAL = 3
+const MEDIA_TOTAL = getLiveMediaPlatformCount()
 
 const s = {
   trigger: {
@@ -124,31 +126,33 @@ const s = {
     whiteSpace: "nowrap" as const,
   }),
   mediaCard: {
-    background: "var(--bg-2)",
-    border: "1px solid var(--line)",
-    borderRadius: 14,
-    padding: 16,
+    background: "color-mix(in srgb, var(--bg-2) 70%, var(--bg-1))",
+    border: "1px solid color-mix(in srgb, var(--line) 84%, transparent)",
+    borderRadius: 9,
+    padding: 14,
     display: "flex",
     flexDirection: "column" as const,
-    gap: 14,
+    gap: 10,
     minWidth: 0,
   },
   mediaHeader: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: 10,
+    paddingBottom: 10,
+    borderBottom: "1px solid var(--line)",
   },
   mediaTitleWrap: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: 9,
     minWidth: 0,
   },
   mediaIcon: (background: string, color: string) => ({
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 7,
     background,
     color,
     display: "grid",
@@ -159,7 +163,7 @@ const s = {
   }),
   title: {
     fontSize: 12,
-    fontWeight: 600,
+    fontWeight: 700,
     color: "var(--text)",
   },
   subtitle: {
@@ -172,8 +176,8 @@ const s = {
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
-    padding: "6px 10px",
-    borderRadius: 8,
+    padding: "5px 9px",
+    borderRadius: 7,
     border: "1px solid var(--line)",
     background: "var(--bg-1)",
     color: "var(--text-2)",
@@ -183,17 +187,17 @@ const s = {
   list: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: 8,
+    gap: 7,
   },
   linkedItem: {
     display: "grid",
-    gridTemplateColumns: "24px minmax(0, 1fr) auto auto",
+    gridTemplateColumns: "22px minmax(0, 1fr) auto auto",
     alignItems: "center",
-    gap: 10,
-    padding: "10px 12px",
+    gap: 9,
+    padding: "9px 10px",
     background: "var(--bg-1)",
     border: "1px solid var(--line)",
-    borderRadius: 10,
+    borderRadius: 8,
     minWidth: 0,
   },
   linkedName: {
@@ -209,8 +213,8 @@ const s = {
     fontFamily: "var(--c-mono)",
   },
   unlinkBtn: {
-    padding: "5px 8px",
-    borderRadius: 8,
+    padding: "4px 8px",
+    borderRadius: 7,
     border: "1px solid #e5553b30",
     color: "var(--bad)",
     fontSize: 10,
@@ -218,8 +222,8 @@ const s = {
     flexShrink: 0,
   },
   notice: (tone: "error" | "empty" | "info") => ({
-    padding: "12px 13px",
-    borderRadius: 10,
+    padding: "9px 11px",
+    borderRadius: 8,
     border:
       tone === "error"
         ? "1px solid #e5553b2d"
@@ -228,12 +232,12 @@ const s = {
           : "1px solid var(--line)",
     background:
       tone === "error"
-        ? "#2a1313"
+        ? "color-mix(in srgb, var(--bad) 10%, var(--bg-1))"
         : tone === "info"
-          ? "#101822"
+          ? "color-mix(in srgb, var(--steel) 7%, var(--bg-1))"
           : "var(--bg-1)",
     color: tone === "error" ? "#ff9c8f" : tone === "info" ? "#9fc8dd" : "var(--dim)",
-    fontSize: 11,
+    fontSize: 10,
     lineHeight: 1.5,
   }),
   formRow: {
@@ -245,10 +249,10 @@ const s = {
   select: {
     flex: 1,
     minWidth: 180,
-    padding: "10px 12px",
+    padding: "9px 11px",
     background: "var(--bg-1)",
     border: "1px solid var(--line)",
-    borderRadius: 10,
+    borderRadius: 8,
     color: "var(--text)",
     font: "inherit",
     fontSize: 11,
@@ -256,10 +260,10 @@ const s = {
   },
   input: {
     minWidth: 140,
-    padding: "10px 12px",
+    padding: "9px 11px",
     background: "var(--bg-1)",
     border: "1px solid var(--line)",
-    borderRadius: 10,
+    borderRadius: 8,
     color: "var(--text)",
     font: "inherit",
     fontSize: 11,
@@ -377,6 +381,7 @@ export default function BrandChannelManager({
   const [ga4PropertyName, setGa4PropertyName] = useState("")
   const [bootstrapped, setBootstrapped] = useState(false)
   const [modalProvider, setModalProvider] = useState<ModalProvider>(null)
+  const [showAddMedia, setShowAddMedia] = useState(false)
 
   async function fetchMetaAccounts() {
     setMetaLoading(true)
@@ -686,6 +691,10 @@ export default function BrandChannelManager({
   const metaErrorDisplay = metaError ? formatProviderError("meta", metaError) : null
   const naverErrorDisplay = naverError ? formatProviderError("naver", naverError) : null
   const ga4ErrorDisplay = ga4Error ? formatProviderError("ga4", ga4Error) : null
+  const showMetaCard = metaLinked.length > 0 || Boolean(metaError) || showAddMedia
+  const showNaverCard = naverLinked.length > 0 || Boolean(naverError) || showAddMedia
+  const showGa4Card = ga4Linked.length > 0 || Boolean(ga4Error) || showAddMedia
+  const hasVisibleMediaCards = showMetaCard || showNaverCard || showGa4Card
 
   return (
     <div style={{ borderBottom: isLast ? "none" : "1px solid var(--line)" }}>
@@ -755,15 +764,18 @@ export default function BrandChannelManager({
             marginLeft: "auto",
           }}
         >
-          <span style={s.mediaChip(metaLinked.length > 0, "#6FA8F5")}>
-            Meta {metaLinked.length || "0"}
-          </span>
-          <span style={s.mediaChip(naverLinked.length > 0, "#5ec27a")}>
-            Naver {naverLinked.length || "0"}
-          </span>
-          <span style={s.mediaChip(ga4Linked.length > 0, "#E8B04B")}>
-            GA4 {ga4Linked.length || "0"}
-          </span>
+          {metaLinked.length > 0 && (
+            <span style={s.mediaChip(true, "#6FA8F5")}>Meta {metaLinked.length}</span>
+          )}
+          {naverLinked.length > 0 && (
+            <span style={s.mediaChip(true, "#5ec27a")}>Naver {naverLinked.length}</span>
+          )}
+          {ga4Linked.length > 0 && (
+            <span style={s.mediaChip(true, "#E8B04B")}>GA4 {ga4Linked.length}</span>
+          )}
+          {totalLinkedItems === 0 && (
+            <span style={{ fontSize: 11, color: "var(--dim)" }}>매체 없음</span>
+          )}
           <span
             aria-hidden="true"
             style={{
@@ -796,24 +808,45 @@ export default function BrandChannelManager({
             }}
           >
             <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text)" }}>매체 연결 관리</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)" }}>연결 매체</div>
               <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 3 }}>
-                브랜드별 광고 계정과 GA4 속성을 이곳에서 바로 연결하거나 해제할 수 있습니다.
+                연결된 항목과 오류만 먼저 보여줍니다. 새 매체는 필요할 때 추가하세요.
               </div>
             </div>
-            <div style={{ fontSize: 10, color: "var(--dim)" }}>
-              연결된 매체 {connectedMediaCount}/{MEDIA_TOTAL}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <div style={{ fontSize: 10, color: "var(--dim)" }}>
+                연결된 매체 {connectedMediaCount}/{MEDIA_TOTAL}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddMedia((prev) => !prev)}
+                className="btn"
+                style={{ padding: "6px 10px", fontSize: 10 }}
+              >
+                {showAddMedia ? "미연결 숨기기" : "매체 추가"}
+              </button>
+              <Link href="/admin/channels" className="btn" style={{ padding: "6px 10px", fontSize: 10 }}>
+                연동 허브
+              </Link>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 14,
-            }}
-          >
-            <section style={s.mediaCard}>
+          {!hasVisibleMediaCards && (
+            <div style={s.notice("empty")}>
+              이 브랜드에 연결된 매체가 없습니다. 필요한 경우 매체 추가를 눌러 계정이나 속성을 연결하세요.
+            </div>
+          )}
+
+          {hasVisibleMediaCards && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {showMetaCard && (
+                <section style={s.mediaCard}>
               <div style={s.mediaHeader}>
                 <div style={s.mediaTitleWrap}>
                   <div style={s.mediaIcon("#1877F220", "#6FA8F5")}>M</div>
@@ -843,8 +876,10 @@ export default function BrandChannelManager({
 
               {metaErrorDisplay && (
                 <div style={s.notice("error")}>
-                  {metaErrorDisplay.title}
-                  <div style={{ marginTop: 4, color: "#ffb1a7" }}>{metaErrorDisplay.detail}</div>
+                  <strong style={{ display: "block", color: "#ff9c8f", fontSize: 11 }}>
+                    {metaErrorDisplay.title}
+                  </strong>
+                  <div style={{ marginTop: 3, color: "#ffb1a7" }}>{metaErrorDisplay.detail}</div>
                 </div>
               )}
 
@@ -908,9 +943,11 @@ export default function BrandChannelManager({
                   연결 가능한 Meta 계정이 없습니다. API 설정을 확인한 뒤 새로고침하세요.
                 </div>
               ) : null}
-            </section>
+                </section>
+              )}
 
-            <section style={s.mediaCard}>
+              {showNaverCard && (
+                <section style={s.mediaCard}>
               <div style={s.mediaHeader}>
                 <div style={s.mediaTitleWrap}>
                   <div style={s.mediaIcon("#03c75a20", "#5ec27a")}>N</div>
@@ -940,8 +977,10 @@ export default function BrandChannelManager({
 
               {naverErrorDisplay && (
                 <div style={s.notice("error")}>
-                  {naverErrorDisplay.title}
-                  <div style={{ marginTop: 4, color: "#ffb1a7" }}>{naverErrorDisplay.detail}</div>
+                  <strong style={{ display: "block", color: "#ff9c8f", fontSize: 11 }}>
+                    {naverErrorDisplay.title}
+                  </strong>
+                  <div style={{ marginTop: 3, color: "#ffb1a7" }}>{naverErrorDisplay.detail}</div>
                 </div>
               )}
 
@@ -1005,9 +1044,11 @@ export default function BrandChannelManager({
                   연결 가능한 Naver 계정이 없습니다. API 키를 확인한 뒤 새로고침하세요.
                 </div>
               ) : null}
-            </section>
+                </section>
+              )}
 
-            <section style={s.mediaCard}>
+              {showGa4Card && (
+                <section style={s.mediaCard}>
               <div style={s.mediaHeader}>
                 <div style={s.mediaTitleWrap}>
                   <div style={s.mediaIcon("#FBBC0520", "#E8B04B")}>G</div>
@@ -1045,8 +1086,10 @@ export default function BrandChannelManager({
 
               {ga4ErrorDisplay && (
                 <div style={s.notice("error")}>
-                  {ga4ErrorDisplay.title}
-                  <div style={{ marginTop: 4, color: "#ffb1a7" }}>{ga4ErrorDisplay.detail}</div>
+                  <strong style={{ display: "block", color: "#ff9c8f", fontSize: 11 }}>
+                    {ga4ErrorDisplay.title}
+                  </strong>
+                  <div style={{ marginTop: 3, color: "#ffb1a7" }}>{ga4ErrorDisplay.detail}</div>
                 </div>
               )}
 
@@ -1162,8 +1205,10 @@ export default function BrandChannelManager({
                   직접 속성 ID 입력하기 →
                 </button>
               )}
-            </section>
-          </div>
+                </section>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
