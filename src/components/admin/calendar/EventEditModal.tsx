@@ -388,6 +388,7 @@ export default function EventEditModal({ state, brands, campaigns, onClose }: Ev
 function VersionsSection({ event }: { event: CalendarEvent }) {
   const router = useRouter()
   const [uploading, setUploading] = useState(false)
+  const [pendingFileName, setPendingFileName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Treat the first creative as "the" creative for this event. The data
@@ -414,6 +415,7 @@ function VersionsSection({ event }: { event: CalendarEvent }) {
 
   async function uploadNextVersion(file: File) {
     setUploading(true)
+    setPendingFileName(file.name)
     setError(null)
     const supabase = createClient()
 
@@ -461,8 +463,10 @@ function VersionsSection({ event }: { event: CalendarEvent }) {
       version_number: nextVersionNumber,
       file_path: filePath,
       file_url: urlData.publicUrl,
+      original_filename: file.name,
     })
     setUploading(false)
+    setPendingFileName(null)
     if (versionError) {
       setError(versionError.message)
       return
@@ -530,16 +534,37 @@ function VersionsSection({ event }: { event: CalendarEvent }) {
                   </span>
                   <div
                     style={{
-                      fontSize: 12,
-                      fontWeight: 500,
                       flex: 1,
                       minWidth: 0,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
                     }}
                   >
-                    {creative?.title ?? "소재"}
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {creative?.title ?? "소재"}
+                    </div>
+                    {v.original_filename && (
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "var(--dim)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {v.original_filename}
+                      </div>
+                    )}
                   </div>
                   <span style={{ fontSize: 10, color: "var(--dim)" }}>
                     {new Date(v.uploaded_at).toLocaleDateString("ko-KR", {
@@ -584,9 +609,17 @@ function VersionsSection({ event }: { event: CalendarEvent }) {
         }}
       >
         <Upload style={{ width: 14, height: 14 }} />
-        <span style={{ fontSize: 11 }}>
-          {uploading
-            ? "업로드 중..."
+        <span
+          style={{
+            fontSize: 11,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: 260,
+          }}
+        >
+          {uploading && pendingFileName
+            ? `업로드 중: ${pendingFileName}`
             : `${orderLabel(nextVersionNumber)} 버전 업로드`}
         </span>
         <input

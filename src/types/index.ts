@@ -155,6 +155,7 @@ export interface CreativeVersion {
   file_path: string
   file_url: string
   uploaded_at: string
+  original_filename?: string | null
 }
 
 export interface MetaAdAccount {

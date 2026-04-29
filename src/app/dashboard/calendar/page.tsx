@@ -24,7 +24,7 @@ export default async function CalendarPage() {
       id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
       creatives(
         id, title, asset_type, status, description,
-        creative_versions(id, version_number, file_path, file_url, uploaded_at),
+        creative_versions(id, version_number, file_path, file_url, uploaded_at, original_filename),
         creative_comments(
           id, content, created_at, user_id, version_number,
           user_profiles(full_name, role)
