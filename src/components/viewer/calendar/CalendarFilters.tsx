@@ -10,7 +10,7 @@ import {
 } from "./lib/calendar-utils"
 
 const STATUS_ORDER: CalendarEventStatus[] = [
-  "draft", "in_review", "in_revision", "published",
+  "draft", "saved", "in_review", "in_revision", "scheduled", "published", "cancelled",
 ]
 
 interface CalendarFiltersProps {
@@ -18,19 +18,21 @@ interface CalendarFiltersProps {
   channelOptions: string[]
   statusOptions: string[]
   assetTypeOptions: string[]
+  labelOptions: string[]
   queryInput: string
   onToggleChannel: (v: string) => void
   onToggleStatus: (v: string) => void
   onToggleAssetType: (v: string) => void
+  onToggleLabel: (v: string) => void
   onQueryInputChange: (q: string) => void
   onReset: () => void
 }
 
 export default function CalendarFilters({
   filters,
-  channelOptions, statusOptions, assetTypeOptions,
+  channelOptions, statusOptions, assetTypeOptions, labelOptions,
   queryInput,
-  onToggleChannel, onToggleStatus, onToggleAssetType,
+  onToggleChannel, onToggleStatus, onToggleAssetType, onToggleLabel,
   onQueryInputChange, onReset,
 }: CalendarFiltersProps) {
   const activeCount = countActiveFilters(filters)
@@ -41,8 +43,8 @@ export default function CalendarFilters({
     <div className="cal-filters" style={{
       display: "flex",
       flexDirection: "column",
-      gap: 10,
-      padding: "12px 16px",
+      gap: 12,
+      padding: "14px 18px",
       background: "var(--bg-1)",
       border: "1px solid var(--line)",
       borderRadius: 8,
@@ -73,14 +75,27 @@ export default function CalendarFilters({
         </FilterRow>
       )}
 
-      {assetTypeOptions.length > 0 && (
+      {assetTypeOptions.filter((v) => v !== UNASSIGNED).length > 0 && (
         <FilterRow label="소재">
-          {assetTypeOptions.map((v) => (
+          {assetTypeOptions.filter((v) => v !== UNASSIGNED).map((v) => (
             <Chip
               key={v}
-              label={v === UNASSIGNED ? "미지정" : v}
+              label={v}
               active={filters.assetTypes.has(v)}
               onClick={() => onToggleAssetType(v)}
+            />
+          ))}
+        </FilterRow>
+      )}
+
+      {labelOptions.length > 0 && (
+        <FilterRow label="라벨">
+          {labelOptions.map((v) => (
+            <Chip
+              key={v}
+              label={v}
+              active={filters.labels.has(v)}
+              onClick={() => onToggleLabel(v)}
             />
           ))}
         </FilterRow>
@@ -92,11 +107,11 @@ export default function CalendarFilters({
           display: "flex",
           alignItems: "center",
           gap: 8,
-          padding: "7px 10px",
+          padding: "8px 12px",
           border: "1px solid var(--line)",
           background: "var(--bg-2)",
           borderRadius: 6,
-          fontSize: 12,
+          fontSize: 13,
         }}>
           <Search style={{ width: 13, height: 13, color: "var(--dim)" }} />
           <input
@@ -111,7 +126,7 @@ export default function CalendarFilters({
               color: "var(--text)",
               outline: "none",
               font: "inherit",
-              fontSize: 12,
+              fontSize: 13,
             }}
           />
           {queryInput && (
@@ -142,15 +157,15 @@ export default function CalendarFilters({
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
       <span className="fg-label" style={{
-        fontSize: 10,
+        fontSize: 11,
         color: "var(--dim)",
         textTransform: "uppercase",
         letterSpacing: ".12em",
         minWidth: 32,
       }}>{label}</span>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{children}</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{children}</div>
     </div>
   )
 }

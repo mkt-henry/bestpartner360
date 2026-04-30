@@ -8,14 +8,16 @@ import {
   channelColor, channelTagClass, STATUS_DOT_COLOR,
 } from "./lib/calendar-utils"
 
+export type PillPrefix = "status" | "channel" | "both" | "none"
+
 interface EventPillProps {
   event: CalendarEvent
   selected?: boolean
-  showStatusLabel?: boolean
+  pillPrefix?: PillPrefix
   onClick: (ev: CalendarEvent) => void
 }
 
-export default function EventPill({ event, selected, showStatusLabel, onClick }: EventPillProps) {
+export default function EventPill({ event, selected, pillPrefix = "status", onClick }: EventPillProps) {
   const statusLabel = STATUS_LABELS[event.status as CalendarEventStatus] ?? event.status
   const statusColor = STATUS_DOT_COLOR[event.status] ?? "var(--dim)"
   const leftBar = selected ? "var(--amber)" : channelColor(event.channel)
@@ -30,14 +32,14 @@ export default function EventPill({ event, selected, showStatusLabel, onClick }:
         display: "flex",
         alignItems: "center",
         gap: 6,
-        padding: "3px 6px 3px 8px",
-        borderRadius: 4,
+        padding: "5px 8px 5px 10px",
+        borderRadius: 5,
         textAlign: "left",
         position: "relative",
         background: selected ? "var(--bg-2)" : "transparent",
         transition: "background .12s",
         cursor: "pointer",
-        fontSize: 11,
+        fontSize: 12,
       }}
       className="cal-pill"
     >
@@ -45,20 +47,38 @@ export default function EventPill({ event, selected, showStatusLabel, onClick }:
         aria-hidden
         style={{
           position: "absolute",
-          left: 0, top: 2, bottom: 2,
+          left: 0, top: 3, bottom: 3,
           width: 2,
           borderRadius: 1,
           background: leftBar,
         }}
       />
-      {event.channel && (
+
+      {/* 상태: 텍스트. 둘다: 컬러닷 */}
+      {pillPrefix === "status" && (
+        <span style={{ fontSize: 10, color: statusColor, fontWeight: 500, flexShrink: 0 }}>
+          {statusLabel}
+        </span>
+      )}
+      {pillPrefix === "both" && (
+        <span
+          aria-hidden
+          style={{
+            width: 7, height: 7, borderRadius: "50%",
+            background: statusColor, flexShrink: 0,
+          }}
+        />
+      )}
+
+      {(pillPrefix === "channel" || pillPrefix === "both") && event.channel && (
         <span
           className={channelTagClass(event.channel)}
-          style={{ fontSize: 9, padding: "1px 5px", flexShrink: 0 }}
+          style={{ fontSize: 10, padding: "1px 6px", flexShrink: 0 }}
         >
           {event.channel}
         </span>
       )}
+
       <span
         style={{
           color: "var(--text)",
@@ -71,19 +91,6 @@ export default function EventPill({ event, selected, showStatusLabel, onClick }:
       >
         {event.title}
       </span>
-      {showStatusLabel ? (
-        <span style={{ color: "var(--dim)", fontSize: 10, flexShrink: 0 }}>
-          · {statusLabel}
-        </span>
-      ) : (
-        <span
-          aria-hidden
-          style={{
-            width: 6, height: 6, borderRadius: "50%",
-            background: statusColor, flexShrink: 0,
-          }}
-        />
-      )}
     </button>
   )
 }

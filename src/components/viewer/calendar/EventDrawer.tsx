@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { useRouter } from "next/navigation"
 import { createPortal } from "react-dom"
-import { X, Download, Send } from "lucide-react"
+import { X, Download, Send, Plus } from "lucide-react"
 import type {
   CalendarEvent,
   CalendarEventCreative,
@@ -19,10 +19,11 @@ interface EventDrawerProps {
   event: CalendarEvent | null
   today: Date
   currentUserId?: string
+  isAdmin?: boolean
   onClose: () => void
 }
 
-export default function EventDrawer({ event, today, currentUserId, onClose }: EventDrawerProps) {
+export default function EventDrawer({ event, today, currentUserId, isAdmin = false, onClose }: EventDrawerProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null)
   const open = !!event
   const mounted = useIsClient()
@@ -114,6 +115,7 @@ export default function EventDrawer({ event, today, currentUserId, onClose }: Ev
 
           <div style={{ padding: "22px 24px", overflowY: "auto", flex: 1 }}>
             <MetaGrid event={event} today={today} />
+            <LabelsEditor eventId={event.id} initialLabels={event.labels ?? []} isAdmin={isAdmin} />
             {event.description && (
               <>
                 <SectionHeader>설명</SectionHeader>
@@ -420,6 +422,18 @@ function MetaGrid({ event, today }: { event: CalendarEvent; today: Date }) {
       </span>
     )],
     ["채널", event.channel ?? <span key="channel" style={{ color: "var(--dimmer)" }}>미지정</span>],
+    ...(event.published_url ? [[
+      "발행 URL",
+      <a
+        key="url"
+        href={event.published_url}
+        target="_blank"
+        rel="noreferrer"
+        style={{ color: "var(--steel)", textDecoration: "underline", wordBreak: "break-all" }}
+      >
+        {event.published_url}
+      </a>,
+    ] as [string, React.ReactNode]] : []),
   ]
 
   return (
@@ -463,5 +477,177 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
       <span>{children}</span>
       <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
     </h4>
+  )
+}
+
+// ── Label color palette (hash-based, consistent per label text) ──────
+const LABEL_PALETTE = [
+  { bg: "color-mix(in srgb, var(--amber) 15%, transparent)", text: "var(--amber)" },
+  { bg: "color-mix(in srgb, var(--steel) 18%, transparent)", text: "var(--steel)" },
+  { bg: "color-mix(in srgb, var(--good) 15%, transparent)", text: "var(--good)" },
+  { bg: "color-mix(in srgb, var(--plum) 15%, transparent)", text: "var(--plum)" },
+  { bg: "color-mix(in srgb, var(--bad) 12%, transparent)", text: "var(--bad)" },
+  { bg: "color-mix(in srgb, var(--lime) 12%, transparent)", text: "#8aac2e" },
+]
+
+function labelColor(text: string) {
+  let h = 0
+  for (const c of text) h = (h * 31 + c.charCodeAt(0)) & 0xffff
+  return LABEL_PALETTE[h % LABEL_PALETTE.length]!
+}
+
+function LabelsEditor({ eventId, initialLabels, isAdmin }: { eventId: string; initialLabels: string[]; isAdmin: boolean }) {
+  const [labels, setLabels] = useState<string[]>(initialLabels)
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState("")
+  const [saving, setSaving] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (adding) inputRef.current?.focus()
+  }, [adding])
+
+  async function save(next: string[]) {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/calendar-events/${eventId}/labels`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ labels: next }),
+      })
+      if (res.ok) setLabels(next)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function addLabel() {
+    const trimmed = draft.trim()
+    if (!trimmed || labels.includes(trimmed)) {
+      setDraft("")
+      setAdding(false)
+      return
+    }
+    const next = [...labels, trimmed]
+    setLabels(next)
+    setDraft("")
+    setAdding(false)
+    save(next)
+  }
+
+  function removeLabel(label: string) {
+    const next = labels.filter((l) => l !== label)
+    setLabels(next)
+    save(next)
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{
+        fontSize: 10,
+        textTransform: "uppercase",
+        letterSpacing: ".14em",
+        color: "var(--dim)",
+        marginBottom: 8,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        fontWeight: 500,
+      }}>
+        <span>라벨</span>
+        <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        {saving && <span style={{ fontSize: 9, color: "var(--dimmer)" }}>저장 중…</span>}
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        {labels.map((label) => {
+          const { bg, text } = labelColor(label)
+          return (
+            <span
+              key={label}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 8px",
+                borderRadius: 999,
+                background: bg,
+                color: text,
+                fontSize: 11,
+                fontWeight: 500,
+                border: `1px solid ${bg}`,
+              }}
+            >
+              {label}
+              {isAdmin && (
+                <button
+                  onClick={() => removeLabel(label)}
+                  aria-label={`${label} 라벨 삭제`}
+                  style={{
+                    display: "grid",
+                    placeItems: "center",
+                    width: 14,
+                    height: 14,
+                    borderRadius: "50%",
+                    color: text,
+                    opacity: 0.7,
+                    marginLeft: 1,
+                  }}
+                >
+                  <X style={{ width: 9, height: 9 }} />
+                </button>
+              )}
+            </span>
+          )
+        })}
+
+        {labels.length === 0 && !isAdmin && (
+          <span style={{ fontSize: 11, color: "var(--dimmer)" }}>없음</span>
+        )}
+
+        {isAdmin && (adding ? (
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); addLabel() }
+              if (e.key === "Escape") { setDraft(""); setAdding(false) }
+            }}
+            onBlur={addLabel}
+            placeholder="라벨 이름"
+            style={{
+              fontSize: 11,
+              padding: "3px 8px",
+              borderRadius: 999,
+              border: "1px solid var(--amber)",
+              background: "var(--bg-2)",
+              color: "var(--text)",
+              outline: "none",
+              width: 100,
+            }}
+          />
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              fontSize: 11,
+              color: "var(--dim)",
+              padding: "3px 8px",
+              borderRadius: 999,
+              border: "1px dashed var(--line)",
+              transition: "all .15s",
+            }}
+            className="label-add-btn"
+          >
+            <Plus style={{ width: 10, height: 10 }} />
+            추가
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

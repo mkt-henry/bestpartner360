@@ -24,10 +24,23 @@
 .console-scope ::-webkit-scrollbar-thumb{background:var(--line-2);border:2px solid var(--bg);border-radius:6px}
 .console-scope ::-webkit-scrollbar-track{background:transparent}
 
-.console-scope .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+.console-scope .app{display:grid;grid-template-columns:auto 1fr;min-height:100vh}
 
 /* Sidebar */
-.console-scope aside{background:var(--bg-1);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.console-scope aside{background:var(--bg-1);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;width:232px;overflow:hidden;transition:width .22s ease}
+.console-scope aside.collapsed{width:60px}
+.console-scope aside.collapsed .logo{flex-direction:column;justify-content:center;align-items:center;padding:18px 0 20px;gap:8px}
+.console-scope aside.collapsed .client-switch{justify-content:center;padding:8px;margin:8px 8px 16px}
+.console-scope aside.collapsed .nav-group{padding:4px 8px}
+.console-scope aside.collapsed .nav-group .title{display:none}
+.console-scope aside.collapsed .nav a{justify-content:center;padding:9px;gap:0}
+.console-scope aside.collapsed .nav a.active::before{left:-8px}
+.console-scope aside.collapsed .side-foot{padding:10px 8px}
+.console-scope aside.collapsed .user{justify-content:center;padding:8px 4px}
+.console-scope .sidebar-toggle{display:grid;place-items:center;width:22px;height:22px;border-radius:5px;color:var(--dim);flex-shrink:0;transition:all .15s;opacity:0}
+.console-scope aside:hover .sidebar-toggle{opacity:1}
+.console-scope aside.collapsed .sidebar-toggle{opacity:1;margin:0}
+.console-scope .sidebar-toggle:hover{background:var(--bg-2);color:var(--text)}
 .console-scope .logo{padding:22px 22px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
 .console-scope .logo .mark{width:26px;height:26px;border-radius:6px;background:var(--grad);display:grid;place-items:center;color:var(--bg);font-weight:600;font-size:12px;box-shadow:0 0 0 1px #8aa6a140,0 4px 14px #8aa6a125}
 .console-scope .logo .name{font-family:var(--c-serif);font-size:18px;letter-spacing:-.01em;font-weight:500}
@@ -647,6 +660,7 @@
 }
 
 /* ── Calendar (viewer/calendar) ───────────────────────────────── */
+.console-scope .label-add-btn:hover{border-color:var(--line-2);color:var(--text-2)}
 .console-scope .cal-pill:hover{background:var(--bg-2)}
 .console-scope .cal-pill:focus-visible{outline:1px solid var(--amber);outline-offset:1px}
 .console-scope .cal-cell-editable{position:relative}

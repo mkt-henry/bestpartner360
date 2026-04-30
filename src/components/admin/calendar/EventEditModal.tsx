@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createPortal } from "react-dom"
-import { X, Upload, Download } from "lucide-react"
+import { X, Upload, Download, Plus } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { STATUS_LABELS } from "@/types"
 import type {
@@ -15,7 +15,7 @@ import type {
 
 const CHANNELS = ["Instagram", "Facebook", "Google", "Kakao", "Naver", "Tistory", "TikTok", "YouTube", "전체", "기타"]
 const STATUSES: CalendarEventStatus[] = [
-  "draft", "in_review", "in_revision", "published",
+  "draft", "saved", "in_review", "in_revision", "scheduled", "published", "cancelled",
 ]
 
 interface Brand { id: string; name: string }
@@ -40,6 +40,8 @@ const defaultForm = (initialDate?: string) => ({
   event_date: initialDate ?? new Date().toISOString().slice(0, 10),
   status: "draft" as CalendarEventStatus,
   description: "",
+  labels: [] as string[],
+  published_url: "",
 })
 
 function stripExtension(name: string): string {
@@ -91,6 +93,8 @@ export default function EventEditModal({ state, brands, campaigns, onClose }: Ev
           event_date: e.event_date,
           status: e.status,
           description: e.description ?? "",
+          labels: e.labels ?? [],
+          published_url: e.published_url ?? "",
         })
       } else {
         setForm(defaultForm(state.initialDate))
@@ -127,6 +131,8 @@ export default function EventEditModal({ state, brands, campaigns, onClose }: Ev
       event_date: form.event_date,
       status: form.status,
       description: form.description || null,
+      labels: form.labels,
+      published_url: form.status === "published" ? form.published_url || null : null,
     }
 
     if (state.mode === "edit") {
@@ -181,7 +187,7 @@ export default function EventEditModal({ state, brands, campaigns, onClose }: Ev
   }
 
   return createPortal(
-    <div className="console-scope">
+    <div className="console-scope" style={{ minHeight: 0 }} inert={!open ? "" : undefined}>
       <div
         className={`modal-bg ${open ? "open" : ""}`}
         onClick={onClose}
@@ -310,6 +316,27 @@ export default function EventEditModal({ state, brands, campaigns, onClose }: Ev
                   rows={3}
                   className="form-textarea"
                   placeholder="일정에 대한 설명을 입력하세요."
+                />
+              </div>
+
+              {form.status === "published" && (
+                <div>
+                  <label className="form-label">발행 URL</label>
+                  <input
+                    type="url"
+                    value={form.published_url}
+                    onChange={(e) => setForm({ ...form, published_url: e.target.value })}
+                    className="form-input"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="form-label">라벨</label>
+                <LabelsField
+                  labels={form.labels}
+                  onChange={(labels) => setForm({ ...form, labels })}
                 />
               </div>
 
@@ -649,6 +676,125 @@ function VersionsSection({ event }: { event: CalendarEvent }) {
         </div>
       )}
     </section>
+  )
+}
+
+// ── Label color palette (hash-based) ──────────────────────────────────
+const LABEL_PALETTE = [
+  { bg: "color-mix(in srgb, var(--amber) 15%, transparent)", text: "var(--amber)" },
+  { bg: "color-mix(in srgb, var(--steel) 18%, transparent)", text: "var(--steel)" },
+  { bg: "color-mix(in srgb, var(--good) 15%, transparent)", text: "var(--good)" },
+  { bg: "color-mix(in srgb, var(--plum) 15%, transparent)", text: "var(--plum)" },
+  { bg: "color-mix(in srgb, var(--bad) 12%, transparent)", text: "var(--bad)" },
+  { bg: "color-mix(in srgb, #b7e24a 12%, transparent)", text: "#8aac2e" },
+]
+
+function labelColor(text: string) {
+  let h = 0
+  for (const c of text) h = (h * 31 + c.charCodeAt(0)) & 0xffff
+  return LABEL_PALETTE[h % LABEL_PALETTE.length]!
+}
+
+function LabelsField({ labels, onChange }: { labels: string[]; onChange: (next: string[]) => void }) {
+  const [draft, setDraft] = useState("")
+  const [adding, setAdding] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (adding) inputRef.current?.focus()
+  }, [adding])
+
+  function confirm() {
+    const trimmed = draft.trim()
+    if (trimmed && !labels.includes(trimmed)) onChange([...labels, trimmed])
+    setDraft("")
+    setAdding(false)
+  }
+
+  function remove(label: string) {
+    onChange(labels.filter((l) => l !== label))
+  }
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", minHeight: 32 }}>
+      {labels.map((label) => {
+        const { bg, text } = labelColor(label)
+        return (
+          <span
+            key={label}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "3px 8px", borderRadius: 999,
+              background: bg, color: text,
+              fontSize: 11, fontWeight: 500,
+            }}
+          >
+            {label}
+            <button
+              type="button"
+              onClick={() => remove(label)}
+              aria-label={`${label} 삭제`}
+              style={{ display: "grid", placeItems: "center", width: 14, height: 14, borderRadius: "50%", color: text, opacity: 0.7 }}
+            >
+              <X style={{ width: 9, height: 9 }} />
+            </button>
+          </span>
+        )
+      })}
+
+      {adding ? (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); confirm() }
+              if (e.key === "Escape") { setDraft(""); setAdding(false) }
+            }}
+            placeholder="라벨 이름"
+            style={{
+              fontSize: 11, padding: "3px 8px", borderRadius: 999,
+              border: "1px solid var(--amber)", background: "var(--bg-2)",
+              color: "var(--text)", outline: "none", width: 100,
+            }}
+          />
+          <button
+            type="button"
+            onClick={confirm}
+            style={{
+              fontSize: 11, padding: "3px 8px", borderRadius: 999,
+              background: "var(--amber)", color: "#fff", fontWeight: 500,
+            }}
+          >
+            확인
+          </button>
+          <button
+            type="button"
+            onClick={() => { setDraft(""); setAdding(false) }}
+            style={{
+              fontSize: 11, padding: "3px 8px", borderRadius: 999,
+              border: "1px solid var(--line)", color: "var(--dim)",
+            }}
+          >
+            취소
+          </button>
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 3,
+            fontSize: 11, color: "var(--dim)", padding: "3px 8px",
+            borderRadius: 999, border: "1px dashed var(--line)",
+          }}
+        >
+          <Plus style={{ width: 10, height: 10 }} />
+          추가
+        </button>
+      )}
+    </div>
   )
 }
 

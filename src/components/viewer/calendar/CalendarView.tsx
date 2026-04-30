@@ -1,7 +1,7 @@
 // src/components/viewer/calendar/CalendarView.tsx
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { CalendarEvent } from "@/types"
 
 import CalendarHeader from "./CalendarHeader"
@@ -12,9 +12,19 @@ import ListView from "./views/ListView"
 import EventDrawer from "./EventDrawer"
 import { useCalendarFilters } from "./hooks/useCalendarFilters"
 import {
-  applyFilters, distinctValues, stepDate, toggleInSet,
+  applyFilters, distinctValues, distinctLabels, stepDate, toggleInSet,
   isInLoadedRange,
 } from "./lib/calendar-utils"
+import { type PillPrefix } from "./EventPill"
+
+const PILL_PREFIX_OPTIONS: { value: PillPrefix; label: string }[] = [
+  { value: "status", label: "상태" },
+  { value: "channel", label: "채널" },
+  { value: "both", label: "둘 다" },
+  { value: "none", label: "없음" },
+]
+
+const LS_PILL_PREFIX = "bp360-cal-pill-prefix"
 
 interface CalendarViewProps {
   events: CalendarEvent[]
@@ -22,10 +32,11 @@ interface CalendarViewProps {
   onDayClick?: (dateKey: string) => void
   onEventEdit?: (event: CalendarEvent) => void
   currentUserId?: string
+  currentUserRole?: string
 }
 
 export default function CalendarView({
-  events, editable = false, onDayClick, onEventEdit, currentUserId,
+  events, editable = false, onDayClick, onEventEdit, currentUserId, currentUserRole,
 }: CalendarViewProps) {
   const today = useMemo(() => new Date(), [])
   const {
@@ -34,6 +45,21 @@ export default function CalendarView({
   } = useCalendarFilters(today)
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const [pillPrefix, setPillPrefix] = useState<PillPrefix>("status")
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_PILL_PREFIX) as PillPrefix | null
+    if (saved && PILL_PREFIX_OPTIONS.some((o) => o.value === saved)) {
+      setPillPrefix(saved)
+    }
+  }, [])
+
+  function changePillPrefix(v: PillPrefix) {
+    setPillPrefix(v)
+    localStorage.setItem(LS_PILL_PREFIX, v)
+  }
+
+  const isAdmin = currentUserRole === "admin"
 
   const filtered = useMemo(() => applyFilters(events, filters), [events, filters])
 
@@ -43,6 +69,7 @@ export default function CalendarView({
     [events]
   )
   const assetTypeOptions = useMemo(() => distinctValues(events, "asset_type"), [events])
+  const labelOptions = useMemo(() => distinctLabels(events), [events])
 
   const selectedEvent =
     !editable && selectedEventId ? events.find((e) => e.id === selectedEventId) ?? null : null
@@ -82,10 +109,41 @@ export default function CalendarView({
         />
       </div>
 
-      <div style={{ fontSize: 11, color: "var(--dim)" }}>
-        {visibleCount === totalCount
-          ? `${totalCount}건`
-          : `${visibleCount}건 / 전체 ${totalCount}건 중`}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span style={{ fontSize: 11, color: "var(--dim)" }}>
+          {visibleCount === totalCount
+            ? `${totalCount}건`
+            : `${visibleCount}건 / 전체 ${totalCount}건 중`}
+        </span>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "var(--dim)" }}>표시</span>
+          <div style={{
+            display: "flex",
+            border: "1px solid var(--line)",
+            borderRadius: 6,
+            overflow: "hidden",
+          }}>
+            {PILL_PREFIX_OPTIONS.map((opt, i) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => changePillPrefix(opt.value)}
+                style={{
+                  fontSize: 11,
+                  padding: "4px 10px",
+                  background: pillPrefix === opt.value ? "var(--bg-3)" : "transparent",
+                  color: pillPrefix === opt.value ? "var(--text)" : "var(--dim)",
+                  fontWeight: pillPrefix === opt.value ? 500 : 400,
+                  borderRight: i < PILL_PREFIX_OPTIONS.length - 1 ? "1px solid var(--line)" : "none",
+                  transition: "background .1s, color .1s",
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <CalendarFilters
@@ -93,10 +151,12 @@ export default function CalendarView({
         channelOptions={channelOptions}
         statusOptions={statusOptions}
         assetTypeOptions={assetTypeOptions}
+        labelOptions={labelOptions}
         queryInput={queryInput}
         onToggleChannel={(v) => setFilters((p) => ({ ...p, channels: toggleInSet(p.channels, v) }))}
         onToggleStatus={(v) => setFilters((p) => ({ ...p, statuses: toggleInSet(p.statuses, v) }))}
         onToggleAssetType={(v) => setFilters((p) => ({ ...p, assetTypes: toggleInSet(p.assetTypes, v) }))}
+        onToggleLabel={(v) => setFilters((p) => ({ ...p, labels: toggleInSet(p.labels, v) }))}
         onQueryInputChange={setQueryInput}
         onReset={reset}
       />
@@ -119,6 +179,7 @@ export default function CalendarView({
           currentDate={date}
           events={filtered}
           selectedEventId={selectedEventId}
+          pillPrefix={pillPrefix}
           onEventClick={handleEventClick}
           editable={editable}
           onDayClick={onDayClick}
@@ -129,6 +190,7 @@ export default function CalendarView({
           currentDate={date}
           events={filtered}
           selectedEventId={selectedEventId}
+          pillPrefix={pillPrefix}
           onEventClick={handleEventClick}
           editable={editable}
           onDayClick={onDayClick}
@@ -138,6 +200,7 @@ export default function CalendarView({
         <ListView
           events={filtered}
           selectedEventId={selectedEventId}
+          pillPrefix={pillPrefix}
           onEventClick={handleEventClick}
         />
       )}
@@ -147,6 +210,7 @@ export default function CalendarView({
           event={selectedEvent}
           today={today}
           currentUserId={currentUserId}
+          isAdmin={isAdmin}
           onClose={() => setSelectedEventId(null)}
         />
       )}

@@ -15,7 +15,7 @@ export default async function AdminCalendarPage() {
     supabase
       .from("calendar_events")
       .select(`
-        id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
+        id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description, labels, published_url,
         creatives(
           id, title, asset_type, status, description,
           creative_versions(id, version_number, file_path, file_url, uploaded_at, original_filename),

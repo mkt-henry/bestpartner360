@@ -90,7 +90,7 @@ export function useCalendarFilters(today: Date): UseCalendarFiltersReturn {
 
   const reset = useCallback(() => {
     const empty: CalendarFilters = {
-      channels: new Set(), statuses: new Set(), assetTypes: new Set(), query: "",
+      channels: new Set(), statuses: new Set(), assetTypes: new Set(), labels: new Set(), query: "",
     }
     setFiltersState(empty)
     setQueryInputState("")

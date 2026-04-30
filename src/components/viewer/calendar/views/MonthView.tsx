@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react"
 import { isSameMonth, isToday as dfIsToday } from "date-fns"
 import type { CalendarEvent } from "@/types"
-import EventPill from "../EventPill"
+import EventPill, { type PillPrefix } from "../EventPill"
 import DayPopover from "../DayPopover"
 import {
   formatDateKey, getMonthCells, groupEventsByDate,
@@ -29,11 +29,12 @@ interface MonthViewProps {
   onEventClick: (ev: CalendarEvent) => void
   editable?: boolean
   onDayClick?: (dateKey: string) => void
+  pillPrefix?: PillPrefix
 }
 
 export default function MonthView({
   currentDate, events, selectedEventId, onEventClick,
-  editable = false, onDayClick,
+  editable = false, onDayClick, pillPrefix = "status",
 }: MonthViewProps) {
   const cells = useMemo(() => getMonthCells(currentDate), [currentDate])
   const byDate = useMemo(() => groupEventsByDate(events), [events])
@@ -57,10 +58,11 @@ export default function MonthView({
       }}>
         {WEEKDAYS.map((w) => (
           <div key={w.label} style={{
-            padding: "10px 0",
+            padding: "12px 0",
             textAlign: "center",
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: ".12em",
+            fontWeight: 500,
             color: w.color ?? "var(--dim)",
           }}>{w.label}</div>
         ))}
@@ -70,7 +72,7 @@ export default function MonthView({
         <div key={wi} style={{
           display: "grid",
           gridTemplateColumns: "repeat(7, 1fr)",
-          gridAutoRows: "minmax(132px, 1fr)",
+          gridAutoRows: "minmax(148px, 1fr)",
           borderBottom: wi === weeks.length - 1 ? 0 : "1px solid var(--line)",
         }}>
           {week.map((day, di) => {
@@ -100,8 +102,8 @@ export default function MonthView({
                 data-day-key={key}
                 onClick={handleCellClick}
                 style={{
-                  minHeight: 132,
-                  padding: "6px 6px 8px",
+                  minHeight: 148,
+                  padding: "8px 8px 10px",
                   position: "relative",
                   overflow: "hidden",
                   background: isTodayCell ? "color-mix(in srgb, var(--amber) 6%, transparent)" : "transparent",
@@ -125,20 +127,21 @@ export default function MonthView({
                   <>
                     <div style={{
                       fontFamily: "var(--c-mono)",
-                      fontSize: 11,
+                      fontSize: 13,
                       color: numberColor,
                       fontWeight: isTodayCell ? 600 : 400,
-                      marginBottom: 4,
+                      marginBottom: 6,
                       paddingLeft: 2,
                     }}>
                       {day.getDate()}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                       {dayEvents.slice(0, MAX_PILLS).map((ev) => (
                         <EventPill
                           key={ev.id}
                           event={ev}
                           selected={ev.id === selectedEventId}
+                          pillPrefix={pillPrefix}
                           onClick={onEventClick}
                         />
                       ))}
@@ -150,10 +153,10 @@ export default function MonthView({
                             if (cell) setPopoverFor({ key, anchor: cell })
                           }}
                           style={{
-                            fontSize: 10,
+                            fontSize: 11,
                             color: "var(--dim)",
                             textAlign: "left",
-                            padding: "2px 6px",
+                            padding: "3px 8px",
                           }}
                         >
                           +{overflow} 더보기
@@ -178,6 +181,7 @@ export default function MonthView({
             dayLabel={pretty}
             events={byDate[popoverFor.key]}
             selectedEventId={selectedEventId}
+            pillPrefix={pillPrefix}
             onClose={() => setPopoverFor(null)}
             onEventClick={onEventClick}
           />

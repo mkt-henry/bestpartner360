@@ -88,6 +88,8 @@ export interface CalendarEvent {
   event_date: string
   status: CalendarEventStatus
   description: string | null
+  labels?: string[]
+  published_url?: string | null
   campaign?: Campaign
   creatives?: CalendarEventCreative[]
 }
@@ -113,22 +115,31 @@ export interface CalendarEventCreativeComment {
 
 export type CalendarEventStatus =
   | "draft"
+  | "saved"
   | "in_review"
   | "in_revision"
+  | "scheduled"
   | "published"
+  | "cancelled"
 
 export const STATUS_LABELS: Record<CalendarEventStatus, string> = {
   draft: "미발행",
+  saved: "임시저장",
   in_review: "컨펌중",
   in_revision: "수정중",
+  scheduled: "예약발행",
   published: "발행",
+  cancelled: "발행 취소",
 }
 
 export const STATUS_COLORS: Record<CalendarEventStatus, string> = {
   draft: "bg-slate-100 text-slate-700",
+  saved: "bg-slate-100 text-slate-600",
   in_review: "bg-blue-100 text-blue-700",
   in_revision: "bg-orange-100 text-orange-700",
+  scheduled: "bg-purple-100 text-purple-700",
   published: "bg-green-100 text-green-700",
+  cancelled: "bg-red-100 text-red-700",
 }
 
 export interface Creative {

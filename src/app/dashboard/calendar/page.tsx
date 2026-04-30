@@ -8,6 +8,7 @@ import type { CalendarEvent } from "@/types"
 export default async function CalendarPage() {
   const h = await headers()
   const userId = h.get("x-user-id")
+  const userRole = h.get("x-user-role") ?? "viewer"
   const brandIdsHeader = h.get("x-user-brand-ids")
   if (!userId) redirect("/login")
 
@@ -21,7 +22,7 @@ export default async function CalendarPage() {
   const { data: events } = await supabase
     .from("calendar_events")
     .select(`
-      id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description,
+      id, brand_id, campaign_id, title, channel, asset_type, event_date, status, description, labels, published_url,
       creatives(
         id, title, asset_type, status, description,
         creative_versions(id, version_number, file_path, file_url, uploaded_at, original_filename),
@@ -52,7 +53,7 @@ export default async function CalendarPage() {
         </div>
         <div className="panel">
           <div className="p-body">
-            <CalendarView events={(events ?? []) as unknown as CalendarEvent[]} currentUserId={userId} />
+            <CalendarView events={(events ?? []) as unknown as CalendarEvent[]} currentUserId={userId} currentUserRole={userRole} />
           </div>
         </div>
       </div>

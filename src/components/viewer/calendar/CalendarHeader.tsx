@@ -33,10 +33,10 @@ export default function CalendarHeader({
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <IconBtn onClick={onPrev} label="이전">
-          <ChevronLeft style={{ width: 14, height: 14 }} />
+          <ChevronLeft style={{ width: 16, height: 16 }} />
         </IconBtn>
         <IconBtn onClick={onNext} label="다음">
-          <ChevronRight style={{ width: 14, height: 14 }} />
+          <ChevronRight style={{ width: 16, height: 16 }} />
         </IconBtn>
       </div>
 
@@ -67,7 +67,7 @@ function IconBtn({
       onClick={onClick}
       aria-label={label}
       style={{
-        width: 28, height: 28,
+        width: 32, height: 32,
         border: "1px solid var(--line)",
         borderRadius: 6,
         display: "grid",
@@ -101,8 +101,8 @@ function ViewToggle({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode
           onClick={() => onChange(k)}
           aria-pressed={view === k}
           style={{
-            padding: "4px 12px",
-            fontSize: 11,
+            padding: "5px 14px",
+            fontSize: 12,
             borderRadius: 4,
             color: view === k ? "var(--text)" : "var(--dim)",
             background: view === k ? "var(--bg-3)" : "transparent",

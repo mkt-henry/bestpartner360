@@ -4,7 +4,7 @@
 import { useMemo } from "react"
 import { isToday as dfIsToday } from "date-fns"
 import type { CalendarEvent } from "@/types"
-import EventPill from "../EventPill"
+import EventPill, { type PillPrefix } from "../EventPill"
 import {
   formatDateKey, getWeekDays, groupEventsByDate,
 } from "../lib/calendar-utils"
@@ -18,11 +18,12 @@ interface WeekViewProps {
   onEventClick: (ev: CalendarEvent) => void
   editable?: boolean
   onDayClick?: (dateKey: string) => void
+  pillPrefix?: PillPrefix
 }
 
 export default function WeekView({
   currentDate, events, selectedEventId, onEventClick,
-  editable = false, onDayClick,
+  editable = false, onDayClick, pillPrefix = "status",
 }: WeekViewProps) {
   const days = useMemo(() => getWeekDays(currentDate), [currentDate])
   const byDate = useMemo(() => groupEventsByDate(events), [events])
@@ -61,12 +62,12 @@ export default function WeekView({
             className={editable ? "cal-cell-editable" : undefined}
             style={{
               minHeight: 400,
-              padding: 10,
+              padding: 12,
               borderRight: di === 6 ? 0 : "1px solid var(--line)",
               background: isTodayCell ? "color-mix(in srgb, var(--amber) 5%, transparent)" : "transparent",
               display: "flex",
               flexDirection: "column",
-              gap: 6,
+              gap: 8,
               minWidth: 0,
               cursor: editable ? "pointer" : "default",
             }}
@@ -75,24 +76,25 @@ export default function WeekView({
               display: "flex",
               alignItems: "baseline",
               gap: 6,
-              paddingBottom: 6,
+              paddingBottom: 8,
               borderBottom: "1px solid var(--line)",
             }}>
               <span style={{
-                fontSize: 10,
+                fontSize: 11,
                 letterSpacing: ".12em",
+                fontWeight: 500,
                 color: labelColor,
               }}>{WEEKDAY_LABELS[di]}</span>
               <span style={{
                 fontFamily: "var(--c-mono)",
-                fontSize: 14,
+                fontSize: 16,
                 color: labelColor,
                 fontWeight: isTodayCell ? 600 : 400,
               }}>{day.getDate()}</span>
               {dayEvents.length > 0 && (
                 <span style={{
                   marginLeft: "auto",
-                  fontSize: 10,
+                  fontSize: 11,
                   color: "var(--dim)",
                 }}>{dayEvents.length}건</span>
               )}
@@ -101,16 +103,16 @@ export default function WeekView({
             <div style={{
               display: "flex",
               flexDirection: "column",
-              gap: 2,
+              gap: 3,
               flex: 1,
               minWidth: 0,
             }}>
               {dayEvents.length === 0 ? (
                 <div style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: "var(--dimmer)",
                   textAlign: "center",
-                  paddingTop: 24,
+                  paddingTop: 32,
                 }}>— 일정 없음</div>
               ) : (
                 dayEvents.map((ev) => (
@@ -118,6 +120,7 @@ export default function WeekView({
                     key={ev.id}
                     event={ev}
                     selected={ev.id === selectedEventId}
+                    pillPrefix={pillPrefix}
                     onClick={onEventClick}
                   />
                 ))

@@ -12,6 +12,7 @@ export interface CalendarFilters {
   channels: Set<string>
   statuses: Set<string>
   assetTypes: Set<string>
+  labels: Set<string>
   query: string
 }
 
@@ -19,6 +20,7 @@ export const EMPTY_FILTERS: CalendarFilters = {
   channels: new Set(),
   statuses: new Set(),
   assetTypes: new Set(),
+  labels: new Set(),
   query: "",
 }
 
@@ -52,8 +54,11 @@ export function channelColor(channel: string | null): string {
 const STATUS_ORDER: CalendarEventStatus[] = [
   "in_review",
   "in_revision",
+  "scheduled",
   "published",
+  "saved",
   "draft",
+  "cancelled",
 ]
 
 export function statusPriority(status: string): number {
@@ -63,9 +68,12 @@ export function statusPriority(status: string): number {
 
 export const STATUS_DOT_COLOR: Record<string, string> = {
   draft: "var(--dimmer)",
+  saved: "#94a3b8",
   in_review: "var(--steel)",
   in_revision: "#e08a5a",
+  scheduled: "#8b5cf6",
   published: "var(--good)",
+  cancelled: "var(--bad)",
 }
 
 export function groupEventsByDate(events: CalendarEvent[]): Record<string, CalendarEvent[]> {
@@ -93,9 +101,21 @@ export function applyFilters(events: CalendarEvent[], f: CalendarFilters): Calen
       const key = ev.asset_type ?? UNASSIGNED
       if (!f.assetTypes.has(key)) return false
     }
+    if (f.labels.size > 0) {
+      const evLabels = ev.labels ?? []
+      if (!Array.from(f.labels).some((l) => evLabels.includes(l))) return false
+    }
     if (q && !ev.title.toLowerCase().includes(q)) return false
     return true
   })
+}
+
+export function distinctLabels(events: CalendarEvent[]): string[] {
+  const set = new Set<string>()
+  for (const ev of events) {
+    for (const l of ev.labels ?? []) if (l) set.add(l)
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"))
 }
 
 export function distinctValues(events: CalendarEvent[], key: "channel" | "asset_type"): string[] {
@@ -198,6 +218,7 @@ export function parseSearchParams(sp: URLSearchParams, today: Date): CalendarUrl
     channels: toSet(sp.get("channels")),
     statuses: toSet(sp.get("statuses")),
     assetTypes: toSet(sp.get("types")),
+    labels: toSet(sp.get("labels")),
     query: sp.get("q") ?? "",
   }
   return { view, date, filters }
@@ -210,6 +231,7 @@ export function buildSearchParams(state: CalendarUrlState): URLSearchParams {
   if (state.filters.channels.size > 0) sp.set("channels", Array.from(state.filters.channels).join(","))
   if (state.filters.statuses.size > 0) sp.set("statuses", Array.from(state.filters.statuses).join(","))
   if (state.filters.assetTypes.size > 0) sp.set("types", Array.from(state.filters.assetTypes).join(","))
+  if (state.filters.labels.size > 0) sp.set("labels", Array.from(state.filters.labels).join(","))
   if (state.filters.query) sp.set("q", state.filters.query)
   return sp
 }
@@ -219,6 +241,7 @@ export function countActiveFilters(f: CalendarFilters): number {
   if (f.channels.size > 0) n++
   if (f.statuses.size > 0) n++
   if (f.assetTypes.size > 0) n++
+  if (f.labels.size > 0) n++
   if (f.query.trim()) n++
   return n
 }

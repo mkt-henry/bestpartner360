@@ -44,6 +44,7 @@ export default function AdminCalendarShell({ brands, campaigns, events }: AdminC
           <CalendarView
             events={events}
             editable
+            currentUserRole="admin"
             onDayClick={(dateKey) => setModal({ mode: "create", initialDate: dateKey })}
             onEventEdit={(event) => setModal({ mode: "edit", event })}
           />

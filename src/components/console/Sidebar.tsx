@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LogoutButton } from "@/components/auth/LogoutButton"
@@ -90,6 +91,18 @@ const Icon = {
       <path d="M10 1v3M10 16v3M1 10h3M16 10h3M3.5 3.5l2 2M14.5 14.5l2 2M3.5 16.5l2-2M14.5 5.5l2-2" />
     </svg>
   ),
+  collapse: (
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M13 5l-5 5 5 5" />
+      <path d="M17 5l-5 5 5 5" />
+    </svg>
+  ),
+  expand: (
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M7 5l5 5-5 5" />
+      <path d="M3 5l5 5-5 5" />
+    </svg>
+  ),
 }
 
 // ── Viewer nav (/dashboard/*) ─────────────────────────────────────────
@@ -118,13 +131,17 @@ const adminWorkspace: NavItem[] = [
   { href: "/admin/settings", label: "API 설정", icon: Icon.key },
 ]
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
   return (
-    <Link href={item.href} className={active ? "active" : undefined}>
+    <Link
+      href={item.href}
+      className={active ? "active" : undefined}
+      title={collapsed ? item.label : undefined}
+    >
       {item.icon}
-      {item.label}
-      {item.badge && <span className="badge">{item.badge}</span>}
-      {item.trailing}
+      {!collapsed && item.label}
+      {!collapsed && item.badge && <span className="badge">{item.badge}</span>}
+      {!collapsed && item.trailing}
     </Link>
   )
 }
@@ -135,6 +152,8 @@ function initials(name: string | undefined | null, fallback: string) {
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
 }
+
+const STORAGE_KEY = "bp360-sidebar-collapsed"
 
 interface SidebarProps {
   role: UserRole
@@ -149,6 +168,20 @@ interface SidebarProps {
 
 export function Sidebar({ role, userName, brandName, propertyCount, availableMedia }: SidebarProps) {
   const pathname = usePathname() ?? "/dashboard"
+  const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    if (localStorage.getItem(STORAGE_KEY) === "1") setCollapsed(true)
+  }, [])
+
+  const toggle = () => {
+    setCollapsed((v) => {
+      const next = !v
+      localStorage.setItem(STORAGE_KEY, next ? "1" : "0")
+      return next
+    })
+  }
+
   const isAdmin = role === "admin"
   const monitor = isAdmin
     ? adminMonitor
@@ -173,52 +206,72 @@ export function Sidebar({ role, userName, brandName, propertyCount, availableMed
       : "KRW"
 
   return (
-    <aside>
+    <aside className={collapsed ? "collapsed" : undefined}>
       <div className="logo">
         <div className="mark">B</div>
-        <div className="name">
-          BP<em>360</em>
-        </div>
-        <div className="ver">{isAdmin ? "ADMIN" : "V"}</div>
+        {!collapsed && (
+          <>
+            <div className="name">
+              BP<em>360</em>
+            </div>
+            <div className="ver">{isAdmin ? "ADMIN" : "V"}</div>
+          </>
+        )}
+        <button
+          className="sidebar-toggle"
+          onClick={toggle}
+          aria-label={collapsed ? "사이드바 열기" : "사이드바 닫기"}
+          style={{ marginLeft: collapsed ? 0 : "auto" }}
+        >
+          {collapsed ? Icon.expand : Icon.collapse}
+        </button>
       </div>
 
-      <div className="client-switch">
+      <div className="client-switch" title={collapsed ? brandDisplay : undefined}>
         <div className="av">{brandAvatar.slice(0, 1)}</div>
-        <div className="meta">
-          <div className="n">{brandDisplay}</div>
-          <div className="s">{subline}</div>
-        </div>
-        <div className="chev">▾</div>
+        {!collapsed && (
+          <>
+            <div className="meta">
+              <div className="n">{brandDisplay}</div>
+              <div className="s">{subline}</div>
+            </div>
+            <div className="chev">▾</div>
+          </>
+        )}
       </div>
 
       <div className="nav-group">
-        <div className="title">모니터</div>
+        {!collapsed && <div className="title">모니터</div>}
         <div className="nav">
           {monitor.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(item)} />
+            <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} />
           ))}
         </div>
       </div>
 
       <div className="nav-group">
-        <div className="title">워크스페이스</div>
+        {!collapsed && <div className="title">워크스페이스</div>}
         <div className="nav">
           {workspace.map((item) => (
-            <NavLink key={item.href} item={item} active={isActive(item)} />
+            <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} />
           ))}
         </div>
       </div>
 
       <div className="side-foot">
-        <div className="user">
+        <div className="user" title={collapsed ? userDisplay : undefined}>
           <div className="av">{userAvatar}</div>
-          <div className="meta">
-            <div className="n">{userDisplay}</div>
-            <div className="r">{isAdmin ? "관리자" : "뷰어"}</div>
-          </div>
-          <div className="st" />
+          {!collapsed && (
+            <>
+              <div className="meta">
+                <div className="n">{userDisplay}</div>
+                <div className="r">{isAdmin ? "관리자" : "뷰어"}</div>
+              </div>
+              <div className="st" />
+            </>
+          )}
         </div>
-        <LogoutButton className="logout-btn" />
+        {!collapsed && <LogoutButton className="logout-btn" />}
       </div>
     </aside>
   )
