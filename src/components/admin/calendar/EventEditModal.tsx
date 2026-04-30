@@ -187,7 +187,7 @@ export default function EventEditModal({ state, brands, campaigns, onClose }: Ev
   }
 
   return createPortal(
-    <div className="console-scope" style={{ minHeight: 0 }} inert={!open ? "" : undefined}>
+    <div className="console-scope" style={{ minHeight: 0 }} inert={!open}>
       <div
         className={`modal-bg ${open ? "open" : ""}`}
         onClick={onClose}
