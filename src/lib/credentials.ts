@@ -10,17 +10,41 @@ export interface NaverCredentials {
   customer_id: string
 }
 
-export async function getMetaCredentials(): Promise<MetaCredentials | null> {
-  // DB 우선, 없으면 환경변수 폴백
+export interface Ga4Credentials {
+  access_token: string
+}
+
+export interface Ga4OAuthCredentials {
+  client_id: string
+  client_secret: string
+}
+
+type StoredCredentials = Record<string, unknown>
+
+type Ga4StoredCredentials = {
+  access_token?: string
+  refresh_token?: string
+  expires_at?: number
+  client_id?: string
+  client_secret?: string
+}
+
+async function getStoredCredentials(platform: string): Promise<StoredCredentials | null> {
   const supabase = createAdminClient()
   const { data } = await supabase
     .from("platform_credentials")
     .select("credentials")
-    .eq("platform", "meta")
+    .eq("platform", platform)
     .single()
 
-  if (data?.credentials?.access_token) {
-    return data.credentials as MetaCredentials
+  return (data?.credentials as StoredCredentials | undefined) ?? null
+}
+
+export async function getMetaCredentials(): Promise<MetaCredentials | null> {
+  const credentials = await getStoredCredentials("meta")
+
+  if (typeof credentials?.access_token === "string" && credentials.access_token) {
+    return credentials as unknown as MetaCredentials
   }
 
   if (process.env.META_ACCESS_TOKEN) {
@@ -30,57 +54,57 @@ export async function getMetaCredentials(): Promise<MetaCredentials | null> {
   return null
 }
 
-export interface Ga4Credentials {
-  access_token: string
+export async function getGa4OAuthCredentials(): Promise<Ga4OAuthCredentials | null> {
+  const credentials = (await getStoredCredentials("ga4")) as Ga4StoredCredentials | null
+
+  if (credentials?.client_id && credentials?.client_secret) {
+    return {
+      client_id: credentials.client_id,
+      client_secret: credentials.client_secret,
+    }
+  }
+
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    return {
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    }
+  }
+
+  return null
 }
 
 export async function getGa4Credentials(): Promise<Ga4Credentials | null> {
-  const supabase = createAdminClient()
-  const { data } = await supabase
-    .from("platform_credentials")
-    .select("credentials")
-    .eq("platform", "ga4")
-    .single()
+  const credentials = (await getStoredCredentials("ga4")) as Ga4StoredCredentials | null
+  if (!credentials?.access_token) return null
 
-  if (!data?.credentials?.access_token) return null
+  const isExpired = credentials.expires_at && Date.now() > credentials.expires_at - 60_000
 
-  const creds = data.credentials as {
-    access_token: string
-    refresh_token?: string
-    expires_at?: number
-  }
-
-  // 토큰 만료 확인 및 자동 갱신
-  const isExpired = creds.expires_at && Date.now() > creds.expires_at - 60_000
-
-  if (isExpired && creds.refresh_token) {
-    const refreshed = await refreshGa4Token(creds.refresh_token)
+  if (isExpired && credentials.refresh_token) {
+    const refreshed = await refreshGa4Token(credentials.refresh_token)
     if (refreshed) return refreshed
-    // 갱신 실패 시 만료된 토큰 반환하지 않음
     return null
   }
 
-  // 만료 정보 없이 refresh_token만 있으면 갱신 시도 (최초 1시간 이후)
-  if (!creds.expires_at && creds.refresh_token) {
-    const refreshed = await refreshGa4Token(creds.refresh_token)
+  if (!credentials.expires_at && credentials.refresh_token) {
+    const refreshed = await refreshGa4Token(credentials.refresh_token)
     if (refreshed) return refreshed
   }
 
-  return { access_token: creds.access_token }
+  return { access_token: credentials.access_token }
 }
 
 async function refreshGa4Token(refreshToken: string): Promise<Ga4Credentials | null> {
-  const clientId = process.env.GOOGLE_CLIENT_ID
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  if (!clientId || !clientSecret) return null
+  const oauthCredentials = await getGa4OAuthCredentials()
+  if (!oauthCredentials) return null
 
   try {
     const res = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: oauthCredentials.client_id,
+        client_secret: oauthCredentials.client_secret,
         refresh_token: refreshToken,
         grant_type: "refresh_token",
       }),
@@ -89,12 +113,13 @@ async function refreshGa4Token(refreshToken: string): Promise<Ga4Credentials | n
     const tokenData = await res.json()
     if (!res.ok || !tokenData.access_token) return null
 
-    // DB에 갱신된 토큰 저장
+    const current = ((await getStoredCredentials("ga4")) ?? {}) as Ga4StoredCredentials
     const supabase = createAdminClient()
     await supabase.from("platform_credentials").upsert(
       {
         platform: "ga4",
         credentials: {
+          ...current,
           access_token: tokenData.access_token,
           refresh_token: refreshToken,
           expires_at: Date.now() + tokenData.expires_in * 1000,
@@ -110,15 +135,10 @@ async function refreshGa4Token(refreshToken: string): Promise<Ga4Credentials | n
 }
 
 export async function getNaverCredentials(): Promise<NaverCredentials | null> {
-  const supabase = createAdminClient()
-  const { data } = await supabase
-    .from("platform_credentials")
-    .select("credentials")
-    .eq("platform", "naver")
-    .single()
+  const credentials = await getStoredCredentials("naver")
 
-  if (data?.credentials?.api_key && data?.credentials?.secret_key && data?.credentials?.customer_id) {
-    return data.credentials as NaverCredentials
+  if (credentials?.api_key && credentials?.secret_key && credentials?.customer_id) {
+    return credentials as unknown as NaverCredentials
   }
 
   if (process.env.NAVER_AD_API_KEY && process.env.NAVER_AD_SECRET_KEY && process.env.NAVER_AD_CUSTOMER_ID) {

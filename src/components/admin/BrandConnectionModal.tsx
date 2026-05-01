@@ -4,14 +4,15 @@ import { useEffect } from "react"
 import { ExternalLink } from "lucide-react"
 import PlatformCredentialsForm, { type CredentialPlatform } from "@/components/admin/PlatformCredentialsForm"
 
-type ModalProvider = CredentialPlatform | "ga4"
+type ApiCredentialPlatform = Exclude<CredentialPlatform, "ga4">
+type ModalProvider = ApiCredentialPlatform | "ga4"
 
 interface BrandConnectionModalProps {
   open: boolean
   provider: ModalProvider | null
   ga4Connected: boolean
   onClose: () => void
-  onSaved: (provider: CredentialPlatform) => void
+  onSaved: (provider: ApiCredentialPlatform) => void
 }
 
 const contentMap: Record<
@@ -175,7 +176,7 @@ export default function BrandConnectionModal({
               platforms={[provider]}
               flat
               onSaved={(savedProvider) => {
-                onSaved(savedProvider)
+                if (savedProvider !== "ga4") onSaved(savedProvider)
                 onClose()
               }}
             />

@@ -5,8 +5,12 @@ export default function AdminSettingsPage() {
     <div className="canvas">
       <div className="page-head">
         <div>
-          <h1>API <em>설정</em></h1>
-          <p className="sub">광고 플랫폼의 API 키를 입력하면 계정 연결 기능을 사용할 수 있습니다</p>
+          <h1>
+            API <em>설정</em>
+          </h1>
+          <p className="sub">
+            Meta, 네이버, GA4의 주요 API 키를 DB에 저장해 배포 후에도 연결 상태를 유지합니다.
+          </p>
         </div>
       </div>
       <PlatformCredentialsForm />
