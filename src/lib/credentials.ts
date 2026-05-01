@@ -44,11 +44,11 @@ export async function getMetaCredentials(): Promise<MetaCredentials | null> {
   const credentials = await getStoredCredentials("meta")
 
   if (typeof credentials?.access_token === "string" && credentials.access_token) {
-    return credentials as unknown as MetaCredentials
+    return { access_token: credentials.access_token.trim() }
   }
 
   if (process.env.META_ACCESS_TOKEN) {
-    return { access_token: process.env.META_ACCESS_TOKEN }
+    return { access_token: process.env.META_ACCESS_TOKEN.trim() }
   }
 
   return null

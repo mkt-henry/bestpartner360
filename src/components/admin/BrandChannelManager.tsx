@@ -657,7 +657,11 @@ export default function BrandChannelManager({
   const totalLinkedItems = metaLinked.length + naverLinked.length + ga4Linked.length
   const connectedMediaCount =
     Number(metaLinked.length > 0) + Number(naverLinked.length > 0) + Number(ga4Linked.length > 0)
-  const issueCount = [metaError, naverError, ga4Error].filter(Boolean).length
+  const issueCount = [
+    metaLinked.length === 0 && metaError,
+    naverLinked.length === 0 && naverError,
+    ga4Linked.length === 0 && ga4Error,
+  ].filter(Boolean).length
 
   const overallTone: MediaTone =
     issueCount > 0
@@ -685,9 +689,9 @@ export default function BrandChannelManager({
     (account) => !ga4Linked.some((mapping) => mapping.property_id === account.id)
   )
 
-  const metaTone = getMediaTone(metaLinked.length > 0, Boolean(metaError))
-  const naverTone = getMediaTone(naverLinked.length > 0, Boolean(naverError))
-  const ga4Tone = getMediaTone(ga4Linked.length > 0, Boolean(ga4Error))
+  const metaTone = getMediaTone(metaLinked.length > 0, metaLinked.length === 0 && Boolean(metaError))
+  const naverTone = getMediaTone(naverLinked.length > 0, naverLinked.length === 0 && Boolean(naverError))
+  const ga4Tone = getMediaTone(ga4Linked.length > 0, ga4Linked.length === 0 && Boolean(ga4Error))
   const metaErrorDisplay = metaError ? formatProviderError("meta", metaError) : null
   const naverErrorDisplay = naverError ? formatProviderError("naver", naverError) : null
   const ga4ErrorDisplay = ga4Error ? formatProviderError("ga4", ga4Error) : null
@@ -874,8 +878,8 @@ export default function BrandChannelManager({
                 </div>
               </div>
 
-              {metaErrorDisplay && (
-                <div style={s.notice("error")}>
+              {metaErrorDisplay && (metaLinked.length === 0 || showAddMedia) && (
+                <div style={s.notice(metaLinked.length > 0 ? "info" : "error")}>
                   <strong style={{ display: "block", color: "#ff9c8f", fontSize: 11 }}>
                     {metaErrorDisplay.title}
                   </strong>
