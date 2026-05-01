@@ -3,6 +3,21 @@ import type { PlatformCampaign, PlatformDailyMetric, SupportedAdPlatform } from 
 
 type Sb = ReturnType<typeof createAdminClient>
 
+type ManualCampaignForMetric = {
+  id: string
+  brand_id: string
+  channel: string
+  start_date: string
+  end_date: string | null
+}
+
+type AggregatedDailyMetric = {
+  campaign_id: string
+  date: string
+  amount: number
+  values: Record<string, number>
+}
+
 export async function createSyncRun(params: {
   platform: SupportedAdPlatform
   brandId: string
@@ -97,24 +112,41 @@ export async function upsertDailyMetrics(
     return { spendRowsUpserted: 0, performanceRowsUpserted: 0 }
   }
 
-  const spendPayload: { campaign_id: string; spend_date: string; amount: number }[] = []
-  const perfPayload: { campaign_id: string; record_date: string; values: Record<string, number> }[] = []
+  const manualCampaigns = await loadManualCampaignsForMetrics(sb, metrics)
+  const aggregated = new Map<string, AggregatedDailyMetric>()
 
   for (const metric of metrics) {
-    const campaignId = campaignIdByExternalId.get(metric.externalCampaignId)
+    const campaignId =
+      findManualCampaignIdForMetric(manualCampaigns, metric) ??
+      campaignIdByExternalId.get(metric.externalCampaignId)
     if (!campaignId) continue
 
-    spendPayload.push({
+    const key = `${campaignId}:${metric.date}`
+    const current = aggregated.get(key) ?? {
       campaign_id: campaignId,
-      spend_date: metric.date,
-      amount: metric.spend,
-    })
-    perfPayload.push({
-      campaign_id: campaignId,
-      record_date: metric.date,
-      values: metric.values,
-    })
+      date: metric.date,
+      amount: 0,
+      values: {},
+    }
+
+    current.amount += metric.spend
+    for (const [metricKey, value] of Object.entries(metric.values)) {
+      current.values[metricKey] = (current.values[metricKey] ?? 0) + value
+    }
+    aggregated.set(key, current)
   }
+
+  const rows = Array.from(aggregated.values()).map(finalizeAggregatedMetric)
+  const spendPayload = rows.map((row) => ({
+    campaign_id: row.campaign_id,
+    spend_date: row.date,
+    amount: row.amount,
+  }))
+  const perfPayload = rows.map((row) => ({
+    campaign_id: row.campaign_id,
+    record_date: row.date,
+    values: row.values,
+  }))
 
   if (spendPayload.length > 0) {
     const { error } = await sb
@@ -138,4 +170,63 @@ export async function upsertDailyMetrics(
     spendRowsUpserted: spendPayload.length,
     performanceRowsUpserted: perfPayload.length,
   }
+}
+
+async function loadManualCampaignsForMetrics(
+  sb: Sb,
+  metrics: PlatformDailyMetric[]
+): Promise<ManualCampaignForMetric[]> {
+  const brandIds = Array.from(new Set(metrics.map((metric) => metric.brandId).filter(Boolean)))
+  const channels = Array.from(new Set(metrics.map((metric) => metric.channel).filter(Boolean))) as string[]
+
+  if (brandIds.length === 0 || channels.length === 0) return []
+
+  const { data, error } = await sb
+    .from("campaigns")
+    .select("id, brand_id, channel, start_date, end_date")
+    .in("brand_id", brandIds)
+    .in("channel", channels)
+    .is("platform", null)
+    .order("start_date", { ascending: false })
+
+  if (error) {
+    throw new Error(`manual campaign lookup failed: ${error.message}`)
+  }
+
+  return (data ?? []) as ManualCampaignForMetric[]
+}
+
+function findManualCampaignIdForMetric(
+  campaigns: ManualCampaignForMetric[],
+  metric: PlatformDailyMetric
+): string | undefined {
+  if (!metric.channel) return undefined
+
+  const channel = metric.channel.toLowerCase()
+  return campaigns.find((campaign) => {
+    if (campaign.brand_id !== metric.brandId) return false
+    if (campaign.channel.toLowerCase() !== channel) return false
+    if (campaign.start_date && campaign.start_date > metric.date) return false
+    if (campaign.end_date && campaign.end_date < metric.date) return false
+    return true
+  })?.id
+}
+
+function finalizeAggregatedMetric(metric: AggregatedDailyMetric): AggregatedDailyMetric {
+  const impressions = metric.values.impressions ?? 0
+  const clicks = metric.values.clicks ?? 0
+  const reach = metric.values.reach ?? 0
+
+  if (impressions > 0) {
+    metric.values.ctr = (clicks / impressions) * 100
+    metric.values.cpm = (metric.amount / impressions) * 1000
+  }
+  if (clicks > 0) {
+    metric.values.cpc = metric.amount / clicks
+  }
+  if (reach > 0) {
+    metric.values.frequency = impressions / reach
+  }
+
+  return metric
 }

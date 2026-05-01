@@ -11,6 +11,27 @@ const REQUIRED_FIELDS: Record<CredentialPlatform, string[]> = {
   ga4: ["client_id", "client_secret"],
 }
 
+async function validateMetaToken(accessToken: string): Promise<string | null> {
+  const qs = new URLSearchParams({
+    access_token: accessToken,
+    fields: "id,name,account_status",
+    limit: "1",
+  })
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?${qs.toString()}`, {
+      cache: "no-store",
+    })
+
+    if (res.ok) return null
+
+    const json = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
+    return json?.error?.message ?? `Meta API HTTP ${res.status}`
+  } catch (error) {
+    return error instanceof Error ? error.message : "Meta token validation failed"
+  }
+}
+
 function isSupportedPlatform(platform: unknown): platform is CredentialPlatform {
   return typeof platform === "string" && SUPPORTED_PLATFORMS.includes(platform as CredentialPlatform)
 }
@@ -74,6 +95,16 @@ export async function POST(req: NextRequest) {
 
   if (missing.length > 0) {
     return NextResponse.json({ error: `Missing required fields: ${missing.join(", ")}` }, { status: 400 })
+  }
+
+  if (platform === "meta") {
+    const validationError = await validateMetaToken(String(incoming.access_token))
+    if (validationError) {
+      return NextResponse.json(
+        { error: `Meta access token validation failed: ${validationError}` },
+        { status: 400 }
+      )
+    }
   }
 
   const supabase = createAdminClient()

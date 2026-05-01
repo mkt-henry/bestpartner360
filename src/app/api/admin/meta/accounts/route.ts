@@ -12,7 +12,7 @@ export async function GET() {
 
   const res = await fetch(
     `https://graph.facebook.com/v21.0/me/adaccounts?access_token=${creds.access_token}&fields=id,name,account_status&limit=100`,
-    { next: { revalidate: 60 } }
+    { cache: "no-store" }
   )
 
   if (!res.ok) {

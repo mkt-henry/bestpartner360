@@ -44,7 +44,7 @@
 .console-scope .logo{padding:22px 22px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
 .console-scope .logo .mark{width:26px;height:26px;border-radius:6px;background:var(--grad);display:grid;place-items:center;color:var(--bg);font-weight:600;font-size:12px;box-shadow:0 0 0 1px #8aa6a140,0 4px 14px #8aa6a125}
 .console-scope .logo .name{font-family:var(--c-serif);font-size:18px;letter-spacing:-.01em;font-weight:500}
-.console-scope .logo .name em{font-family:var(--c-italic);font-style:italic;color:var(--amber);font-size:20px}
+.console-scope .logo .name em{font-family:var(--c-italic);font-style:normal;color:var(--amber);font-size:20px}
 .console-scope .logo .ver{margin-left:auto;font-size:9px;color:var(--dim);letter-spacing:.1em;padding:2px 6px;border:1px solid var(--line);border-radius:4px}
 .console-scope .client-switch{margin:14px 14px 20px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--bg-2);transition:border-color .2s}
 .console-scope .client-switch:hover{border-color:var(--line-2)}
@@ -110,7 +110,7 @@
 /* Page head */
 .console-scope .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
 .console-scope .page-head h1{font-family:var(--c-serif);font-size:34px;letter-spacing:-.02em;font-weight:400;line-height:1;font-variation-settings:"opsz" 144}
-.console-scope .page-head h1 em{font-family:var(--c-italic);font-style:italic;color:var(--amber)}
+.console-scope .page-head h1 em{font-family:var(--c-italic);font-style:normal;color:var(--amber)}
 .console-scope .page-head .sub{font-size:11px;color:var(--dim);margin-top:8px}
 .console-scope .page-head .sub .live{color:var(--good);display:inline-flex;align-items:center;gap:6px;margin-left:12px}
 .console-scope .page-head .sub .live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px #5ec27a22;animation:pulse 1.6s infinite}
@@ -260,7 +260,7 @@
 .console-scope .dh-main .src{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}
 .console-scope .dh-main .src .ic{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;font-weight:600;font-size:11px}
 .console-scope .dh-main h1{font-family:var(--c-serif);font-size:40px;letter-spacing:-.025em;font-weight:400;line-height:1;font-variation-settings:"opsz" 144;margin-bottom:14px}
-.console-scope .dh-main h1 em{font-family:var(--c-italic);font-style:italic;color:var(--amber)}
+.console-scope .dh-main h1 em{font-family:var(--c-italic);font-style:normal;color:var(--amber)}
 .console-scope .dh-meta{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--dim);align-items:center}
 .console-scope .dh-meta b{color:var(--text-2);font-weight:500}
 .console-scope .dh-meta .sep{color:var(--dimmer)}
@@ -377,7 +377,7 @@
 .console-scope .modal-head .src-tag{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;display:flex;align-items:center;gap:8px}
 .console-scope .modal-head .src-tag .ic{width:18px;height:18px;border-radius:4px;background:#1877F220;color:#6FA8F5;display:grid;place-items:center;font-weight:600;font-size:9px}
 .console-scope .modal-head h2{font-family:var(--c-serif);font-size:26px;font-weight:400;letter-spacing:-.02em;font-variation-settings:"opsz" 144;line-height:1.1}
-.console-scope .modal-head h2 em{font-family:var(--c-italic);font-style:italic;color:var(--amber)}
+.console-scope .modal-head h2 em{font-family:var(--c-italic);font-style:normal;color:var(--amber)}
 .console-scope .modal-head .sub{font-size:11px;color:var(--dim);margin-top:6px}
 .console-scope .modal-close{margin-left:auto;width:32px;height:32px;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;color:var(--text-2);flex-shrink:0}
 .console-scope .modal-close:hover{border-color:var(--bad);color:var(--bad)}
@@ -423,7 +423,7 @@
 /* GA4 bits */
 .console-scope .rt-wrap{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:center}
 .console-scope .rt-big{font-family:var(--c-serif);font-size:86px;line-height:.95;font-variation-settings:"opsz" 144;font-weight:350;letter-spacing:-.03em}
-.console-scope .rt-big em{font-family:var(--c-italic);font-style:italic;color:var(--good);font-size:22px;vertical-align:super;margin-left:4px}
+.console-scope .rt-big em{font-family:var(--c-italic);font-style:normal;color:var(--good);font-size:22px;vertical-align:super;margin-left:4px}
 .console-scope .rt-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.14em;margin-top:4px;display:flex;align-items:center;gap:8px}
 .console-scope .rt-label::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--good);animation:pulse 1.6s infinite}
 .console-scope .rt-map{position:relative;height:180px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg-2)}

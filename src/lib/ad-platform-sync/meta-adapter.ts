@@ -13,6 +13,13 @@ import type {
   PlatformDailyMetric,
 } from "@/lib/ad-platform-sync/types"
 
+function channelFromPublisherPlatform(platform?: string): string | undefined {
+  const normalized = (platform ?? "").toLowerCase()
+  if (normalized === "instagram") return "Instagram"
+  if (normalized === "facebook") return "Facebook"
+  return undefined
+}
+
 export class MetaSyncAdapter implements AdPlatformSyncAdapter {
   platform = "meta" as const
 
@@ -74,6 +81,7 @@ export class MetaSyncAdapter implements AdPlatformSyncAdapter {
       since: input.since,
       until: input.until,
       level: "campaign",
+      breakdowns: "publisher_platform",
       timeIncrement: 1,
     })
 
@@ -87,6 +95,7 @@ export class MetaSyncAdapter implements AdPlatformSyncAdapter {
         brandId: input.account.brandId,
         platform: "meta",
         externalCampaignId: row.campaign_id!,
+        channel: channelFromPublisherPlatform(row.publisher_platform),
         date: row.date_start!,
         spend: parseNumeric(row.spend),
         values: {

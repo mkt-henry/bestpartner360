@@ -184,6 +184,53 @@ const s = {
     fontSize: 10,
     fontWeight: 500,
   },
+  actionMenu: {
+    position: "relative" as const,
+    flexShrink: 0,
+  },
+  actionSummary: {
+    listStyle: "none" as const,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "6px 10px",
+    borderRadius: 7,
+    border: "1px solid var(--line)",
+    background: "var(--bg-1)",
+    color: "var(--text-2)",
+    fontSize: 10,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  actionList: {
+    position: "absolute" as const,
+    right: 0,
+    top: "calc(100% + 6px)",
+    zIndex: 30,
+    minWidth: 132,
+    padding: 4,
+    border: "1px solid var(--line)",
+    borderRadius: 8,
+    background: "var(--bg-1)",
+    boxShadow: "0 16px 40px #0008",
+  },
+  actionItem: {
+    width: "100%",
+    display: "block",
+    padding: "8px 9px",
+    border: 0,
+    background: "transparent",
+    borderRadius: 6,
+    color: "var(--text-2)",
+    fontSize: 10,
+    fontWeight: 500,
+    textAlign: "left" as const,
+    whiteSpace: "nowrap" as const,
+    cursor: "pointer",
+  },
+  dangerActionItem: {
+    color: "var(--bad)",
+  },
   list: {
     display: "flex",
     flexDirection: "column" as const,
@@ -191,7 +238,7 @@ const s = {
   },
   linkedItem: {
     display: "grid",
-    gridTemplateColumns: "22px minmax(0, 1fr) auto auto",
+    gridTemplateColumns: "22px minmax(0, 1fr) auto",
     alignItems: "center",
     gap: 9,
     padding: "9px 10px",
@@ -306,8 +353,8 @@ function formatProviderError(provider: "meta" | "naver" | "ga4", message: string
   if (provider === "meta") {
     if (normalized.includes("session has expired") || normalized.includes("access token")) {
       return {
-        title: "Meta 액세스 토큰이 만료되었거나 유효하지 않습니다.",
-        detail: "설정 페이지에서 Meta 계정을 다시 인증한 뒤 새로고침하세요.",
+        title: "저장된 Meta 액세스 토큰을 Meta API가 거부했습니다.",
+        detail: "고정 토큰을 계속 사용할 수 있지만, Meta에서 유효한 토큰 값인지 확인한 뒤 다시 저장하고 새로고침하세요.",
       }
     }
   }
@@ -345,6 +392,38 @@ function formatProviderError(provider: "meta" | "naver" | "ga4", message: string
           : "GA4 속성 목록을 확인하지 못했습니다.",
     detail: message,
   }
+}
+
+type MetaSyncAccountResult = {
+  accountId?: string
+  accountName?: string
+  status: string
+  error?: string
+}
+
+type MetaSyncResponse = {
+  error?: string
+  sync_error?: string
+  accountResults?: MetaSyncAccountResult[]
+  sync_result?: {
+    accountResults?: MetaSyncAccountResult[]
+  }
+}
+
+function extractMetaSyncError(json: MetaSyncResponse): string | null {
+  if (json.error) return json.error
+  if (json.sync_error) return json.sync_error
+
+  const results = json.accountResults ?? json.sync_result?.accountResults ?? []
+  const failed = results.filter((result) => result.status === "failed")
+  if (failed.length === 0) return null
+
+  return failed
+    .map((result) => {
+      const account = result.accountName || result.accountId || "Meta 계정"
+      return `${account}: ${result.error ?? "소진 동기화 실패"}`
+    })
+    .join(" / ")
 }
 
 export default function BrandChannelManager({
@@ -453,7 +532,8 @@ export default function BrandChannelManager({
           meta_account_name: account.name,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error)
+      const json = (await res.json().catch(() => ({}))) as MetaSyncResponse
+      if (!res.ok) throw new Error(json.error ?? "연결 실패")
       setMetaLinked((prev) => [
         ...prev,
         {
@@ -466,6 +546,8 @@ export default function BrandChannelManager({
         },
       ])
       setMetaSelected("")
+      const syncError = extractMetaSyncError(json)
+      if (syncError) setMetaError(syncError)
       router.refresh()
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "연결 실패")
@@ -640,10 +722,123 @@ export default function BrandChannelManager({
     }
   }
 
+  async function syncMetaSpend() {
+    if (metaLinked.length === 0) {
+      setMetaError("먼저 Meta 광고 계정을 연결하세요.")
+      return
+    }
+
+    setSaving(true)
+    setMetaError(null)
+    try {
+      const res = await fetch("/api/admin/sync/meta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandIds: [brand.id] }),
+      })
+      const json = (await res.json().catch(() => ({}))) as MetaSyncResponse
+      const syncError = extractMetaSyncError(json)
+      if (!res.ok || syncError) throw new Error(syncError ?? json.error ?? "Meta 소진 동기화 실패")
+
+      router.refresh()
+    } catch (e: unknown) {
+      setMetaError(e instanceof Error ? e.message : "Meta 소진 동기화 실패")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function removeProvider(provider: "meta" | "naver" | "ga4") {
+    const linkedCount =
+      provider === "meta"
+        ? metaLinked.length
+        : provider === "naver"
+          ? naverLinked.length
+          : ga4Linked.length
+
+    if (linkedCount === 0) {
+      if (provider === "meta") {
+        setMetaError(null)
+        setMetaSelected("")
+      }
+      if (provider === "naver") {
+        setNaverError(null)
+        setNaverSelected("")
+      }
+      if (provider === "ga4") {
+        setGa4Error(null)
+        setGa4Selected("")
+        setGa4ManualMode(false)
+      }
+      setShowAddMedia(false)
+      return
+    }
+
+    const label = provider === "meta" ? "Meta Ads" : provider === "naver" ? "Naver Ads" : "GA4"
+    if (!confirm(`${label} 연결 ${linkedCount}건을 이 브랜드에서 해제하시겠습니까?`)) return
+
+    setSaving(true)
+    try {
+      if (provider === "meta") {
+        await Promise.all(
+          metaLinked.map(async (mapping) => {
+            const res = await fetch("/api/admin/meta/mapping", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ meta_account_id: mapping.meta_account_id }),
+            })
+            if (!res.ok) throw new Error((await res.json()).error)
+          })
+        )
+        setMetaLinked([])
+        setMetaError(null)
+      }
+
+      if (provider === "naver") {
+        await Promise.all(
+          naverLinked.map(async (mapping) => {
+            const res = await fetch("/api/admin/naver/mapping", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ naver_customer_id: mapping.naver_customer_id }),
+            })
+            if (!res.ok) throw new Error((await res.json()).error)
+          })
+        )
+        setNaverLinked([])
+        setNaverError(null)
+      }
+
+      if (provider === "ga4") {
+        await Promise.all(
+          ga4Linked.map(async (mapping) => {
+            const res = await fetch("/api/admin/ga4", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ property_id: mapping.property_id }),
+            })
+            if (!res.ok) throw new Error((await res.json()).error)
+          })
+        )
+        setGa4Linked([])
+        setGa4Error(null)
+        setGa4ManualMode(false)
+      }
+
+      setShowAddMedia(false)
+      router.refresh()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "매체 해제 실패")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function handleCredentialsSaved(provider: "meta" | "naver") {
     if (provider === "meta") {
       setMetaError(null)
       fetchMetaAccounts()
+      if (metaLinked.length > 0) void syncMetaSpend()
     }
 
     if (provider === "naver") {
@@ -658,9 +853,9 @@ export default function BrandChannelManager({
   const connectedMediaCount =
     Number(metaLinked.length > 0) + Number(naverLinked.length > 0) + Number(ga4Linked.length > 0)
   const issueCount = [
-    metaLinked.length === 0 && metaError,
-    naverLinked.length === 0 && naverError,
-    ga4Linked.length === 0 && ga4Error,
+    metaError,
+    naverError,
+    ga4Error,
   ].filter(Boolean).length
 
   const overallTone: MediaTone =
@@ -689,9 +884,9 @@ export default function BrandChannelManager({
     (account) => !ga4Linked.some((mapping) => mapping.property_id === account.id)
   )
 
-  const metaTone = getMediaTone(metaLinked.length > 0, metaLinked.length === 0 && Boolean(metaError))
-  const naverTone = getMediaTone(naverLinked.length > 0, naverLinked.length === 0 && Boolean(naverError))
-  const ga4Tone = getMediaTone(ga4Linked.length > 0, ga4Linked.length === 0 && Boolean(ga4Error))
+  const metaTone = getMediaTone(metaLinked.length > 0, Boolean(metaError))
+  const naverTone = getMediaTone(naverLinked.length > 0, Boolean(naverError))
+  const ga4Tone = getMediaTone(ga4Linked.length > 0, Boolean(ga4Error))
   const metaErrorDisplay = metaError ? formatProviderError("meta", metaError) : null
   const naverErrorDisplay = naverError ? formatProviderError("naver", naverError) : null
   const ga4ErrorDisplay = ga4Error ? formatProviderError("ga4", ga4Error) : null
@@ -864,21 +1059,32 @@ export default function BrandChannelManager({
                     <span style={s.statusDot(toneDotColor(metaTone))} />
                     {renderToneLabel(metaTone)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setModalProvider("meta")}
-                    className="btn"
-                    style={{ padding: "6px 10px", fontSize: 10 }}
-                  >
-                    키 설정
-                  </button>
-                  <button type="button" onClick={fetchMetaAccounts} disabled={metaLoading} style={s.refreshBtn}>
-                    {metaLoading ? "불러오는 중" : "새로고침"}
-                  </button>
+                  <details style={s.actionMenu}>
+                    <summary style={s.actionSummary}>관리</summary>
+                    <div style={s.actionList}>
+                      <button type="button" onClick={() => setModalProvider("meta")} style={s.actionItem}>
+                        키 설정
+                      </button>
+                      <button type="button" onClick={fetchMetaAccounts} disabled={metaLoading} style={s.actionItem}>
+                        {metaLoading ? "불러오는 중" : "새로고침"}
+                      </button>
+                      <button type="button" onClick={syncMetaSpend} disabled={saving} style={s.actionItem}>
+                        {saving ? "동기화 중" : "소진 동기화"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProvider("meta")}
+                        disabled={saving}
+                        style={{ ...s.actionItem, ...s.dangerActionItem, opacity: saving ? 0.5 : 1 }}
+                      >
+                        매체 해제
+                      </button>
+                    </div>
+                  </details>
                 </div>
               </div>
 
-              {metaErrorDisplay && (metaLinked.length === 0 || showAddMedia) && (
+              {metaErrorDisplay && (
                 <div style={s.notice(metaLinked.length > 0 ? "info" : "error")}>
                   <strong style={{ display: "block", color: "#ff9c8f", fontSize: 11 }}>
                     {metaErrorDisplay.title}
@@ -896,15 +1102,6 @@ export default function BrandChannelManager({
                         <div style={s.linkedName}>{mapping.meta_account_name}</div>
                         <div style={s.linkedMeta}>{mapping.meta_account_id}</div>
                       </div>
-                      <span
-                        style={{
-                          ...s.statusChip("connected"),
-                          padding: "3px 8px",
-                          fontSize: 9,
-                        }}
-                      >
-                        연결
-                      </span>
                       <button
                         type="button"
                         onClick={() => unlinkMeta(mapping.meta_account_id)}
@@ -965,17 +1162,25 @@ export default function BrandChannelManager({
                     <span style={s.statusDot(toneDotColor(naverTone))} />
                     {renderToneLabel(naverTone)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setModalProvider("naver")}
-                    className="btn"
-                    style={{ padding: "6px 10px", fontSize: 10 }}
-                  >
-                    키 설정
-                  </button>
-                  <button type="button" onClick={fetchNaverAccounts} disabled={naverLoading} style={s.refreshBtn}>
-                    {naverLoading ? "불러오는 중" : "새로고침"}
-                  </button>
+                  <details style={s.actionMenu}>
+                    <summary style={s.actionSummary}>관리</summary>
+                    <div style={s.actionList}>
+                      <button type="button" onClick={() => setModalProvider("naver")} style={s.actionItem}>
+                        키 설정
+                      </button>
+                      <button type="button" onClick={fetchNaverAccounts} disabled={naverLoading} style={s.actionItem}>
+                        {naverLoading ? "불러오는 중" : "새로고침"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProvider("naver")}
+                        disabled={saving}
+                        style={{ ...s.actionItem, ...s.dangerActionItem, opacity: saving ? 0.5 : 1 }}
+                      >
+                        매체 해제
+                      </button>
+                    </div>
+                  </details>
                 </div>
               </div>
 
@@ -997,15 +1202,6 @@ export default function BrandChannelManager({
                         <div style={s.linkedName}>{mapping.naver_account_name}</div>
                         <div style={s.linkedMeta}>{mapping.naver_customer_id}</div>
                       </div>
-                      <span
-                        style={{
-                          ...s.statusChip("connected"),
-                          padding: "3px 8px",
-                          fontSize: 9,
-                        }}
-                      >
-                        연결
-                      </span>
                       <button
                         type="button"
                         onClick={() => unlinkNaver(mapping.naver_customer_id)}
@@ -1072,19 +1268,27 @@ export default function BrandChannelManager({
                     <span style={s.statusDot(toneDotColor(ga4Tone))} />
                     {renderToneLabel(ga4Tone)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setModalProvider("ga4")}
-                    className="btn"
-                    style={{ padding: "6px 10px", fontSize: 10 }}
-                  >
-                    {ga4Connected ? "재연결" : "연결"}
-                  </button>
-                  {ga4Connected && (
-                    <button type="button" onClick={fetchGa4Properties} disabled={ga4Loading} style={s.refreshBtn}>
-                      {ga4Loading ? "불러오는 중" : "새로고침"}
-                    </button>
-                  )}
+                  <details style={s.actionMenu}>
+                    <summary style={s.actionSummary}>관리</summary>
+                    <div style={s.actionList}>
+                      <button type="button" onClick={() => setModalProvider("ga4")} style={s.actionItem}>
+                        {ga4Connected ? "재연결" : "연결"}
+                      </button>
+                      {ga4Connected && (
+                        <button type="button" onClick={fetchGa4Properties} disabled={ga4Loading} style={s.actionItem}>
+                          {ga4Loading ? "불러오는 중" : "새로고침"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeProvider("ga4")}
+                        disabled={saving}
+                        style={{ ...s.actionItem, ...s.dangerActionItem, opacity: saving ? 0.5 : 1 }}
+                      >
+                        매체 해제
+                      </button>
+                    </div>
+                  </details>
                 </div>
               </div>
 
@@ -1106,15 +1310,6 @@ export default function BrandChannelManager({
                         <div style={s.linkedName}>{mapping.property_name}</div>
                         <div style={s.linkedMeta}>{mapping.property_id}</div>
                       </div>
-                      <span
-                        style={{
-                          ...s.statusChip("connected"),
-                          padding: "3px 8px",
-                          fontSize: 9,
-                        }}
-                      >
-                        연결
-                      </span>
                       <button
                         type="button"
                         onClick={() => removeGa4(mapping.property_id)}

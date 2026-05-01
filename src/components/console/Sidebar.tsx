@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LogoutButton } from "@/components/auth/LogoutButton"
@@ -119,6 +119,7 @@ const viewerWorkspace: NavItem[] = [
 // ── Admin nav (/admin/*) ──────────────────────────────────────────────
 const adminMonitor: NavItem[] = [
   { href: "/admin/campaigns", label: "브랜드 KPI", icon: Icon.chart },
+  { href: "/admin/spend", label: "예산 소진", icon: Icon.trending },
   { href: "/admin/meta", label: "Meta 인사이트", icon: Icon.megaphone },
   { href: "/admin/ga4-utm", label: "GA4 UTM", icon: Icon.trending },
   { href: "/admin/viewer", label: "파트너 뷰어", icon: Icon.eye },
@@ -168,11 +169,9 @@ interface SidebarProps {
 
 export function Sidebar({ role, userName, brandName, propertyCount, availableMedia }: SidebarProps) {
   const pathname = usePathname() ?? "/dashboard"
-  const [collapsed, setCollapsed] = useState(false)
-
-  useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY) === "1") setCollapsed(true)
-  }, [])
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "1"
+  )
 
   const toggle = () => {
     setCollapsed((v) => {

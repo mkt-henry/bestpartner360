@@ -22,6 +22,7 @@ export type PlatformDailyMetric = {
   brandId: string
   platform: SupportedAdPlatform
   externalCampaignId: string
+  channel?: string
   date: string
   spend: number
   values: Record<string, number>

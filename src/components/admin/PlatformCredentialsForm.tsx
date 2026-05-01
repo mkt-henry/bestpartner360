@@ -30,7 +30,7 @@ const platformConfig: Record<
 > = {
   meta: {
     label: "Meta (Facebook / Instagram)",
-    description: "Meta Business Suite에서 발급한 액세스 토큰을 DB에 저장합니다.",
+    description: "Meta에서 발급한 고정 액세스 토큰을 DB에 저장하고 계속 재사용합니다.",
     helpUrl: "https://developers.facebook.com/tools/explorer/",
     helpLabel: "Graph API Explorer",
     fields: [{ key: "access_token", label: "Access Token", placeholder: "EAAxxxxxxx..." }],
