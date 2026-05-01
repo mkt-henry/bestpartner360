@@ -59,15 +59,15 @@ export async function getGa4OAuthCredentials(): Promise<Ga4OAuthCredentials | nu
 
   if (credentials?.client_id && credentials?.client_secret) {
     return {
-      client_id: credentials.client_id,
-      client_secret: credentials.client_secret,
+      client_id: credentials.client_id.trim(),
+      client_secret: credentials.client_secret.trim(),
     }
   }
 
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     return {
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      client_id: process.env.GOOGLE_CLIENT_ID.trim(),
+      client_secret: process.env.GOOGLE_CLIENT_SECRET.trim(),
     }
   }
 

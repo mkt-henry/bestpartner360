@@ -61,7 +61,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid credentials payload" }, { status: 400 })
   }
 
-  const incoming = credentials as Record<string, unknown>
+  const incoming = Object.fromEntries(
+    Object.entries(credentials as Record<string, unknown>).map(([key, value]) => [
+      key,
+      typeof value === "string" ? value.trim() : value,
+    ])
+  )
   const missing = REQUIRED_FIELDS[platform].filter((field) => {
     const value = incoming[field]
     return typeof value !== "string" || !value.trim()
